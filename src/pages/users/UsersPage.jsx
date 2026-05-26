@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import AppLayout from '@/components/layout/AppLayout'
-import { Badge, StatCard, SlidePanel, Stepper } from '@/components/ui'
+import { Badge, StatCard, SlidePanel, Stepper, Button, Input, Select } from '@/components/ui'
 import { Users, Shield, Building2, UserCog, Plus, Search, Trash2 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { usersApi, groupsApi } from '@/api'
@@ -64,58 +64,65 @@ function AddUserPanel({ open, onClose, onUserAdded }) {
       <form onSubmit={handleSubmit(onSubmit)}>
         {step === 0 && (
           <div className="space-y-4">
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Full Name *</label>
-              <input className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all duration-150 bg-white placeholder:text-slate-400" placeholder="Enter full name" {...register('full_name', { required: 'Name is required' })} />
-              {errors.full_name && <p className="text-xs text-red-500 mt-1">{errors.full_name.message}</p>}
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Email Address *</label>
-              <input type="email" className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all duration-150 bg-white placeholder:text-slate-400" placeholder="email@example.com" {...register('email', { required: 'Email is required' })} />
-              {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>}
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Phone Number *</label>
-              <input className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all duration-150 bg-white placeholder:text-slate-400" placeholder="+91 98765 43210" {...register('phone', { required: 'Phone is required' })} />
-              {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone.message}</p>}
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Password *</label>
-              <input type="password" className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all duration-150 bg-white placeholder:text-slate-400" placeholder="Set initial password" {...register('password', { required: 'Password is required', minLength: { value: 6, message: 'Password must be at least 6 characters' } })} />
-              {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password.message}</p>}
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Status</label>
-              <select className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all duration-150 bg-white placeholder:text-slate-400" {...register('status')}>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-              </select>
-            </div>
+            <Input
+              label="Full Name *"
+              placeholder="Enter full name"
+              error={errors.full_name}
+              {...register('full_name', { required: 'Name is required' })}
+            />
+            <Input
+              label="Email Address *"
+              type="email"
+              placeholder="email@example.com"
+              error={errors.email}
+              {...register('email', { required: 'Email is required' })}
+            />
+            <Input
+              label="Phone Number *"
+              placeholder="+91 98765 43210"
+              error={errors.phone}
+              {...register('phone', { required: 'Phone is required' })}
+            />
+            <Input
+              label="Password *"
+              type="password"
+              placeholder="Set initial password"
+              error={errors.password}
+              {...register('password', { required: 'Password is required', minLength: { value: 6, message: 'Password must be at least 6 characters' } })}
+            />
+            <Select
+              label="Status"
+              {...register('status')}
+            >
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </Select>
           </div>
         )}
 
         {step === 1 && (
           <div className="space-y-4">
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Role *</label>
-              <select className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all duration-150 bg-white placeholder:text-slate-400" {...register('role', { required: 'Role is required' })}>
-                <option value="">Select role</option>
-                <option value="superadmin">Super Admin</option>
-                <option value="admin">Admin</option>
-                <option value="partner">Partner (Bus Owner)</option>
-                <option value="operator">Operator</option>
-              </select>
-              {errors.role && <p className="text-xs text-red-500 mt-1">{errors.role.message}</p>}
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Assign Bus Group</label>
-              <select className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all duration-150 bg-white placeholder:text-slate-400" {...register('group_id')}>
-                <option value="">Select group (optional)</option>
-                {groups.map(g => (
-                  <option key={g.id} value={g.id}>{g.name}</option>
-                ))}
-              </select>
-            </div>
+            <Select
+              label="Role *"
+              error={errors.role}
+              {...register('role', { required: 'Role is required' })}
+            >
+              <option value="">Select role</option>
+              <option value="superadmin">Super Admin</option>
+              <option value="admin">Admin</option>
+              <option value="partner">Partner (Bus Owner)</option>
+              <option value="operator">Operator</option>
+            </Select>
+
+            <Select
+              label="Assign Bus Group"
+              {...register('group_id')}
+            >
+              <option value="">Select group (optional)</option>
+              {groups.map(g => (
+                <option key={g.id} value={g.id}>{g.name}</option>
+              ))}
+            </Select>
             <div className="bg-blue-50 text-blue-700 text-xs rounded-lg p-3">
               The selected user will be notified once their account is created.
             </div>
@@ -147,12 +154,14 @@ function AddUserPanel({ open, onClose, onUserAdded }) {
 
         <div className="flex justify-between mt-6">
           {step > 0
-            ? <button type="button" onClick={() => setStep(s => s - 1)} className="inline-flex items-center gap-2 px-4 py-2 bg-white text-slate-700 text-sm font-medium rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors duration-150" disabled={submitting}>← Back</button>
-            : <button type="button" onClick={onClose} className="inline-flex items-center gap-2 px-4 py-2 bg-white text-slate-700 text-sm font-medium rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors duration-150" disabled={submitting}>Cancel</button>
+            ? <Button type="button" onClick={() => setStep(s => s - 1)} variant="secondary" disabled={submitting} label="← Back" />
+            : <Button type="button" onClick={onClose} variant="secondary" disabled={submitting} label="Cancel" />
           }
-          <button type="submit" className="inline-flex items-center gap-2 px-4 py-2 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-dark transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed" disabled={submitting}>
-            {submitting ? 'Creating...' : (step < 2 ? 'Next →' : 'Create User')}
-          </button>
+          <Button
+            type="submit"
+            loading={submitting}
+            label={step < 2 ? 'Next →' : 'Create User'}
+          />
         </div>
       </form>
     </SlidePanel>
@@ -213,18 +222,18 @@ export default function UsersPage() {
         {/* Table card */}
         <div className="bg-white rounded-xl shadow-card border border-slate-100 p-5">
           <div className="flex items-center justify-between mb-4">
-            <div className="relative">
-              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                className="w-72 pl-8 pr-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all duration-150 bg-white placeholder:text-slate-400"
-                placeholder="Search by name, email or phone..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-              />
-            </div>
-            <button className="inline-flex items-center gap-2 px-4 py-2 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-dark transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed" onClick={() => setShowAdd(true)}>
-              <Plus size={14} /> Add User
-            </button>
+            <Input
+              placeholder="Search by name, email or phone..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              startIcon={Search}
+              className="w-72 py-1.5"
+            />
+            <Button
+              startIcon={Plus}
+              label="Add User"
+              onClick={() => setShowAdd(true)}
+            />
           </div>
 
           {loading ? (

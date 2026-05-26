@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import AppLayout from '@/components/layout/AppLayout'
-import { Badge, EmptyState } from '@/components/ui'
+import { Badge, EmptyState, Button, Input } from '@/components/ui'
 import { MapPin, Plus, ChevronRight, MoreVertical, Search } from 'lucide-react'
 
 const MOCK_ROUTES = [
@@ -28,19 +28,19 @@ export default function RoutesPage() {
           {/* Left: route list */}
           <div className="w-80 shrink-0">
             <div className="flex items-center gap-2 mb-3">
-              <div className="relative flex-1">
-                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  className="w-full pl-8 pr-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all duration-150 bg-white placeholder:text-slate-400"
-                  placeholder="Search routes..."
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                />
-              </div>
-              <button className="inline-flex items-center gap-2 px-4 py-2 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-dark transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed shrink-0">
-                <Plus size={14} />
-                Create
-              </button>
+              <Input
+                placeholder="Search routes..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                startIcon={Search}
+                containerClassName="flex-1"
+                className="py-1.5"
+              />
+              <Button
+                startIcon={Plus}
+                label="Create"
+                className="shrink-0"
+              />
             </div>
 
             <div className="space-y-2">
@@ -79,8 +79,8 @@ export default function RoutesPage() {
                   <Badge status={selected.status} />
                 </div>
                 <div className="flex items-center gap-2">
-                  <button className="inline-flex items-center gap-2 px-4 py-1.5 bg-white text-slate-700 text-xs font-medium rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors duration-150">Edit Route</button>
-                  <button className="inline-flex items-center gap-2 px-4 py-1.5 bg-red-50 text-red-600 text-xs font-medium rounded-lg border border-red-100 hover:bg-red-100 transition-colors duration-150">Delete</button>
+                  <Button variant="secondary" size="sm" className="px-4 rounded-lg" label="Edit Route" />
+                  <Button variant="danger" size="sm" className="px-4 rounded-lg" label="Delete" />
                 </div>
               </div>
 
@@ -104,7 +104,7 @@ export default function RoutesPage() {
               {/* Stops table placeholder */}
               <div className="flex items-center justify-between mb-3">
                 <p className="text-xs font-semibold text-slate-700">Route Stops</p>
-                <button className="inline-flex items-center gap-2 px-4 py-1.5 bg-brand text-white text-xs font-medium rounded-lg hover:bg-brand-dark transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed">+ Add Stop</button>
+                <Button variant="primary" size="sm" className="px-4 rounded-lg" label="+ Add Stop" />
               </div>
               <div className="text-center py-10 text-slate-400 text-sm bg-slate-50 rounded-xl">
                 Stops table + Map — connect to API

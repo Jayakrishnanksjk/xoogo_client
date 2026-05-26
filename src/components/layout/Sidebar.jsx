@@ -8,14 +8,18 @@ import clsx from 'clsx'
 
 const NAV_SUPERADMIN = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/fleet', icon: Bus, label: 'Fleet' },
+  { to: '/fleet', icon: Bus, label: 'Bus Screens' },
   { to: '/routes', icon: MapPin, label: 'Routes & Stops' },
+  { to: '/media', icon: Library, label: 'Media Library' },
+  { to: '/playlists', icon: ListMusic, label: 'Playlists' },
   { to: '/users', icon: Users, label: 'Users' },
 ]
 
 const NAV_PARTNER = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/fleet', icon: Bus, label: 'Fleet' },
+  { to: '/fleet', icon: Bus, label: 'Bus Screens' },
+  { to: '/media', icon: Library, label: 'Media Library' },
+  { to: '/playlists', icon: ListMusic, label: 'Playlists' },
 ]
 
 export default function Sidebar() {

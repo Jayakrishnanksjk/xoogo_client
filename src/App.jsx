@@ -8,6 +8,10 @@ import DashboardPage from '@/pages/dashboard/DashboardPage'
 import FleetPage from '@/pages/fleet/FleetPage'
 import RoutesPage from '@/pages/routes/RoutesPage'
 import UsersPage from '@/pages/users/UsersPage'
+import AddGroupPage from '@/pages/fleet/AddGroupPage'
+import AddBusScreenPage from '@/pages/fleet/AddBusScreenPage'
+import MediaLibraryPage from '@/pages/media/MediaLibraryPage'
+import PlaylistsPage from '@/pages/playlists/PlaylistsPage'
 
 export default function App() {
   return (
@@ -23,6 +27,10 @@ export default function App() {
           <Route element={<RequireAuth />}>
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/fleet" element={<FleetPage />} />
+            <Route path="/fleet/add-group" element={<AddGroupPage />} />
+            <Route path="/fleet/add-bus-screen" element={<AddBusScreenPage />} />
+            <Route path="/media" element={<MediaLibraryPage />} />
+            <Route path="/playlists" element={<PlaylistsPage />} />
 
             {/* Superadmin only */}
             <Route element={<RequireSuperadmin />}>
