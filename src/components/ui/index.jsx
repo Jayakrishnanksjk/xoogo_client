@@ -82,7 +82,7 @@ export function Badge({ status }) {
 // ── StatCard ──────────────────────────────────────────────
 export function StatCard({ icon: Icon, iconColor, iconBg, label, value, sub }) {
   return (
-    <div className="stat-card">
+    <div className="bg-white rounded-xl shadow-card border border-slate-100 p-4 flex items-center gap-4">
       <div className={clsx('w-10 h-10 rounded-xl flex items-center justify-center shrink-0', iconBg)}>
         <Icon size={18} className={iconColor} />
       </div>
@@ -124,10 +124,13 @@ export function ConfirmDialog({ open, onClose, onConfirm, title, message, confir
     <Modal open={open} onClose={onClose} title={title} width="max-w-sm">
       <p className="text-sm text-slate-600 mb-5">{message}</p>
       <div className="flex justify-end gap-2">
-        <button onClick={onClose} className="btn-secondary">Cancel</button>
+        <button onClick={onClose} className="inline-flex items-center gap-2 px-4 py-2 bg-white text-slate-700 text-sm font-medium rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors duration-150">Cancel</button>
         <button
           onClick={() => { onConfirm(); onClose() }}
-          className={danger ? 'btn-danger' : 'btn-primary'}
+          className={danger 
+            ? 'inline-flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 text-sm font-medium rounded-lg border border-red-100 hover:bg-red-100 transition-colors duration-150' 
+            : 'inline-flex items-center gap-2 px-4 py-2 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-dark transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed'
+          }
         >
           {confirmLabel}
         </button>

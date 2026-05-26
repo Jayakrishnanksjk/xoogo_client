@@ -16,7 +16,7 @@ const MOCK_GROUPS = [
 
 function GroupCard({ group }) {
   return (
-    <div className="card hover:shadow-card-md transition-shadow cursor-pointer group">
+    <div className="bg-white rounded-xl shadow-card border border-slate-100 p-5 hover:shadow-card-md transition-shadow cursor-pointer group">
       {/* Image placeholder */}
       <div className="h-32 bg-gradient-to-br from-slate-100 to-slate-200 rounded-lg mb-3 flex items-center justify-center relative overflow-hidden">
         <Bus size={32} className="text-slate-300" />
@@ -36,10 +36,10 @@ function GroupCard({ group }) {
 
       <div className="flex items-center gap-3 text-xs mb-3">
         <span className="flex items-center gap-1">
-          <span className="dot-online" /> <span className="text-slate-600">{group.online} Online</span>
+          <span className="w-2 h-2 rounded-full bg-online inline-block" /> <span className="text-slate-600">{group.online} Online</span>
         </span>
         <span className="flex items-center gap-1">
-          <span className="dot-offline" /> <span className="text-slate-600">{group.offline} Offline</span>
+          <span className="w-2 h-2 rounded-full bg-offline inline-block" /> <span className="text-slate-600">{group.offline} Offline</span>
         </span>
       </div>
 
@@ -98,7 +98,7 @@ export default function FleetPage() {
 
   return (
     <AppLayout title="Fleet" subtitle="Manage all bus screens by groups or routes">
-      <div className="page-container">
+      <div className="p-6 max-w-screen-xl">
         {/* Tab bar + action */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-lg p-1">
@@ -117,7 +117,7 @@ export default function FleetPage() {
               </button>
             ))}
           </div>
-          <button className="btn-primary">
+          <button className="inline-flex items-center gap-2 px-4 py-2 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-dark transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed">
             <Plus size={15} />
             Add Group
           </button>

@@ -65,28 +65,28 @@ function AddUserPanel({ open, onClose, onUserAdded }) {
         {step === 0 && (
           <div className="space-y-4">
             <div>
-              <label className="label">Full Name *</label>
-              <input className="input" placeholder="Enter full name" {...register('full_name', { required: 'Name is required' })} />
+              <label className="block text-xs font-medium text-slate-600 mb-1">Full Name *</label>
+              <input className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all duration-150 bg-white placeholder:text-slate-400" placeholder="Enter full name" {...register('full_name', { required: 'Name is required' })} />
               {errors.full_name && <p className="text-xs text-red-500 mt-1">{errors.full_name.message}</p>}
             </div>
             <div>
-              <label className="label">Email Address *</label>
-              <input type="email" className="input" placeholder="email@example.com" {...register('email', { required: 'Email is required' })} />
+              <label className="block text-xs font-medium text-slate-600 mb-1">Email Address *</label>
+              <input type="email" className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all duration-150 bg-white placeholder:text-slate-400" placeholder="email@example.com" {...register('email', { required: 'Email is required' })} />
               {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>}
             </div>
             <div>
-              <label className="label">Phone Number *</label>
-              <input className="input" placeholder="+91 98765 43210" {...register('phone', { required: 'Phone is required' })} />
+              <label className="block text-xs font-medium text-slate-600 mb-1">Phone Number *</label>
+              <input className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all duration-150 bg-white placeholder:text-slate-400" placeholder="+91 98765 43210" {...register('phone', { required: 'Phone is required' })} />
               {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone.message}</p>}
             </div>
             <div>
-              <label className="label">Password *</label>
-              <input type="password" className="input" placeholder="Set initial password" {...register('password', { required: 'Password is required', minLength: { value: 6, message: 'Password must be at least 6 characters' } })} />
+              <label className="block text-xs font-medium text-slate-600 mb-1">Password *</label>
+              <input type="password" className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all duration-150 bg-white placeholder:text-slate-400" placeholder="Set initial password" {...register('password', { required: 'Password is required', minLength: { value: 6, message: 'Password must be at least 6 characters' } })} />
               {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password.message}</p>}
             </div>
             <div>
-              <label className="label">Status</label>
-              <select className="input" {...register('status')}>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Status</label>
+              <select className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all duration-150 bg-white placeholder:text-slate-400" {...register('status')}>
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
               </select>
@@ -97,8 +97,8 @@ function AddUserPanel({ open, onClose, onUserAdded }) {
         {step === 1 && (
           <div className="space-y-4">
             <div>
-              <label className="label">Role *</label>
-              <select className="input" {...register('role', { required: 'Role is required' })}>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Role *</label>
+              <select className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all duration-150 bg-white placeholder:text-slate-400" {...register('role', { required: 'Role is required' })}>
                 <option value="">Select role</option>
                 <option value="superadmin">Super Admin</option>
                 <option value="admin">Admin</option>
@@ -108,8 +108,8 @@ function AddUserPanel({ open, onClose, onUserAdded }) {
               {errors.role && <p className="text-xs text-red-500 mt-1">{errors.role.message}</p>}
             </div>
             <div>
-              <label className="label">Assign Bus Group</label>
-              <select className="input" {...register('group_id')}>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Assign Bus Group</label>
+              <select className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all duration-150 bg-white placeholder:text-slate-400" {...register('group_id')}>
                 <option value="">Select group (optional)</option>
                 {groups.map(g => (
                   <option key={g.id} value={g.id}>{g.name}</option>
@@ -147,10 +147,10 @@ function AddUserPanel({ open, onClose, onUserAdded }) {
 
         <div className="flex justify-between mt-6">
           {step > 0
-            ? <button type="button" onClick={() => setStep(s => s - 1)} className="btn-secondary" disabled={submitting}>← Back</button>
-            : <button type="button" onClick={onClose} className="btn-secondary" disabled={submitting}>Cancel</button>
+            ? <button type="button" onClick={() => setStep(s => s - 1)} className="inline-flex items-center gap-2 px-4 py-2 bg-white text-slate-700 text-sm font-medium rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors duration-150" disabled={submitting}>← Back</button>
+            : <button type="button" onClick={onClose} className="inline-flex items-center gap-2 px-4 py-2 bg-white text-slate-700 text-sm font-medium rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors duration-150" disabled={submitting}>Cancel</button>
           }
-          <button type="submit" className="btn-primary" disabled={submitting}>
+          <button type="submit" className="inline-flex items-center gap-2 px-4 py-2 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-dark transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed" disabled={submitting}>
             {submitting ? 'Creating...' : (step < 2 ? 'Next →' : 'Create User')}
           </button>
         </div>
@@ -201,7 +201,7 @@ export default function UsersPage() {
 
   return (
     <AppLayout title="Users" subtitle="Manage system users and permissions">
-      <div className="page-container">
+      <div className="p-6 max-w-screen-xl">
         {/* Stats */}
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
           <StatCard icon={Users}    iconBg="bg-blue-50"   iconColor="text-blue-500"   label="Total Users"  value={String(totalUsers)} sub="Across all roles" />
@@ -211,18 +211,18 @@ export default function UsersPage() {
         </div>
 
         {/* Table card */}
-        <div className="card">
+        <div className="bg-white rounded-xl shadow-card border border-slate-100 p-5">
           <div className="flex items-center justify-between mb-4">
             <div className="relative">
               <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
-                className="input pl-8 py-1.5 w-72"
+                className="w-72 pl-8 pr-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all duration-150 bg-white placeholder:text-slate-400"
                 placeholder="Search by name, email or phone..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
               />
             </div>
-            <button className="btn-primary" onClick={() => setShowAdd(true)}>
+            <button className="inline-flex items-center gap-2 px-4 py-2 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-dark transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed" onClick={() => setShowAdd(true)}>
               <Plus size={14} /> Add User
             </button>
           </div>
@@ -240,7 +240,7 @@ export default function UsersPage() {
               <thead>
                 <tr className="border-b border-slate-100">
                   {['User', 'Role', 'Assigned Groups', 'Status', 'Last Login', 'Actions'].map(h => (
-                    <th key={h} className="table-header text-left pb-3 pr-4 font-medium">{h}</th>
+                    <th key={h} className="text-xs font-medium text-slate-500 uppercase tracking-wide text-left pb-3 pr-4">{h}</th>
                   ))}
                 </tr>
               </thead>

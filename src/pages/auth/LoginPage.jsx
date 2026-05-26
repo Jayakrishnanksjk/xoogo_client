@@ -64,10 +64,10 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div>
-              <label className="label">Email address</label>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Email address</label>
               <input
                 type="email"
-                className="input"
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all duration-150 bg-white placeholder:text-slate-400"
                 placeholder="you@example.com"
                 {...register('email', { required: 'Email is required' })}
               />
@@ -75,11 +75,11 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label className="label">Password</label>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Password</label>
               <div className="relative">
                 <input
                   type={showPass ? 'text' : 'password'}
-                  className="input pr-10"
+                  className="w-full px-3 py-2 pr-10 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all duration-150 bg-white placeholder:text-slate-400"
                   placeholder="••••••••"
                   {...register('password', { required: 'Password is required' })}
                 />
@@ -97,7 +97,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="btn-primary w-full justify-center py-2.5 mt-2"
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-dark transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed w-full justify-center mt-2"
             >
               {loading ? (
                 <span className="flex items-center gap-2">

@@ -23,7 +23,7 @@ export default function DashboardPage() {
 
   return (
     <AppLayout title="Dashboard" subtitle={`Welcome back, ${user?.full_name?.split(' ')[0]}`}>
-      <div className="page-container">
+      <div className="p-6 max-w-screen-xl">
 
         {/* Stat row */}
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
@@ -34,7 +34,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
 
           {/* Live tracking map placeholder */}
-          <div className="lg:col-span-3 card">
+          <div className="lg:col-span-3 bg-white rounded-xl shadow-card border border-slate-100 p-5">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold text-slate-900">Live Bus Tracking</h3>
               <button className="text-xs text-brand hover:underline">View full map ↗</button>
@@ -47,7 +47,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Alerts panel */}
-          <div className="lg:col-span-2 card">
+          <div className="lg:col-span-2 bg-white rounded-xl shadow-card border border-slate-100 p-5">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold text-slate-900">Alerts</h3>
               <button className="text-xs text-brand hover:underline">View all</button>
