@@ -8,7 +8,7 @@ import clsx from 'clsx'
 
 const NAV_SUPERADMIN = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/fleet', icon: Bus, label: 'Bus Screens' },
+  { to: '/fleet', icon: Bus, label: 'Fleet' },
   { to: '/routes', icon: MapPin, label: 'Routes & Stops' },
   { to: '/media', icon: Library, label: 'Media Library' },
   { to: '/playlists', icon: ListMusic, label: 'Playlists' },
@@ -17,7 +17,7 @@ const NAV_SUPERADMIN = [
 
 const NAV_PARTNER = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/fleet', icon: Bus, label: 'Bus Screens' },
+  { to: '/fleet', icon: Bus, label: 'Fleet' },
   { to: '/media', icon: Library, label: 'Media Library' },
   { to: '/playlists', icon: ListMusic, label: 'Playlists' },
 ]

@@ -20,7 +20,7 @@ export const Input = forwardRef(({
       <div className="relative">
         {StartIcon && (
           <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-            {typeof StartIcon === 'function' || typeof StartIcon === 'object' ? (
+            {typeof StartIcon === 'function' || (typeof StartIcon === 'object' && !React.isValidElement(StartIcon)) ? (
               <StartIcon size={14} className="shrink-0" />
             ) : StartIcon}
           </div>

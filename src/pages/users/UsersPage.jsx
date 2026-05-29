@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import AppLayout from '@/components/layout/AppLayout'
-import { Badge, StatCard, SlidePanel, Stepper, Button, Input, Select } from '@/components/ui'
+import { Badge, StatCard, SlidePanel, Stepper, Button, Input, Select, ConfirmDialog } from '@/components/ui'
 import { Users, Shield, Building2, UserCog, Plus, Search, Trash2 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { usersApi, groupsApi } from '@/api'
@@ -36,7 +36,7 @@ function AddUserPanel({ open, onClose, onUserAdded }) {
       await usersApi.create({
         full_name: data.full_name,
         email: data.email,
-        phone: data.phone,
+        phone: `+91 ${data.phone}`,
         password: data.password,
         role: data.role,
         status: data.status || 'active',
@@ -79,9 +79,25 @@ function AddUserPanel({ open, onClose, onUserAdded }) {
             />
             <Input
               label="Phone Number *"
-              placeholder="+91 98765 43210"
+              placeholder="98765 43210"
+              startIcon={
+                <div className="flex items-center pr-2 border-r border-slate-200 select-none">
+                  <span className="text-slate-500 text-sm font-semibold font-mono leading-none">+91</span>
+                </div>
+              }
+              className="pl-[60px]"
               error={errors.phone}
-              {...register('phone', { required: 'Phone is required' })}
+              {...register('phone', {
+                required: 'Phone is required',
+                pattern: {
+                  value: /^[0-9]{10}$/,
+                  message: 'Must be exactly 10 digits'
+                },
+                onChange: (e) => {
+                  const cleanVal = e.target.value.replace(/\D/g, '').slice(0, 10)
+                  e.target.value = cleanVal
+                }
+              })}
             />
             <Input
               label="Password *"
@@ -135,7 +151,7 @@ function AddUserPanel({ open, onClose, onUserAdded }) {
               {[
                 ['Name', watch('full_name')],
                 ['Email', watch('email')],
-                ['Phone', watch('phone')],
+                ['Phone', watch('phone') ? `+91 ${watch('phone')}` : '—'],
                 ['Role', watch('role')],
                 ['Group', selectedGroupName],
                 ['Status', watch('status') || 'active']
@@ -173,6 +189,7 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
   const [search, setSearch] = useState('')
+  const [deleteConfirm, setDeleteConfirm] = useState({ open: false, userId: null, userName: '' })
 
   const fetchUsers = async () => {
     try {
@@ -191,10 +208,15 @@ export default function UsersPage() {
     fetchUsers()
   }, [search])
 
-  const handleDeleteUser = async (id, name) => {
-    if (!window.confirm(`Are you sure you want to delete user "${name}"?`)) return
+  const triggerDeleteConfirm = (id, name) => {
+    setDeleteConfirm({ open: true, userId: id, userName: name })
+  }
+
+  const handleConfirmDelete = async () => {
+    const { userId } = deleteConfirm
+    if (!userId) return
     try {
-      await usersApi.delete(id)
+      await usersApi.delete(userId)
       toast.success('User deleted successfully')
       fetchUsers()
     } catch (err) {
@@ -273,7 +295,7 @@ export default function UsersPage() {
                     <td className="py-3 pr-4 text-xs text-slate-500">{u.lastLogin}</td>
                     <td className="py-3">
                       <button
-                        onClick={() => handleDeleteUser(u.id, u.full_name)}
+                        onClick={() => triggerDeleteConfirm(u.id, u.full_name)}
                         className="p-1.5 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-md transition-colors"
                         title="Delete User"
                       >
@@ -289,6 +311,16 @@ export default function UsersPage() {
       </div>
 
       <AddUserPanel open={showAdd} onClose={() => setShowAdd(false)} onUserAdded={fetchUsers} />
+
+      <ConfirmDialog
+        open={deleteConfirm.open}
+        onClose={() => setDeleteConfirm({ open: false, userId: null, userName: '' })}
+        onConfirm={handleConfirmDelete}
+        title="Delete User"
+        message={`Are you sure you want to delete user "${deleteConfirm.userName}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        danger
+      />
     </AppLayout>
   )
 }

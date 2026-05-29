@@ -17,3 +17,6 @@ export { SearchInput } from './SearchInput'
 export { DataCard } from './DataCard'
 export { MediaCard } from './MediaCard'
 export { AnalyticsPanel } from './AnalyticsPanel'
+export { Combobox } from './Combobox'
+export { LocationAutocomplete } from './LocationAutocomplete'
+

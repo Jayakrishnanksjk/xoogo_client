@@ -1,23 +1,12 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '@/components/layout/AppLayout'
 import { Stepper, Input, Select, Checkbox, Button, Badge } from '@/components/ui'
-import { ArrowLeft, ArrowRight, Info, CheckCircle, GripVertical, Bus } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Info, CheckCircle, GripVertical, Bus, Check } from 'lucide-react'
+import { groupsApi, routesApi, busesApi } from '@/api'
+import toast from 'react-hot-toast'
 
 const STEPS = ['Bus Details', 'Route & Stops', 'Preview & Complete']
-
-const MOCK_GROUPS = [
-  { id: 1, name: 'Ave Maria' },
-  { id: 2, name: 'Madhavi Travels' },
-  { id: 3, name: 'Galaxy Travels' },
-  { id: 4, name: 'Starline Travels' },
-]
-
-const MOCK_ROUTES = [
-  { id: 1, name: 'Kannur → Kasaragod', stops: ['Kannur (Start)', 'Taliparamba', 'Payyanur', 'Kanhangad', 'Nileshwaram', 'Kasaragod (End)'] },
-  { id: 2, name: 'Kozhikode → Payyanur', stops: ['Kozhikode (Start)', 'Vadakara', 'Thalassery', 'Kannur', 'Taliparamba', 'Payyanur (End)'] },
-  { id: 3, name: 'Ernakulam → Kottayam', stops: ['Ernakulam (Start)', 'Tripunithura', 'Muvattupuzha', 'Thodupuzha', 'Pala', 'Kottayam (End)'] },
-]
 
 const BUS_TYPES = ['Limited Stop', 'Express', 'Super Express', 'Ordinary', 'Fast Passenger']
 
@@ -25,7 +14,7 @@ const STOP_COLORS = [
   'bg-brand', 'bg-purple-500', 'bg-amber-500', 'bg-green-500', 'bg-red-500', 'bg-pink-500', 'bg-teal-500', 'bg-orange-500'
 ]
 
-function BusDetailsStep({ form, setForm }) {
+function BusDetailsStep({ form, setForm, groups = [] }) {
   return (
     <div>
       <h3 className="text-sm font-semibold text-slate-900 mb-1">1. Bus Details</h3>
@@ -49,7 +38,7 @@ function BusDetailsStep({ form, setForm }) {
               onChange={e => setForm(f => ({ ...f, groupId: e.target.value }))}
             >
               <option value="">Select group</option>
-              {MOCK_GROUPS.map(g => (
+              {groups.map(g => (
                 <option key={g.id} value={g.id}>{g.name}</option>
               ))}
             </Select>
@@ -95,9 +84,18 @@ function BusDetailsStep({ form, setForm }) {
           <div>
             <Input
               label="Contact Number *"
-              placeholder="+91 98765 43210"
+              placeholder="98765 43210"
+              startIcon={
+                <div className="flex items-center pr-2 border-r border-slate-200 select-none">
+                  <span className="text-slate-500 text-sm font-semibold font-mono leading-none">+91</span>
+                </div>
+              }
+              className="pl-[60px]"
               value={form.contactNumber}
-              onChange={e => setForm(f => ({ ...f, contactNumber: e.target.value }))}
+              onChange={e => {
+                const val = e.target.value.replace(/\D/g, '').slice(0, 10)
+                setForm(f => ({ ...f, contactNumber: val }))
+              }}
             />
             <p className="text-[11px] text-slate-400 mt-1">Primary contact number</p>
           </div>
@@ -136,7 +134,7 @@ function BusDetailsStep({ form, setForm }) {
         <div className="flex items-start gap-2 p-3 bg-blue-50 rounded-lg">
           <Info size={14} className="text-blue-500 shrink-0 mt-0.5" />
           <p className="text-xs text-blue-700">
-            The selected group owner (<strong>{MOCK_GROUPS.find(g => String(g.id) === String(form.groupId))?.name || '...'}</strong>) will be notified once this bus screen is added.
+            The selected group owner (<strong>{groups.find(g => String(g.id) === String(form.groupId))?.name || '...'}</strong>) will be notified once this bus screen is added.
           </p>
         </div>
       </div>
@@ -144,8 +142,8 @@ function BusDetailsStep({ form, setForm }) {
   )
 }
 
-function RouteStopsStep({ form, setForm }) {
-  const selectedRoute = MOCK_ROUTES.find(r => String(r.id) === String(form.routeId))
+function RouteStopsStep({ form, setForm, routes = [] }) {
+  const selectedRoute = routes.find(r => String(r.id) === String(form.routeId))
 
   return (
     <div>
@@ -158,7 +156,7 @@ function RouteStopsStep({ form, setForm }) {
             label="Route *"
             value={form.routeId}
             onChange={e => {
-              const route = MOCK_ROUTES.find(r => String(r.id) === e.target.value)
+              const route = routes.find(r => String(r.id) === e.target.value)
               setForm(f => ({
                 ...f,
                 routeId: e.target.value,
@@ -167,7 +165,7 @@ function RouteStopsStep({ form, setForm }) {
             }}
           >
             <option value="">Select route</option>
-            {MOCK_ROUTES.map(r => (
+            {routes.map(r => (
               <option key={r.id} value={r.id}>{r.name}</option>
             ))}
           </Select>
@@ -182,7 +180,7 @@ function RouteStopsStep({ form, setForm }) {
             <div className="border border-slate-200 rounded-lg overflow-hidden">
               {selectedRoute.stops.map((stop, idx) => (
                 <div
-                  key={idx}
+                  key={stop.id || idx}
                   className="flex items-center gap-3 px-3 py-2.5 border-b border-slate-100 last:border-b-0 hover:bg-slate-50 transition-colors"
                 >
                   <GripVertical size={14} className="text-slate-300 cursor-grab shrink-0" />
@@ -198,7 +196,7 @@ function RouteStopsStep({ form, setForm }) {
                     }}
                   />
                   <span className="text-xs font-medium text-slate-500 w-5">{idx + 1}</span>
-                  <span className="text-sm text-slate-800">{stop}</span>
+                  <span className="text-sm text-slate-800">{stop?.name || stop}</span>
                 </div>
               ))}
             </div>
@@ -221,14 +219,14 @@ function RouteStopsStep({ form, setForm }) {
   )
 }
 
-function PreviewStep({ form }) {
-  const selectedGroup = MOCK_GROUPS.find(g => String(g.id) === String(form.groupId))
-  const selectedRoute = MOCK_ROUTES.find(r => String(r.id) === String(form.routeId))
+function PreviewStep({ form, groups = [], routes = [], isEditMode = false }) {
+  const selectedGroup = groups.find(g => String(g.id) === String(form.groupId))
+  const selectedRoute = routes.find(r => String(r.id) === String(form.routeId))
 
   return (
     <div>
       <h3 className="text-sm font-semibold text-slate-900 mb-1">3. Preview & Complete</h3>
-      <p className="text-xs text-slate-500 mb-5">Review all details before creating the bus screen.</p>
+      <p className="text-xs text-slate-500 mb-5">Review all details before {isEditMode ? 'updating' : 'creating'} the bus screen.</p>
 
       {/* Bus plate preview */}
       <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-6 mb-5 flex items-center justify-center">
@@ -244,7 +242,7 @@ function PreviewStep({ form }) {
           ['Bus Type', form.busType || '–'],
           ['SIM Number', form.simNumber || '–'],
           ['Contact Person', form.contactName || '–'],
-          ['Contact Number', form.contactNumber || '–'],
+          ['Contact Number', form.contactNumber ? `+91 ${form.contactNumber}` : '–'],
           ['Route', selectedRoute?.name || '–'],
         ].map(([label, value]) => (
           <div key={label} className="flex items-center justify-between py-1.5 border-b border-slate-100">
@@ -262,7 +260,7 @@ function PreviewStep({ form }) {
             {form.selectedStops.sort((a, b) => a - b).map((stopIdx, i) => (
               <div key={stopIdx} className="flex items-center gap-2">
                 <span className={`w-2 h-2 rounded-full ${STOP_COLORS[i % STOP_COLORS.length]} shrink-0`} />
-                <span className="text-xs text-slate-700">{selectedRoute.stops[stopIdx]}</span>
+                <span className="text-xs text-slate-700">{selectedRoute.stops[stopIdx]?.name || selectedRoute.stops[stopIdx]}</span>
               </div>
             ))}
           </div>
@@ -274,7 +272,14 @@ function PreviewStep({ form }) {
 
 export default function AddBusScreenPage() {
   const navigate = useNavigate()
+  const { id } = useParams()
+  const isEditMode = !!id
+
   const [step, setStep] = useState(0)
+  const [groups, setGroups] = useState([])
+  const [routes, setRoutes] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
     regNumber: '',
     groupId: '',
@@ -288,8 +293,106 @@ export default function AddBusScreenPage() {
     selectedStops: [],
   })
 
+  useEffect(() => {
+    async function loadData() {
+      try {
+        setLoading(true)
+        const [groupsRes, routesRes] = await Promise.all([
+          groupsApi.list(),
+          routesApi.list()
+        ])
+        setGroups(groupsRes.data)
+        setRoutes(routesRes.data)
+
+        if (isEditMode) {
+          const busRes = await busesApi.get(id)
+          const busData = busRes.data
+          setForm({
+            regNumber: busData.regNumber || '',
+            groupId: busData.groupId ? String(busData.groupId) : '',
+            simNumber: busData.simNumber || '',
+            busType: busData.busType || '',
+            contactName: busData.contactName || '',
+            contactNumber: busData.contactNumber ? busData.contactNumber.replace(/^\+91\s*/, '') : '',
+            chassisNumber: busData.chassisNumber || '',
+            model: busData.model || '',
+            routeId: busData.routeId ? String(busData.routeId) : '',
+            selectedStops: busData.selectedStops ? busData.selectedStops.map(Number) : [],
+          })
+        }
+      } catch (err) {
+        console.error('Failed to load data:', err)
+        toast.error(isEditMode ? 'Failed to load bus screen details' : 'Failed to load groups/routes')
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadData()
+  }, [id, isEditMode])
+
+  const isNextDisabled = () => {
+    if (loading || saving) return true
+    if (step === 0 && (
+      !form.regNumber.trim() ||
+      !form.groupId ||
+      !form.simNumber.trim() ||
+      !form.contactName.trim() ||
+      form.contactNumber.length !== 10
+    )) return true
+    if (step === 1 && !form.routeId) return true
+    return false
+  }
+
+  const handleSaveBusScreen = async () => {
+    try {
+      setSaving(true)
+      const payload = {
+        regNumber: form.regNumber.trim(),
+        groupId: form.groupId,
+        simNumber: form.simNumber.trim(),
+        busType: form.busType,
+        contactName: form.contactName.trim(),
+        contactNumber: `+91 ${form.contactNumber}`,
+        chassisNumber: form.chassisNumber.trim() || null,
+        model: form.model || null,
+        routeId: form.routeId || null,
+        selectedStops: form.selectedStops || [],
+      }
+
+      if (isEditMode) {
+        await busesApi.update(id, payload)
+        toast.success('Bus screen updated successfully')
+      } else {
+        await busesApi.create(payload)
+        toast.success('Bus screen added successfully')
+      }
+      navigate(form.groupId ? `/fleet/group/${form.groupId}/screens` : '/fleet')
+    } catch (err) {
+      console.error('Failed to save bus screen:', err)
+      const errorMsg = err.response?.data?.message || (isEditMode ? 'Failed to update bus screen' : 'Failed to add bus screen')
+      toast.error(errorMsg)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <AppLayout title={isEditMode ? "Edit Bus Screen" : "Add New Bus Screen"} subtitle={isEditMode ? "Fleet > Edit Bus Screen" : "Fleet > Add New Bus Screen"} showBack onBack={() => navigate(-1)}>
+        <div className="flex justify-center items-center py-24">
+          <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin" />
+        </div>
+      </AppLayout>
+    )
+  }
+
   return (
-    <AppLayout title="Add New Bus Screen" subtitle="Fleet > Add New Bus Screen" showBack onBack={() => navigate('/fleet')}>
+    <AppLayout
+      title={isEditMode ? "Edit Bus Screen" : "Add New Bus Screen"}
+      subtitle={isEditMode ? "Fleet > Edit Bus Screen" : "Fleet > Add New Bus Screen"}
+      showBack
+      onBack={() => navigate(form.groupId ? `/fleet/group/${form.groupId}/screens` : '/fleet')}
+    >
       <div className="p-6 max-w-screen-xl">
         {/* Stepper */}
         <Stepper steps={STEPS} current={step} />
@@ -297,30 +400,46 @@ export default function AddBusScreenPage() {
         {/* 3-column layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="bg-white rounded-xl shadow-card border border-slate-100 p-6">
-            <BusDetailsStep form={form} setForm={setForm} />
+            <BusDetailsStep form={form} setForm={setForm} groups={groups} />
           </div>
           <div className="bg-white rounded-xl shadow-card border border-slate-100 p-6">
-            <RouteStopsStep form={form} setForm={setForm} />
+            <RouteStopsStep form={form} setForm={setForm} routes={routes} />
           </div>
           <div className="bg-white rounded-xl shadow-card border border-slate-100 p-6">
-            <PreviewStep form={form} />
+            <PreviewStep form={form} groups={groups} routes={routes} isEditMode={isEditMode} />
           </div>
         </div>
 
         {/* Bottom action bar */}
         <div className="flex items-center justify-between mt-6 pt-5 border-t border-slate-200">
-          <Button
-            variant="secondary"
-            label="Cancel"
-            onClick={() => navigate('/fleet')}
-          />
-          <div className="flex items-center gap-3">
-            <Button variant="secondary" label="Save as Draft" />
+          {step > 0 ? (
             <Button
-              label="Review & Complete"
-              endIcon={ArrowRight}
+              variant="secondary"
+              label="Back"
+              onClick={() => setStep(step - 1)}
+              disabled={saving}
+            />
+          ) : (
+            <Button
+              variant="secondary"
+              label="Cancel"
+              onClick={() => navigate(form.groupId ? `/fleet/group/${form.groupId}/screens` : '/fleet')}
+              disabled={saving}
+            />
+          )}
+          <div className="flex items-center gap-3">
+            <Button variant="secondary" label="Save as Draft" disabled={saving} />
+            <Button
+              label={step < STEPS.length - 1 ? 'Review & Complete' : (isEditMode ? 'Save Changes' : 'Create Bus Screen')}
+              endIcon={step < STEPS.length - 1 ? ArrowRight : Check}
+              loading={saving}
+              disabled={isNextDisabled()}
               onClick={() => {
-                if (step < STEPS.length - 1) setStep(step + 1)
+                if (step < STEPS.length - 1) {
+                  setStep(step + 1)
+                } else {
+                  handleSaveBusScreen()
+                }
               }}
             />
           </div>

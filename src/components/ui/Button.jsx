@@ -40,7 +40,7 @@ export const Button = forwardRef(({
         <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin shrink-0" />
       )}
       {!loading && StartIcon && (
-        typeof StartIcon === 'function' || typeof StartIcon === 'object' ? (
+        typeof StartIcon === 'function' || (typeof StartIcon === 'object' && !React.isValidElement(StartIcon)) ? (
           <StartIcon size={iconSize} className="shrink-0" />
         ) : StartIcon
       )}
@@ -48,7 +48,7 @@ export const Button = forwardRef(({
         <span>{label || children}</span>
       )}
       {!loading && EndIcon && (
-        typeof EndIcon === 'function' || typeof EndIcon === 'object' ? (
+        typeof EndIcon === 'function' || (typeof EndIcon === 'object' && !React.isValidElement(EndIcon)) ? (
           <EndIcon size={iconSize} className="shrink-0" />
         ) : EndIcon
       )}
