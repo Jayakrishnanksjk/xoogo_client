@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import AppLayout from '@/components/layout/AppLayout'
 import { StatCard, LiveTrackingMap, Modal } from '@/components/ui'
 import { Bus, Wifi, WifiOff, Play, AlertTriangle, Bell, Maximize2 } from 'lucide-react'
@@ -14,6 +15,7 @@ const ALERTS = [
 
 export default function DashboardPage() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [buses, setBuses] = useState([])
   const [loading, setLoading] = useState(true)
   const [isFullMapOpen, setIsFullMapOpen] = useState(false)
@@ -43,8 +45,8 @@ export default function DashboardPage() {
 
   const stats = [
     { icon: Bus,     iconBg: 'bg-blue-50',   iconColor: 'text-blue-500',  label: 'Total Buses',     value: loading ? '...' : String(totalBuses), sub: loading ? 'Loading...' : `Across ${groupCount} groups` },
-    { icon: Wifi,    iconBg: 'bg-green-50',  iconColor: 'text-green-500', label: 'Online Buses',    value: loading ? '...' : String(onlineBuses), sub: loading ? 'Loading...' : `${onlinePct}% of total` },
-    { icon: WifiOff, iconBg: 'bg-red-50',    iconColor: 'text-red-500',   label: 'Offline Buses',   value: loading ? '...' : String(offlineBuses), sub: loading ? 'Loading...' : `${offlinePct}% of total` },
+    { icon: Wifi,    iconBg: 'bg-green-50',  iconColor: 'text-green-500', label: 'Online Buses',    value: loading ? '...' : String(onlineBuses), sub: loading ? 'Loading...' : `${onlinePct}% of total`, onClick: () => navigate('/fleet/buses?status=online') },
+    { icon: WifiOff, iconBg: 'bg-red-50',    iconColor: 'text-red-500',   label: 'Offline Buses',   value: loading ? '...' : String(offlineBuses), sub: loading ? 'Loading...' : `${offlinePct}% of total`, onClick: () => navigate('/fleet/buses?status=offline') },
     { icon: Play,    iconBg: 'bg-purple-50', iconColor: 'text-purple-500',label: 'Ads Played Today', value: '45,200', sub: 'Total plays' },
   ]
 

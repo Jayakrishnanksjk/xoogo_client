@@ -12,6 +12,7 @@ import AddRoutePage from '@/pages/routes/AddRoutePage'
 import UsersPage from '@/pages/users/UsersPage'
 import AddGroupPage from '@/pages/fleet/AddGroupPage'
 import AddBusScreenPage from '@/pages/fleet/AddBusScreenPage'
+import BusesPage from '@/pages/fleet/BusesPage'
 import MediaLibraryPage from '@/pages/media/MediaLibraryPage'
 import PlaylistsPage from '@/pages/playlists/PlaylistsPage'
 
@@ -29,6 +30,7 @@ export default function App() {
           <Route element={<RequireAuth />}>
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/fleet" element={<FleetPage />} />
+            <Route path="/fleet/buses" element={<BusesPage />} />
             <Route path="/fleet/group/:id/screens" element={<GroupScreensPage />} />
             <Route path="/fleet/add-group" element={<AddGroupPage />} />
             <Route path="/fleet/add-bus-screen" element={<AddBusScreenPage />} />

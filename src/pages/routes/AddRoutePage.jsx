@@ -31,8 +31,8 @@ function haversineDistance(lat1, lng1, lat2, lng2) {
   const a =
     Math.sin(dLat / 2) ** 2 +
     Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLng / 2) ** 2
+    Math.cos((lat2 * Math.PI) / 180) *
+    Math.sin(dLng / 2) ** 2
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
@@ -146,7 +146,7 @@ export default function AddRoutePage() {
           setRouteType(route.routeType || 'inbound')
           setIsActive(route.status === 'active')
           setStops(route.stops || [])
-          
+
           const startStop = route.stops?.[0]
           if (startStop) {
             setStartLocation(startStop.name)
@@ -196,7 +196,7 @@ export default function AddRoutePage() {
       try {
         const coordsString = stops.map((s) => `${s.lng},${s.lat}`).join(';')
         const url = `https://router.project-osrm.org/route/v1/driving/${coordsString}?overview=full&geometries=geojson`
-        
+
         const res = await fetch(url, { signal: controller.signal })
         const data = await res.json()
 
@@ -935,8 +935,8 @@ export default function AddRoutePage() {
                             idx === 0
                               ? 'bg-green-500'
                               : idx === stops.length - 1
-                              ? 'bg-red-500'
-                              : STOP_COLORS[idx % STOP_COLORS.length]
+                                ? 'bg-red-500'
+                                : STOP_COLORS[idx % STOP_COLORS.length]
                           )}
                         />
                         <span className="text-[11px] text-slate-600 truncate">{stop.name}</span>

@@ -12,7 +12,7 @@ router.use(requireRole('superadmin', 'admin'))
 // GET /api/users - List users with optional search filter
 router.get('/', async (req, res) => {
   try {
-    const { search } = req.query
+    const { search, role } = req.query
     let whereClause = {}
 
     if (search) {
@@ -23,6 +23,11 @@ router.get('/', async (req, res) => {
           { phone: { [Op.iLike]: `%${search}%` } }
         ]
       }
+    }
+
+    if (role) {
+      const roles = role.split(',').map(r => r.trim())
+      whereClause.role = roles.length === 1 ? roles[0] : { [Op.in]: roles }
     }
 
     const users = await User.findAll({

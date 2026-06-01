@@ -9,11 +9,12 @@ router.use(authenticate)
 // GET /api/buses - Get all buses (can filter by group_id or route_id)
 router.get('/', async (req, res) => {
   try {
-    const { group_id, route_id } = req.query
+    const { group_id, route_id, status } = req.query
     const whereClause = {}
 
     if (group_id) whereClause.groupId = group_id
     if (route_id) whereClause.routeId = route_id
+    if (status) whereClause.status = status
 
     const buses = await Bus.findAll({
       where: whereClause,
