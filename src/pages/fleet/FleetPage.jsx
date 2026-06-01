@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AppLayout from '@/components/layout/AppLayout'
-import { Badge, EmptyState, StatCard, Button, DataCard, Pagination, SearchInput, Select, Tabs } from '@/components/ui'
+import { Badge, EmptyState, StatCard, Button, DataCard, Pagination, SearchInput, Select, Tabs, Modal, LiveTrackingMap } from '@/components/ui'
 import { Bus, Plus, Users, MapPin, Wifi, WifiOff, MoreVertical, SlidersHorizontal, LayoutGrid, List } from 'lucide-react'
 import clsx from 'clsx'
 import { groupsApi, routesApi } from '@/api'
 import toast from 'react-hot-toast'
 
-function GroupCard({ group, onViewScreens }) {
+function GroupCard({ group, onViewScreens, onLiveTracking }) {
   return (
     <div
       onClick={onViewScreens}
@@ -52,6 +52,7 @@ function GroupCard({ group, onViewScreens }) {
         <button
           onClick={(e) => {
             e.stopPropagation()
+            onLiveTracking()
           }}
           className="flex items-center gap-1 text-xs text-slate-500 hover:text-brand hover:underline"
         >
@@ -62,7 +63,7 @@ function GroupCard({ group, onViewScreens }) {
   )
 }
 
-function ByGroupsTab({ groups = [], loading = false }) {
+function ByGroupsTab({ groups = [], loading = false, onLiveTracking }) {
   const navigate = useNavigate()
 
   // Calculate totals dynamically
@@ -116,6 +117,7 @@ function ByGroupsTab({ groups = [], loading = false }) {
                   offline: offlineCount
                 }}
                 onViewScreens={() => navigate(`/fleet/group/${g.id}/screens`)}
+                onLiveTracking={() => onLiveTracking(g)}
               />
             )
           })}
@@ -292,6 +294,7 @@ export default function FleetPage() {
   const [groups, setGroups] = useState([])
   const [routes, setRoutes] = useState([])
   const [loading, setLoading] = useState(true)
+  const [trackingGroup, setTrackingGroup] = useState(null)
 
   const fetchData = async () => {
     try {
@@ -313,6 +316,13 @@ export default function FleetPage() {
   useEffect(() => {
     fetchData()
   }, [])
+
+  const trackingBuses = trackingGroup
+    ? (groups.find(g => g.id === trackingGroup.id)?.buses || []).map(b => ({
+        ...b,
+        group: { id: trackingGroup.id, name: trackingGroup.name }
+      }))
+    : []
 
   return (
     <AppLayout title="Fleet" subtitle="Manage all bus screens by groups or routes">
@@ -341,11 +351,35 @@ export default function FleetPage() {
         </div>
 
         {tab === 'groups' ? (
-          <ByGroupsTab groups={groups} loading={loading} />
+          <ByGroupsTab 
+            groups={groups} 
+            loading={loading} 
+            onLiveTracking={(g) => setTrackingGroup(g)} 
+          />
         ) : (
           <ByRoutesTab routes={routes} loading={loading} />
         )}
       </div>
+
+      {/* Group Live Tracking Modal */}
+      <Modal
+        open={!!trackingGroup}
+        onClose={() => setTrackingGroup(null)}
+        title={`${trackingGroup?.name || ''} - Live Tracking`}
+        subtitle={`Tracking ${trackingBuses.filter(b => b.status === 'online').length} online screens in this group.`}
+        width="max-w-5xl"
+      >
+        {trackingBuses.length === 0 ? (
+          <div className="p-12 text-center text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+            <Bus size={32} className="mx-auto mb-2 text-slate-300" />
+            No bus screens registered in this group to track.
+          </div>
+        ) : (
+          <div className="h-[500px] overflow-hidden -mx-5 -mb-5 border-t border-slate-100">
+            <LiveTrackingMap buses={trackingBuses} height="500px" />
+          </div>
+        )}
+      </Modal>
     </AppLayout>
   )
 }

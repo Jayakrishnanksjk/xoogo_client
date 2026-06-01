@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import AppLayout from '@/components/layout/AppLayout'
-import { Badge, EmptyState, StatCard, Button, ConfirmDialog } from '@/components/ui'
+import { Badge, EmptyState, StatCard, Button, ConfirmDialog, LiveTrackingMap } from '@/components/ui'
 import { Bus, Plus, User, Mail, Phone, ChevronRight, ShieldAlert, Monitor, Wifi, WifiOff, Trash2, ArrowLeft, Edit } from 'lucide-react'
 import { groupsApi, busesApi } from '@/api'
 import toast from 'react-hot-toast'
@@ -135,6 +135,28 @@ export default function GroupScreensPage() {
           <StatCard icon={Wifi} iconBg="bg-green-50" iconColor="text-green-500" label="Online Screens" value={String(onlineScreens)} sub="Currently tracking" />
           <StatCard icon={WifiOff} iconBg="bg-red-50" iconColor="text-red-500" label="Offline Screens" value={String(offlineScreens)} sub="Currently offline" />
         </div>
+
+        {/* Live Screens Tracking Map */}
+        {screens.length > 0 && (
+          <div className="bg-white rounded-xl shadow-card border border-slate-100 p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="flex h-2 w-2 relative">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <h3 className="text-sm font-semibold text-slate-900">Live Screens Tracking</h3>
+            </div>
+            <div className="rounded-xl overflow-hidden border border-slate-100 h-80">
+              <LiveTrackingMap 
+                buses={screens.map(s => ({ 
+                  ...s, 
+                  group: { id: group.id, name: group.name } 
+                }))} 
+                height="100%" 
+              />
+            </div>
+          </div>
+        )}
 
         {/* Screens table section */}
         <div className="bg-white rounded-xl shadow-card border border-slate-100 p-6">

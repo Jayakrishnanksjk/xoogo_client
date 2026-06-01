@@ -81,3 +81,74 @@
 .add-stop-cursor .leaflet-container .leaflet-marker-shadow {
   cursor: crosshair !important;
 }
+
+/* ── Leaflet Bus Tracking Markers ────────────────────────── */
+.bus-marker-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bus-marker-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+  transition: all 0.3s ease;
+  width: 32px;
+  height: 32px;
+  color: #ffffff;
+}
+
+.bus-marker-icon-wrapper.bus-online {
+  background-color: #10b981; /* emerald-500 */
+}
+
+.bus-marker-icon-wrapper.bus-offline {
+  background-color: #64748b; /* slate-500 */
+}
+
+.bus-marker-label {
+  position: absolute;
+  bottom: -22px;
+  background-color: #0f172a; /* slate-900 */
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 600;
+  padding: 1.5px 5px;
+  border-radius: 4px;
+  white-space: nowrap;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+  border: 1px solid #334155;
+  pointer-events: none;
+  font-family: monospace;
+}
+
+.bus-pulse-ring {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  animation: bus-pulsate 2.5s infinite ease-out;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.bus-pulse-ring.pulse-online {
+  border: 3px solid #10b981;
+}
+
+@keyframes bus-pulsate {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+

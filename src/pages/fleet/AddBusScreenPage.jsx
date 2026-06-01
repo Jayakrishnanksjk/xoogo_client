@@ -115,18 +115,13 @@ function BusDetailsStep({ form, setForm, groups = [] }) {
               <p className="text-[11px] text-slate-400 mt-1">Enter bus chassis number</p>
             </div>
             <div>
-              <Select
+              <Input
                 label="Model / Make"
+                placeholder="eg:Volvo"
                 value={form.model}
                 onChange={e => setForm(f => ({ ...f, model: e.target.value }))}
-              >
-                <option value="">Select bus make or model</option>
-                <option value="BharatBenz 12M">BharatBenz 12M</option>
-                <option value="Ashok Leyland Viking">Ashok Leyland Viking</option>
-                <option value="Tata Starbus">Tata Starbus</option>
-                <option value="Volvo 9600">Volvo 9600</option>
-              </Select>
-              <p className="text-[11px] text-slate-400 mt-1">Select bus make or model</p>
+              />
+              <p className="text-[11px] text-slate-400 mt-1">Enter bus model</p>
             </div>
           </div>
         </div>

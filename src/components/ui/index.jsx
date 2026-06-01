@@ -19,4 +19,5 @@ export { MediaCard } from './MediaCard'
 export { AnalyticsPanel } from './AnalyticsPanel'
 export { Combobox } from './Combobox'
 export { LocationAutocomplete } from './LocationAutocomplete'
+export { LiveTrackingMap } from './LiveTrackingMap'
 

@@ -10,7 +10,11 @@ router.get('/', authenticate, async (req, res) => {
     const groups = await Group.findAll({
       where: { status: 'active' },
       include: [
-        { model: Bus, as: 'buses' }
+        {
+          model: Bus,
+          as: 'buses',
+          include: [{ model: Route, as: 'route', attributes: ['id', 'name', 'stops'] }]
+        }
       ],
       order: [['name', 'ASC']]
     })
@@ -62,7 +66,7 @@ router.get('/:id', authenticate, async (req, res) => {
   try {
     const group = await Group.findByPk(req.params.id, {
       include: [
-        { model: Bus, as: 'buses', include: [{ model: Route, as: 'route', attributes: ['name'] }] },
+        { model: Bus, as: 'buses', include: [{ model: Route, as: 'route', attributes: ['id', 'name', 'stops'] }] },
         { model: User, as: 'owner', attributes: ['id', 'full_name', 'email', 'phone'] }
       ]
     })
