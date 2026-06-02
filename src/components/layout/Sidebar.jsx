@@ -10,12 +10,16 @@ const NAV_SUPERADMIN = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/fleet', icon: Bus, label: 'Fleet' },
   { to: '/routes', icon: MapPin, label: 'Routes & Stops' },
+  { to: '/media', icon: Library, label: 'Media Library' },
+  { to: '/playlists', icon: ListMusic, label: 'Playlists' },
   { to: '/users', icon: Users, label: 'Users' },
 ]
 
 const NAV_PARTNER = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/fleet', icon: Bus, label: 'Fleet' },
+  { to: '/media', icon: Library, label: 'Media Library' },
+  { to: '/playlists', icon: ListMusic, label: 'Playlists' },
 ]
 
 export default function Sidebar() {
@@ -29,7 +33,7 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="sidebar">
+    <aside className="fixed top-0 left-0 h-screen bg-sidebar-bg text-white flex flex-col z-30 w-[220px]">
       {/* Logo */}
       <div className="px-5 py-5 border-b border-white/5">
         <div className="flex items-center gap-2">
@@ -47,7 +51,10 @@ export default function Sidebar() {
             key={to}
             to={to}
             className={({ isActive }) =>
-              clsx('nav-item', isActive && 'active')
+              clsx(
+                'flex items-center gap-3 px-4 py-2.5 mx-2 rounded-lg transition-all duration-150 cursor-pointer text-sm font-medium',
+                isActive ? 'bg-brand text-white' : 'text-slate-400 hover:bg-sidebar-hover hover:text-white'
+              )
             }
           >
             <Icon size={16} strokeWidth={2} />

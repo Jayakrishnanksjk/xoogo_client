@@ -5,7 +5,7 @@ export default function AppLayout({ children, title, subtitle }) {
   return (
     <div className="min-h-screen bg-surface-secondary">
       <Sidebar />
-      <div style={{ marginLeft: 'var(--sidebar-width)' }} className="min-h-screen flex flex-col">
+      <div className="ml-[220px] min-h-screen flex flex-col">
         <Topbar title={title} subtitle={subtitle} />
         <main className="flex-1 overflow-auto">
           {children}

@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
 import AppLayout from '@/components/layout/AppLayout'
-import { Badge, StatCard, SlidePanel, Stepper } from '@/components/ui'
-import { Users, Shield, Building2, UserCog, Plus, Search, Trash2 } from 'lucide-react'
+import { Badge, StatCard, SlidePanel, Stepper, Button, Input, Select, ConfirmDialog } from '@/components/ui'
+import { Users, Shield, Building2, UserCog, Plus, Search, Trash2, X } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { usersApi, groupsApi } from '@/api'
 import toast from 'react-hot-toast'
+import clsx from 'clsx'
 
 const STEPS = ['User Details', 'Assign Role & Group', 'Review & Confirm']
 
@@ -36,7 +37,7 @@ function AddUserPanel({ open, onClose, onUserAdded }) {
       await usersApi.create({
         full_name: data.full_name,
         email: data.email,
-        phone: data.phone,
+        phone: `+91 ${data.phone}`,
         password: data.password,
         role: data.role,
         status: data.status || 'active',
@@ -64,58 +65,81 @@ function AddUserPanel({ open, onClose, onUserAdded }) {
       <form onSubmit={handleSubmit(onSubmit)}>
         {step === 0 && (
           <div className="space-y-4">
-            <div>
-              <label className="label">Full Name *</label>
-              <input className="input" placeholder="Enter full name" {...register('full_name', { required: 'Name is required' })} />
-              {errors.full_name && <p className="text-xs text-red-500 mt-1">{errors.full_name.message}</p>}
-            </div>
-            <div>
-              <label className="label">Email Address *</label>
-              <input type="email" className="input" placeholder="email@example.com" {...register('email', { required: 'Email is required' })} />
-              {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>}
-            </div>
-            <div>
-              <label className="label">Phone Number *</label>
-              <input className="input" placeholder="+91 98765 43210" {...register('phone', { required: 'Phone is required' })} />
-              {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone.message}</p>}
-            </div>
-            <div>
-              <label className="label">Password *</label>
-              <input type="password" className="input" placeholder="Set initial password" {...register('password', { required: 'Password is required', minLength: { value: 6, message: 'Password must be at least 6 characters' } })} />
-              {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password.message}</p>}
-            </div>
-            <div>
-              <label className="label">Status</label>
-              <select className="input" {...register('status')}>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-              </select>
-            </div>
+            <Input
+              label="Full Name *"
+              placeholder="Enter full name"
+              error={errors.full_name}
+              {...register('full_name', { required: 'Name is required' })}
+            />
+            <Input
+              label="Email Address *"
+              type="email"
+              placeholder="email@example.com"
+              error={errors.email}
+              {...register('email', { required: 'Email is required' })}
+            />
+            <Input
+              label="Phone Number *"
+              placeholder="98765 43210"
+              startIcon={
+                <div className="flex items-center pr-2 border-r border-slate-200 select-none">
+                  <span className="text-slate-500 text-sm font-semibold font-mono leading-none">+91</span>
+                </div>
+              }
+              className="pl-[60px]"
+              error={errors.phone}
+              {...register('phone', {
+                required: 'Phone is required',
+                pattern: {
+                  value: /^[0-9]{10}$/,
+                  message: 'Must be exactly 10 digits'
+                },
+                onChange: (e) => {
+                  const cleanVal = e.target.value.replace(/\D/g, '').slice(0, 10)
+                  e.target.value = cleanVal
+                }
+              })}
+            />
+            <Input
+              label="Password *"
+              type="password"
+              placeholder="Set initial password"
+              error={errors.password}
+              {...register('password', { required: 'Password is required', minLength: { value: 6, message: 'Password must be at least 6 characters' } })}
+            />
+            <Select
+              label="Status"
+              {...register('status')}
+            >
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </Select>
           </div>
         )}
 
         {step === 1 && (
           <div className="space-y-4">
-            <div>
-              <label className="label">Role *</label>
-              <select className="input" {...register('role', { required: 'Role is required' })}>
-                <option value="">Select role</option>
-                <option value="superadmin">Super Admin</option>
-                <option value="admin">Admin</option>
-                <option value="partner">Partner (Bus Owner)</option>
-                <option value="operator">Operator</option>
-              </select>
-              {errors.role && <p className="text-xs text-red-500 mt-1">{errors.role.message}</p>}
-            </div>
-            <div>
-              <label className="label">Assign Bus Group</label>
-              <select className="input" {...register('group_id')}>
-                <option value="">Select group (optional)</option>
-                {groups.map(g => (
-                  <option key={g.id} value={g.id}>{g.name}</option>
-                ))}
-              </select>
-            </div>
+            <Select
+              label="Role *"
+              error={errors.role}
+              {...register('role', { required: 'Role is required' })}
+            >
+              <option value="">Select role</option>
+              <option value="superadmin">Super Admin</option>
+              <option value="admin">Admin</option>
+              <option value="partner">Partner (Bus Owner)</option>
+              <option value="operator">Operator</option>
+            </Select>
+
+            <Select
+              label="Assign Bus Group"
+              {...register('group_id')}
+            >
+              <option value="">Select group (optional)</option>
+              {groups.map(g => (
+                <option key={g.id} value={g.id}>{g.name}</option>
+              ))}
+            </Select>
             <div className="bg-blue-50 text-blue-700 text-xs rounded-lg p-3">
               The selected user will be notified once their account is created.
             </div>
@@ -128,7 +152,7 @@ function AddUserPanel({ open, onClose, onUserAdded }) {
               {[
                 ['Name', watch('full_name')],
                 ['Email', watch('email')],
-                ['Phone', watch('phone')],
+                ['Phone', watch('phone') ? `+91 ${watch('phone')}` : '—'],
                 ['Role', watch('role')],
                 ['Group', selectedGroupName],
                 ['Status', watch('status') || 'active']
@@ -147,23 +171,34 @@ function AddUserPanel({ open, onClose, onUserAdded }) {
 
         <div className="flex justify-between mt-6">
           {step > 0
-            ? <button type="button" onClick={() => setStep(s => s - 1)} className="btn-secondary" disabled={submitting}>← Back</button>
-            : <button type="button" onClick={onClose} className="btn-secondary" disabled={submitting}>Cancel</button>
+            ? <Button type="button" onClick={() => setStep(s => s - 1)} variant="secondary" disabled={submitting} label="← Back" />
+            : <Button type="button" onClick={onClose} variant="secondary" disabled={submitting} label="Cancel" />
           }
-          <button type="submit" className="btn-primary" disabled={submitting}>
-            {submitting ? 'Creating...' : (step < 2 ? 'Next →' : 'Create User')}
-          </button>
+          <Button
+            type="submit"
+            loading={submitting}
+            label={step < 2 ? 'Next →' : 'Create User'}
+          />
         </div>
       </form>
     </SlidePanel>
   )
 }
 
+const ROLE_FILTERS = [
+  { value: '', label: 'Total Users', icon: Users, iconBg: 'bg-blue-50', iconColor: 'text-blue-500' },
+  { value: 'superadmin,admin', label: 'Admins', icon: Shield, iconBg: 'bg-purple-50', iconColor: 'text-purple-500' },
+  { value: 'partner', label: 'Bus Owners', icon: Building2, iconBg: 'bg-green-50', iconColor: 'text-green-500' },
+  { value: 'operator', label: 'Operators', icon: UserCog, iconBg: 'bg-orange-50', iconColor: 'text-orange-500' },
+]
+
 export default function UsersPage() {
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
   const [search, setSearch] = useState('')
+  const [roleFilter, setRoleFilter] = useState('')
+  const [deleteConfirm, setDeleteConfirm] = useState({ open: false, userId: null, userName: '' })
 
   const fetchUsers = async () => {
     try {
@@ -182,10 +217,15 @@ export default function UsersPage() {
     fetchUsers()
   }, [search])
 
-  const handleDeleteUser = async (id, name) => {
-    if (!window.confirm(`Are you sure you want to delete user "${name}"?`)) return
+  const triggerDeleteConfirm = (id, name) => {
+    setDeleteConfirm({ open: true, userId: id, userName: name })
+  }
+
+  const handleConfirmDelete = async () => {
+    const { userId } = deleteConfirm
+    if (!userId) return
     try {
-      await usersApi.delete(id)
+      await usersApi.delete(userId)
       toast.success('User deleted successfully')
       fetchUsers()
     } catch (err) {
@@ -193,59 +233,100 @@ export default function UsersPage() {
     }
   }
 
-  // Count user statistics dynamically
+  // Client-side filtering for role (stats always based on full user list)
+  const displayedUsers = roleFilter
+    ? users.filter(u => roleFilter.split(',').includes(u.role))
+    : users
+
+  // Count user statistics from the full list
   const totalUsers = users.length
   const adminsCount = users.filter(u => u.role === 'superadmin' || u.role === 'admin').length
   const partnersCount = users.filter(u => u.role === 'partner').length
   const operatorsCount = users.filter(u => u.role === 'operator').length
 
+  const roleCardCounts = {
+    '': totalUsers,
+    'superadmin,admin': adminsCount,
+    'partner': partnersCount,
+    'operator': operatorsCount,
+  }
+
+  const handleRoleFilter = (value) => {
+    setRoleFilter(prev => prev === value ? '' : value)
+  }
+
   return (
     <AppLayout title="Users" subtitle="Manage system users and permissions">
-      <div className="page-container">
-        {/* Stats */}
+      <div className="p-6 max-w-screen-xl">
+        {/* Role filter cards */}
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
-          <StatCard icon={Users}    iconBg="bg-blue-50"   iconColor="text-blue-500"   label="Total Users"  value={String(totalUsers)} sub="Across all roles" />
-          <StatCard icon={Shield}   iconBg="bg-purple-50" iconColor="text-purple-500" label="Admins"       value={String(adminsCount)}  sub="System administration" />
-          <StatCard icon={Building2}iconBg="bg-green-50"  iconColor="text-green-500"  label="Bus Owners"   value={String(partnersCount)} sub="Partner level access" />
-          <StatCard icon={UserCog}  iconBg="bg-orange-50" iconColor="text-orange-500" label="Operators"    value={String(operatorsCount)}  sub="Operator level access" />
+          {ROLE_FILTERS.map(f => {
+            const isActive = roleFilter === f.value
+            const count = roleCardCounts[f.value]
+            return (
+              <button
+                key={f.value}
+                onClick={() => handleRoleFilter(f.value)}
+                className={clsx(
+                  'bg-white rounded-xl shadow-card border p-4 flex items-center gap-4 transition-all text-left',
+                  isActive
+                    ? 'border-brand ring-1 ring-brand'
+                    : 'border-slate-100 hover:border-slate-200 hover:shadow-card-md'
+                )}
+              >
+                <div className={clsx('w-10 h-10 rounded-xl flex items-center justify-center shrink-0', f.iconBg)}>
+                  <f.icon size={18} className={f.iconColor} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-slate-500">{f.label}</p>
+                  <p className="text-xl font-semibold text-slate-900 leading-tight">{loading ? '...' : count}</p>
+                </div>
+                {isActive && (
+                  <span className="shrink-0 p-0.5 rounded-full bg-slate-100 hover:bg-slate-200 transition-colors" onClick={(e) => { e.stopPropagation(); setRoleFilter('') }}>
+                    <X size={12} className="text-slate-400" />
+                  </span>
+                )}
+              </button>
+            )
+          })}
         </div>
 
         {/* Table card */}
-        <div className="card">
+        <div className="bg-white rounded-xl shadow-card border border-slate-100 p-5">
           <div className="flex items-center justify-between mb-4">
-            <div className="relative">
-              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                className="input pl-8 py-1.5 w-72"
-                placeholder="Search by name, email or phone..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-              />
-            </div>
-            <button className="btn-primary" onClick={() => setShowAdd(true)}>
-              <Plus size={14} /> Add User
-            </button>
+            <Input
+              placeholder="Search by name, email or phone..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              startIcon={Search}
+              className="w-72 py-1.5"
+            />
+            <Button
+              startIcon={Plus}
+              label="Add User"
+              onClick={() => setShowAdd(true)}
+            />
           </div>
 
           {loading ? (
             <div className="flex justify-center items-center py-12">
               <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin" />
             </div>
-          ) : users.length === 0 ? (
+          ) : displayedUsers.length === 0 ? (
             <div className="text-center py-12 text-slate-400 text-sm">
-              No users found.
+              {roleFilter ? 'No users found for the selected role.' : 'No users found.'}
             </div>
           ) : (
             <table className="w-full">
               <thead>
                 <tr className="border-b border-slate-100">
                   {['User', 'Role', 'Assigned Groups', 'Status', 'Last Login', 'Actions'].map(h => (
-                    <th key={h} className="table-header text-left pb-3 pr-4 font-medium">{h}</th>
+                    <th key={h} className="text-xs font-medium text-slate-500 uppercase tracking-wide text-left pb-3 pr-4">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {users.map(u => (
+                {displayedUsers.map(u => (
                   <tr key={u.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
                     <td className="py-3 pr-4">
                       <div className="flex items-center gap-3">
@@ -264,7 +345,7 @@ export default function UsersPage() {
                     <td className="py-3 pr-4 text-xs text-slate-500">{u.lastLogin}</td>
                     <td className="py-3">
                       <button
-                        onClick={() => handleDeleteUser(u.id, u.full_name)}
+                        onClick={() => triggerDeleteConfirm(u.id, u.full_name)}
                         className="p-1.5 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-md transition-colors"
                         title="Delete User"
                       >
@@ -280,6 +361,16 @@ export default function UsersPage() {
       </div>
 
       <AddUserPanel open={showAdd} onClose={() => setShowAdd(false)} onUserAdded={fetchUsers} />
+
+      <ConfirmDialog
+        open={deleteConfirm.open}
+        onClose={() => setDeleteConfirm({ open: false, userId: null, userName: '' })}
+        onConfirm={handleConfirmDelete}
+        title="Delete User"
+        message={`Are you sure you want to delete user "${deleteConfirm.userName}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        danger
+      />
     </AppLayout>
   )
 }

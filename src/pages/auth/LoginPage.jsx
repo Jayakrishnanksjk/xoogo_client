@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { useAuth } from '@/context/AuthContext'
 import toast from 'react-hot-toast'
 import { Eye, EyeOff, Bus } from 'lucide-react'
+import { Input, Button } from '@/components/ui'
 
 export default function LoginPage() {
   const { login } = useAuth()
@@ -63,49 +64,37 @@ export default function LoginPage() {
           <p className="text-slate-500 text-sm mb-8">Sign in to your account to continue</p>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div>
-              <label className="label">Email address</label>
-              <input
-                type="email"
-                className="input"
-                placeholder="you@example.com"
-                {...register('email', { required: 'Email is required' })}
-              />
-              {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>}
-            </div>
+            <Input
+              label="Email address"
+              type="email"
+              placeholder="you@example.com"
+              error={errors.email}
+              {...register('email', { required: 'Email is required' })}
+            />
 
-            <div>
-              <label className="label">Password</label>
-              <div className="relative">
-                <input
-                  type={showPass ? 'text' : 'password'}
-                  className="input pr-10"
-                  placeholder="••••••••"
-                  {...register('password', { required: 'Password is required' })}
-                />
+            <Input
+              label="Password"
+              type={showPass ? 'text' : 'password'}
+              placeholder="••••••••"
+              error={errors.password}
+              suffix={
                 <button
                   type="button"
                   onClick={() => setShowPass(p => !p)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  className="text-slate-400 hover:text-slate-600"
                 >
                   {showPass ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
-              </div>
-              {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password.message}</p>}
-            </div>
+              }
+              {...register('password', { required: 'Password is required' })}
+            />
 
-            <button
+            <Button
               type="submit"
-              disabled={loading}
-              className="btn-primary w-full justify-center py-2.5 mt-2"
-            >
-              {loading ? (
-                <span className="flex items-center gap-2">
-                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Signing in...
-                </span>
-              ) : 'Sign in'}
-            </button>
+              loading={loading}
+              label="Sign in"
+              className="w-full py-2.5 mt-2"
+            />
           </form>
         </div>
       </div>

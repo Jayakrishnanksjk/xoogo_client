@@ -1,7 +1,7 @@
 import { DataTypes } from 'sequelize'
 import sequelize from '../config/database.js'
 
-const Group = sequelize.define('Group', {
+const Route = sequelize.define('Route', {
   id: {
     type: DataTypes.UUID,
     defaultValue: DataTypes.UUIDV4,
@@ -10,29 +10,36 @@ const Group = sequelize.define('Group', {
   name: {
     type: DataTypes.STRING,
     allowNull: false,
-    unique: true,
   },
   code: {
     type: DataTypes.STRING,
-    allowNull: true,
+    allowNull: false,
     unique: true,
   },
-  description: {
-    type: DataTypes.TEXT,
+  estimatedDuration: {
+    type: DataTypes.STRING,
     allowNull: true,
+  },
+  distance: {
+    type: DataTypes.FLOAT,
+    allowNull: true,
+  },
+  routeType: {
+    type: DataTypes.ENUM('inbound', 'outbound'),
+    defaultValue: 'inbound',
+  },
+  stops: {
+    type: DataTypes.JSONB,
+    allowNull: false,
+    defaultValue: [],
   },
   status: {
     type: DataTypes.ENUM('active', 'inactive'),
     defaultValue: 'active',
-  },
-  ownerId: {
-    type: DataTypes.UUID,
-    allowNull: true,
-    field: 'owner_id',
   }
 }, {
   timestamps: true,
   underscored: true,
 })
 
-export default Group
+export default Route

@@ -4,6 +4,8 @@ import morgan from 'morgan'
 import authRoutes from './routes/auth.js'
 import userRoutes from './routes/users.js'
 import groupRoutes from './routes/groups.js'
+import routeRoutes from './routes/routes.js'
+import busRoutes from './routes/buses.js'
 
 const app = express()
 
@@ -17,6 +19,8 @@ app.use(express.urlencoded({ extended: true }))
 app.use('/api/auth', authRoutes)
 app.use('/api/users', userRoutes)
 app.use('/api/groups', groupRoutes)
+app.use('/api/routes', routeRoutes)
+app.use('/api/buses', busRoutes)
 
 // Health Check Endpoint
 app.get('/api/health', (req, res) => {
