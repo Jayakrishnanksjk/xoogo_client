@@ -20,6 +20,7 @@ Group.belongsTo(User, {
   foreignKey: 'owner_id',
   as: 'owner',
   onDelete: 'SET NULL',
+  constraints: false,
 })
 
 Group.hasMany(Bus, {
