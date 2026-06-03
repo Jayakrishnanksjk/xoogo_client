@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import AppLayout from '@/components/layout/AppLayout'
 import { Badge, StatCard, SlidePanel, Stepper, Button, Input, Select, ConfirmDialog } from '@/components/ui'
-import { Users, Shield, Building2, UserCog, Plus, Search, Trash2, X } from 'lucide-react'
+import { Users, Shield, Building2, UserCog, Plus, Search, Trash2, X, Check } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { usersApi, groupsApi } from '@/api'
 import toast from 'react-hot-toast'
@@ -11,6 +11,7 @@ const STEPS = ['User Details', 'Assign Role & Group', 'Review & Confirm']
 
 function AddUserPanel({ open, onClose, onUserAdded }) {
   const [step, setStep] = useState(0)
+  const [reviewed, setReviewed] = useState(new Set())
   const [groups, setGroups] = useState([])
   const [submitting, setSubmitting] = useState(false)
   const { register, handleSubmit, watch, formState: { errors }, reset } = useForm()
@@ -18,6 +19,7 @@ function AddUserPanel({ open, onClose, onUserAdded }) {
   useEffect(() => {
     if (open) {
       setStep(0)
+      setReviewed(new Set())
       reset()
       groupsApi.list()
         .then(res => setGroups(res.data))
@@ -27,6 +29,7 @@ function AddUserPanel({ open, onClose, onUserAdded }) {
 
   const onSubmit = async (data) => {
     if (step < 2) {
+      setReviewed(prev => new Set([...prev, step]))
       setStep(s => s + 1)
       return
     }
@@ -64,107 +67,129 @@ function AddUserPanel({ open, onClose, onUserAdded }) {
 
       <form onSubmit={handleSubmit(onSubmit)}>
         {step === 0 && (
-          <div className="space-y-4">
-            <Input
-              label="Full Name *"
-              placeholder="Enter full name"
-              error={errors.full_name}
-              {...register('full_name', { required: 'Name is required' })}
-            />
-            <Input
-              label="Email Address *"
-              type="email"
-              placeholder="email@example.com"
-              error={errors.email}
-              {...register('email', { required: 'Email is required' })}
-            />
-            <Input
-              label="Phone Number *"
-              placeholder="98765 43210"
-              startIcon={
-                <div className="flex items-center pr-2 border-r border-slate-200 select-none">
-                  <span className="text-slate-500 text-sm font-semibold font-mono leading-none">+91</span>
-                </div>
-              }
-              className="pl-[60px]"
-              error={errors.phone}
-              {...register('phone', {
-                required: 'Phone is required',
-                pattern: {
-                  value: /^[0-9]{10}$/,
-                  message: 'Must be exactly 10 digits'
-                },
-                onChange: (e) => {
-                  const cleanVal = e.target.value.replace(/\D/g, '').slice(0, 10)
-                  e.target.value = cleanVal
+          <div className={clsx('p-4 rounded-xl border transition-colors', reviewed.has(0) ? 'bg-green-50/40 border-green-200' : 'border-transparent')}>
+            {reviewed.has(0) && <div className="flex items-center gap-1.5 mb-4 text-green-600"><Check size={14} /><span className="text-xs font-semibold">Reviewed</span></div>}
+            <div className="space-y-4">
+              <Input
+                label="Full Name *"
+                placeholder="Enter full name"
+                error={errors.full_name}
+                {...register('full_name', { required: 'Name is required' })}
+                suffix={reviewed.has(0) ? <Check size={14} className="text-green-500" /> : undefined}
+              />
+              <Input
+                label="Email Address *"
+                type="email"
+                placeholder="email@example.com"
+                error={errors.email}
+                {...register('email', { required: 'Email is required' })}
+                suffix={reviewed.has(0) ? <Check size={14} className="text-green-500" /> : undefined}
+              />
+              <Input
+                label="Phone Number *"
+                placeholder="98765 43210"
+                startIcon={
+                  <div className="flex items-center pr-2 border-r border-slate-200 select-none">
+                    <span className="text-slate-500 text-sm font-semibold font-mono leading-none">+91</span>
+                  </div>
                 }
-              })}
-            />
-            <Input
-              label="Password *"
-              type="password"
-              placeholder="Set initial password"
-              error={errors.password}
-              {...register('password', { required: 'Password is required', minLength: { value: 6, message: 'Password must be at least 6 characters' } })}
-            />
-            <Select
-              label="Status"
-              {...register('status')}
-            >
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </Select>
+                className="pl-[60px]"
+                error={errors.phone}
+                {...register('phone', {
+                  required: 'Phone is required',
+                  pattern: {
+                    value: /^[0-9]{10}$/,
+                    message: 'Must be exactly 10 digits'
+                  },
+                  onChange: (e) => {
+                    const cleanVal = e.target.value.replace(/\D/g, '').slice(0, 10)
+                    e.target.value = cleanVal
+                  }
+                })}
+                suffix={reviewed.has(0) ? <Check size={14} className="text-green-500" /> : undefined}
+              />
+              <Input
+                label="Password *"
+                type="password"
+                placeholder="Set initial password"
+                error={errors.password}
+                {...register('password', { required: 'Password is required', minLength: { value: 6, message: 'Password must be at least 6 characters' } })}
+                suffix={reviewed.has(0) ? <Check size={14} className="text-green-500" /> : undefined}
+              />
+              <div className="relative">
+                <Select
+                  label="Status"
+                  {...register('status')}
+                >
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </Select>
+                {reviewed.has(0) && <span className="absolute right-2 top-[34px] text-green-500"><Check size={14} /></span>}
+              </div>
+            </div>
           </div>
         )}
 
         {step === 1 && (
-          <div className="space-y-4">
-            <Select
-              label="Role *"
-              error={errors.role}
-              {...register('role', { required: 'Role is required' })}
-            >
-              <option value="">Select role</option>
-              <option value="superadmin">Super Admin</option>
-              <option value="admin">Admin</option>
-              <option value="partner">Partner (Bus Owner)</option>
-              <option value="operator">Operator</option>
-            </Select>
+          <div className={clsx('p-4 rounded-xl border transition-colors', reviewed.has(1) ? 'bg-green-50/40 border-green-200' : 'border-transparent')}>
+            {reviewed.has(1) && <div className="flex items-center gap-1.5 mb-4 text-green-600"><Check size={14} /><span className="text-xs font-semibold">Reviewed</span></div>}
+            <div className="space-y-4">
+              <div className="relative">
+                <Select
+                  label="Role *"
+                  error={errors.role}
+                  {...register('role', { required: 'Role is required' })}
+                >
+                  <option value="">Select role</option>
+                  <option value="superadmin">Super Admin</option>
+                  <option value="admin">Admin</option>
+                  <option value="partner">Partner (Bus Owner)</option>
+                  <option value="operator">Operator</option>
+                </Select>
+                {reviewed.has(1) && <span className="absolute right-2 top-[34px] text-green-500"><Check size={14} /></span>}
+              </div>
 
-            <Select
-              label="Assign Bus Group"
-              {...register('group_id')}
-            >
-              <option value="">Select group (optional)</option>
-              {groups.map(g => (
-                <option key={g.id} value={g.id}>{g.name}</option>
-              ))}
-            </Select>
-            <div className="bg-blue-50 text-blue-700 text-xs rounded-lg p-3">
-              The selected user will be notified once their account is created.
+              <div className="relative">
+                <Select
+                  label="Assign Bus Group"
+                  {...register('group_id')}
+                >
+                  <option value="">Select group (optional)</option>
+                  {groups.map(g => (
+                    <option key={g.id} value={g.id}>{g.name}</option>
+                  ))}
+                </Select>
+                {reviewed.has(1) && <span className="absolute right-2 top-[34px] text-green-500"><Check size={14} /></span>}
+              </div>
+              <div className="bg-blue-50 text-blue-700 text-xs rounded-lg p-3">
+                The selected user will be notified once their account is created.
+              </div>
             </div>
           </div>
         )}
 
         {step === 2 && (
-          <div className="space-y-3">
-            <div className="bg-slate-50 rounded-xl p-4 space-y-2 text-sm">
-              {[
-                ['Name', watch('full_name')],
-                ['Email', watch('email')],
-                ['Phone', watch('phone') ? `+91 ${watch('phone')}` : '—'],
-                ['Role', watch('role')],
-                ['Group', selectedGroupName],
-                ['Status', watch('status') || 'active']
-              ].map(([k, v]) => (
-                <div key={k} className="flex justify-between">
-                  <span className="text-slate-500 text-xs">{k}</span>
-                  <span className="font-medium text-slate-800 text-xs capitalize">{v || '—'}</span>
-                </div>
-              ))}
-            </div>
-            <div className="bg-green-50 text-green-700 text-xs rounded-lg p-3">
-              ✓ Review all details before creating the user account.
+          <div className={clsx('p-4 rounded-xl border transition-colors', reviewed.has(2) ? 'bg-green-50/40 border-green-200' : 'border-transparent')}>
+            {reviewed.has(2) && <div className="flex items-center gap-1.5 mb-4 text-green-600"><Check size={14} /><span className="text-xs font-semibold">Reviewed</span></div>}
+            <div className="space-y-3">
+              <div className="bg-slate-50 rounded-xl p-4 space-y-2 text-sm">
+                {[
+                  ['Name', watch('full_name')],
+                  ['Email', watch('email')],
+                  ['Phone', watch('phone') ? `+91 ${watch('phone')}` : '—'],
+                  ['Role', watch('role')],
+                  ['Group', selectedGroupName],
+                  ['Status', watch('status') || 'active']
+                ].map(([k, v]) => (
+                  <div key={k} className="flex justify-between">
+                    <span className="text-slate-500 text-xs">{k}</span>
+                    <span className="font-medium text-slate-800 text-xs capitalize">{v || '—'}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="bg-green-50 text-green-700 text-xs rounded-lg p-3">
+                ✓ Review all details before creating the user account.
+              </div>
             </div>
           </div>
         )}

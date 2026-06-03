@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom'
 import AppLayout from '@/components/layout/AppLayout'
 import { Stepper, Input, Select, Textarea, Button, Badge, SearchInput } from '@/components/ui'
 import { ArrowLeft, ArrowRight, Info, CheckCircle, User, Mail, Phone, Check } from 'lucide-react'
+import clsx from 'clsx'
 import { usersApi, groupsApi } from '@/api'
 import toast from 'react-hot-toast'
 
 const STEPS = ['Group Details', 'Assign Owner', 'Review & Complete']
 
-function GroupDetailsStep({ form, setForm }) {
+function GroupDetailsStep({ form, setForm, reviewed }) {
+  const tick = reviewed ? <Check size={14} className="text-green-500" /> : undefined
   return (
     <div>
       <h3 className="text-sm font-semibold text-slate-900 mb-1">1. Group Details</h3>
@@ -21,6 +23,7 @@ function GroupDetailsStep({ form, setForm }) {
             placeholder="Enter group name"
             value={form.name}
             onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+            suffix={tick}
           />
           <p className="text-[11px] text-slate-400 mt-1">This will be the name of the group</p>
         </div>
@@ -31,30 +34,37 @@ function GroupDetailsStep({ form, setForm }) {
             placeholder="Enter group code"
             value={form.code}
             onChange={e => setForm(f => ({ ...f, code: e.target.value }))}
+            suffix={tick}
           />
           <p className="text-[11px] text-slate-400 mt-1">Unique code to identify the group</p>
         </div>
 
         <div>
-          <Textarea
-            label="Description (Optional)"
-            placeholder="Enter description"
-            value={form.description}
-            onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-            rows={3}
-          />
+          <div className="relative">
+            <Textarea
+              label="Description (Optional)"
+              placeholder="Enter description"
+              value={form.description}
+              onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+              rows={3}
+            />
+            {reviewed && <span className="absolute right-2 top-[34px] text-green-500"><Check size={14} /></span>}
+          </div>
           <p className="text-[11px] text-slate-400 mt-1">Add a short description about this group</p>
         </div>
 
         <div>
-          <Select
-            label="Status *"
-            value={form.status}
-            onChange={e => setForm(f => ({ ...f, status: e.target.value }))}
-          >
-            <option value="active">● Active</option>
-            <option value="inactive">● Inactive</option>
-          </Select>
+          <div className="relative">
+            <Select
+              label="Status *"
+              value={form.status}
+              onChange={e => setForm(f => ({ ...f, status: e.target.value }))}
+            >
+              <option value="active">● Active</option>
+              <option value="inactive">● Inactive</option>
+            </Select>
+            {reviewed && <span className="absolute right-2 top-[34px] text-green-500"><Check size={14} /></span>}
+          </div>
           <p className="text-[11px] text-slate-400 mt-1">Select the status of this group</p>
         </div>
 
@@ -67,7 +77,7 @@ function GroupDetailsStep({ form, setForm }) {
   )
 }
 
-function AssignOwnerStep({ form, setForm, users = [] }) {
+function AssignOwnerStep({ form, setForm, users = [], reviewed }) {
   const [search, setSearch] = useState('')
   const [showDropdown, setShowDropdown] = useState(false)
 
@@ -101,6 +111,7 @@ function AssignOwnerStep({ form, setForm, users = [] }) {
               onChange={e => { setSearch(e.target.value); setShowDropdown(true) }}
               onFocus={() => setShowDropdown(true)}
             />
+            {reviewed && <span className="absolute right-2 top-1/2 -translate-y-1/2 text-green-500 pointer-events-none"><Check size={14} /></span>}
             {showDropdown && (
               <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
                 {filtered.map(user => (
@@ -166,7 +177,7 @@ function AssignOwnerStep({ form, setForm, users = [] }) {
   )
 }
 
-function ReviewStep({ form, users = [] }) {
+function ReviewStep({ form, users = [], reviewed }) {
   const selectedUser = users.find(u => u.id === form.ownerId)
 
   return (
@@ -217,6 +228,7 @@ function ReviewStep({ form, users = [] }) {
 export default function AddGroupPage() {
   const navigate = useNavigate()
   const [step, setStep] = useState(0)
+  const [reviewed, setReviewed] = useState(new Set())
   const [users, setUsers] = useState([])
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
@@ -292,14 +304,17 @@ export default function AddGroupPage() {
 
         {/* 3-column layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="bg-white rounded-xl shadow-card border border-slate-100 p-6">
-            <GroupDetailsStep form={form} setForm={setForm} />
+          <div className={clsx('rounded-xl shadow-card border p-6 transition-colors', reviewed.has(0) ? 'bg-green-50/40 border-green-200' : 'bg-white border-slate-100')}>
+            {reviewed.has(0) && <div className="flex items-center gap-1.5 mb-4 text-green-600"><Check size={14} /><span className="text-xs font-semibold">Reviewed</span></div>}
+            <GroupDetailsStep form={form} setForm={setForm} reviewed={reviewed.has(0)} />
           </div>
-          <div className="bg-white rounded-xl shadow-card border border-slate-100 p-6">
-            <AssignOwnerStep form={form} setForm={setForm} users={users} />
+          <div className={clsx('rounded-xl shadow-card border p-6 transition-colors', reviewed.has(1) ? 'bg-green-50/40 border-green-200' : 'bg-white border-slate-100')}>
+            {reviewed.has(1) && <div className="flex items-center gap-1.5 mb-4 text-green-600"><Check size={14} /><span className="text-xs font-semibold">Reviewed</span></div>}
+            <AssignOwnerStep form={form} setForm={setForm} users={users} reviewed={reviewed.has(1)} />
           </div>
-          <div className="bg-white rounded-xl shadow-card border border-slate-100 p-6">
-            <ReviewStep form={form} users={users} />
+          <div className={clsx('rounded-xl shadow-card border p-6 transition-colors', reviewed.has(2) ? 'bg-green-50/40 border-green-200' : 'bg-white border-slate-100')}>
+            {reviewed.has(2) && <div className="flex items-center gap-1.5 mb-4 text-green-600"><Check size={14} /><span className="text-xs font-semibold">Reviewed</span></div>}
+            <ReviewStep form={form} users={users} reviewed={reviewed.has(2)} />
           </div>
         </div>
 
@@ -329,6 +344,7 @@ export default function AddGroupPage() {
               disabled={isNextDisabled()}
               onClick={() => {
                 if (step < STEPS.length - 1) {
+                  setReviewed(prev => new Set([...prev, step]))
                   setStep(step + 1)
                 } else {
                   handleCreateGroup()

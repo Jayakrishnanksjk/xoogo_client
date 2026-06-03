@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '@/components/layout/AppLayout'
 import { Stepper, Input, Select, Checkbox, Button, Badge } from '@/components/ui'
+import clsx from 'clsx'
 import { ArrowLeft, ArrowRight, Info, CheckCircle, GripVertical, Bus, Check } from 'lucide-react'
 import { groupsApi, routesApi, busesApi } from '@/api'
 import toast from 'react-hot-toast'
@@ -14,7 +15,8 @@ const STOP_COLORS = [
   'bg-brand', 'bg-purple-500', 'bg-amber-500', 'bg-green-500', 'bg-red-500', 'bg-pink-500', 'bg-teal-500', 'bg-orange-500'
 ]
 
-function BusDetailsStep({ form, setForm, groups = [] }) {
+function BusDetailsStep({ form, setForm, groups = [], reviewed }) {
+  const tick = reviewed ? <Check size={14} className="text-green-500" /> : undefined
   return (
     <div>
       <h3 className="text-sm font-semibold text-slate-900 mb-1">1. Bus Details</h3>
@@ -28,20 +30,24 @@ function BusDetailsStep({ form, setForm, groups = [] }) {
               placeholder="KL-13-1234"
               value={form.regNumber}
               onChange={e => setForm(f => ({ ...f, regNumber: e.target.value }))}
+              suffix={tick}
             />
             <p className="text-[11px] text-slate-400 mt-1">Enter bus registration number</p>
           </div>
           <div>
-            <Select
-              label="Bus Group *"
-              value={form.groupId}
-              onChange={e => setForm(f => ({ ...f, groupId: e.target.value }))}
-            >
-              <option value="">Select group</option>
-              {groups.map(g => (
-                <option key={g.id} value={g.id}>{g.name}</option>
-              ))}
-            </Select>
+            <div className="relative">
+              <Select
+                label="Bus Group *"
+                value={form.groupId}
+                onChange={e => setForm(f => ({ ...f, groupId: e.target.value }))}
+              >
+                <option value="">Select group</option>
+                {groups.map(g => (
+                  <option key={g.id} value={g.id}>{g.name}</option>
+                ))}
+              </Select>
+              {reviewed && <span className="absolute right-2 top-[34px] text-green-500"><Check size={14} /></span>}
+            </div>
             <p className="text-[11px] text-slate-400 mt-1">This group is linked to a user (owner)</p>
           </div>
         </div>
@@ -53,20 +59,24 @@ function BusDetailsStep({ form, setForm, groups = [] }) {
               placeholder="987654321012"
               value={form.simNumber}
               onChange={e => setForm(f => ({ ...f, simNumber: e.target.value }))}
+              suffix={tick}
             />
             <p className="text-[11px] text-slate-400 mt-1">Enter SIM number used for tracking</p>
           </div>
           <div>
-            <Select
-              label="Bus Type *"
-              value={form.busType}
-              onChange={e => setForm(f => ({ ...f, busType: e.target.value }))}
-            >
-              <option value="">Select the type of service</option>
-              {BUS_TYPES.map(t => (
-                <option key={t} value={t}>{t}</option>
-              ))}
-            </Select>
+            <div className="relative">
+              <Select
+                label="Bus Type *"
+                value={form.busType}
+                onChange={e => setForm(f => ({ ...f, busType: e.target.value }))}
+              >
+                <option value="">Select the type of service</option>
+                {BUS_TYPES.map(t => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </Select>
+              {reviewed && <span className="absolute right-2 top-[34px] text-green-500"><Check size={14} /></span>}
+            </div>
             <p className="text-[11px] text-slate-400 mt-1">Select the type of service</p>
           </div>
         </div>
@@ -78,6 +88,7 @@ function BusDetailsStep({ form, setForm, groups = [] }) {
               placeholder="James George"
               value={form.contactName}
               onChange={e => setForm(f => ({ ...f, contactName: e.target.value }))}
+              suffix={tick}
             />
             <p className="text-[11px] text-slate-400 mt-1">Person responsible for this bus</p>
           </div>
@@ -96,6 +107,7 @@ function BusDetailsStep({ form, setForm, groups = [] }) {
                 const val = e.target.value.replace(/\D/g, '').slice(0, 10)
                 setForm(f => ({ ...f, contactNumber: val }))
               }}
+              suffix={tick}
             />
             <p className="text-[11px] text-slate-400 mt-1">Primary contact number</p>
           </div>
@@ -111,6 +123,7 @@ function BusDetailsStep({ form, setForm, groups = [] }) {
                 placeholder="MBPP1234K678910"
                 value={form.chassisNumber}
                 onChange={e => setForm(f => ({ ...f, chassisNumber: e.target.value }))}
+                suffix={tick}
               />
               <p className="text-[11px] text-slate-400 mt-1">Enter bus chassis number</p>
             </div>
@@ -120,6 +133,7 @@ function BusDetailsStep({ form, setForm, groups = [] }) {
                 placeholder="eg:Volvo"
                 value={form.model}
                 onChange={e => setForm(f => ({ ...f, model: e.target.value }))}
+                suffix={tick}
               />
               <p className="text-[11px] text-slate-400 mt-1">Enter bus model</p>
             </div>
@@ -137,7 +151,7 @@ function BusDetailsStep({ form, setForm, groups = [] }) {
   )
 }
 
-function RouteStopsStep({ form, setForm, routes = [] }) {
+function RouteStopsStep({ form, setForm, routes = [], reviewed }) {
   const selectedRoute = routes.find(r => String(r.id) === String(form.routeId))
 
   return (
@@ -147,23 +161,26 @@ function RouteStopsStep({ form, setForm, routes = [] }) {
 
       <div className="space-y-4">
         <div>
-          <Select
-            label="Route *"
-            value={form.routeId}
-            onChange={e => {
-              const route = routes.find(r => String(r.id) === e.target.value)
-              setForm(f => ({
-                ...f,
-                routeId: e.target.value,
-                selectedStops: route ? route.stops.map((_, i) => i) : [],
-              }))
-            }}
-          >
-            <option value="">Select route</option>
-            {routes.map(r => (
-              <option key={r.id} value={r.id}>{r.name}</option>
-            ))}
-          </Select>
+          <div className="relative">
+            <Select
+              label="Route *"
+              value={form.routeId}
+              onChange={e => {
+                const route = routes.find(r => String(r.id) === e.target.value)
+                setForm(f => ({
+                  ...f,
+                  routeId: e.target.value,
+                  selectedStops: route ? route.stops.map((_, i) => i) : [],
+                }))
+              }}
+            >
+              <option value="">Select route</option>
+              {routes.map(r => (
+                <option key={r.id} value={r.id}>{r.name}</option>
+              ))}
+            </Select>
+            {reviewed && <span className="absolute right-2 top-[34px] text-green-500"><Check size={14} /></span>}
+          </div>
           <p className="text-[11px] text-slate-400 mt-1">Select the route this bus will operate on</p>
         </div>
 
@@ -214,7 +231,7 @@ function RouteStopsStep({ form, setForm, routes = [] }) {
   )
 }
 
-function PreviewStep({ form, groups = [], routes = [], isEditMode = false }) {
+function PreviewStep({ form, groups = [], routes = [], isEditMode = false, reviewed }) {
   const selectedGroup = groups.find(g => String(g.id) === String(form.groupId))
   const selectedRoute = routes.find(r => String(r.id) === String(form.routeId))
 
@@ -271,6 +288,7 @@ export default function AddBusScreenPage() {
   const isEditMode = !!id
 
   const [step, setStep] = useState(0)
+  const [reviewed, setReviewed] = useState(new Set())
   const [groups, setGroups] = useState([])
   const [routes, setRoutes] = useState([])
   const [loading, setLoading] = useState(true)
@@ -394,14 +412,17 @@ export default function AddBusScreenPage() {
 
         {/* 3-column layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="bg-white rounded-xl shadow-card border border-slate-100 p-6">
-            <BusDetailsStep form={form} setForm={setForm} groups={groups} />
+          <div className={clsx('rounded-xl shadow-card border p-6 transition-colors', reviewed.has(0) ? 'bg-green-50/40 border-green-200' : 'bg-white border-slate-100')}>
+            {reviewed.has(0) && <div className="flex items-center gap-1.5 mb-4 text-green-600"><Check size={14} /><span className="text-xs font-semibold">Reviewed</span></div>}
+            <BusDetailsStep form={form} setForm={setForm} groups={groups} reviewed={reviewed.has(0)} />
           </div>
-          <div className="bg-white rounded-xl shadow-card border border-slate-100 p-6">
-            <RouteStopsStep form={form} setForm={setForm} routes={routes} />
+          <div className={clsx('rounded-xl shadow-card border p-6 transition-colors', reviewed.has(1) ? 'bg-green-50/40 border-green-200' : 'bg-white border-slate-100')}>
+            {reviewed.has(1) && <div className="flex items-center gap-1.5 mb-4 text-green-600"><Check size={14} /><span className="text-xs font-semibold">Reviewed</span></div>}
+            <RouteStopsStep form={form} setForm={setForm} routes={routes} reviewed={reviewed.has(1)} />
           </div>
-          <div className="bg-white rounded-xl shadow-card border border-slate-100 p-6">
-            <PreviewStep form={form} groups={groups} routes={routes} isEditMode={isEditMode} />
+          <div className={clsx('rounded-xl shadow-card border p-6 transition-colors', reviewed.has(2) ? 'bg-green-50/40 border-green-200' : 'bg-white border-slate-100')}>
+            {reviewed.has(2) && <div className="flex items-center gap-1.5 mb-4 text-green-600"><Check size={14} /><span className="text-xs font-semibold">Reviewed</span></div>}
+            <PreviewStep form={form} groups={groups} routes={routes} isEditMode={isEditMode} reviewed={reviewed.has(2)} />
           </div>
         </div>
 
@@ -431,6 +452,7 @@ export default function AddBusScreenPage() {
               disabled={isNextDisabled()}
               onClick={() => {
                 if (step < STEPS.length - 1) {
+                  setReviewed(prev => new Set([...prev, step]))
                   setStep(step + 1)
                 } else {
                   handleSaveBusScreen()
