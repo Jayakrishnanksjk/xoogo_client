@@ -2,13 +2,14 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import AppLayout from '@/components/layout/AppLayout'
-import { Badge, EmptyState, StatCard, Button, DataCard, Pagination, SearchInput, Select, Tabs, Modal, LiveTrackingMap, StatCardSkeleton, GroupCardSkeleton, DataCardSkeleton, TableRowSkeleton } from '@/components/ui'
-import { Bus, Plus, Users, MapPin, Wifi, WifiOff, MoreVertical, SlidersHorizontal, LayoutGrid, List } from 'lucide-react'
+import { Badge, EmptyState, StatCard, Button, DataCard, Pagination, SearchInput, Select, Tabs, Modal, LiveTrackingMap, StatCardSkeleton, GroupCardSkeleton, DataCardSkeleton, TableRowSkeleton, ConfirmDialog, SlidePanel, Textarea, Input } from '@/components/ui'
+import { Bus, Plus, Users, MapPin, Wifi, WifiOff, MoreVertical, SlidersHorizontal, LayoutGrid, List, Pencil, Trash2 } from 'lucide-react'
 import clsx from 'clsx'
 import { groupsApi, routesApi } from '@/api'
 import { toast } from 'sonner'
 
-function GroupCard({ group, onViewScreens, onLiveTracking }) {
+function GroupCard({ group, onViewScreens, onLiveTracking, onEdit, onDelete }) {
+  const [menuOpen, setMenuOpen] = useState(false)
   const isActive = group.status === 'active'
 
   return (
