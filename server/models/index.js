@@ -21,7 +21,7 @@ User.belongsTo(Group, {
 })
 
 Group.belongsTo(User, {
-  foreignKey: 'owner_id',
+  foreignKey: 'ownerId',
   as: 'owner',
   onDelete: 'SET NULL',
   constraints: false,

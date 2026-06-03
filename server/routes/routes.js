@@ -1,5 +1,5 @@
 import express from 'express'
-import { Route } from '../models/index.js'
+import { Route, Stop } from '../models/index.js'
 import { authenticate } from '../middleware/auth.js'
 
 const router = express.Router()
@@ -8,7 +8,8 @@ const router = express.Router()
 router.get('/', authenticate, async (req, res) => {
   try {
     const routes = await Route.findAll({
-      order: [['created_at', 'DESC']]
+      order: [['created_at', 'DESC']],
+      include: [{ model: Stop, as: 'stops', attributes: ['id', 'name', 'latitude', 'longitude'] }]
     })
     res.json(routes)
   } catch (error) {
@@ -20,7 +21,9 @@ router.get('/', authenticate, async (req, res) => {
 // GET /api/routes/:id - Get specific route
 router.get('/:id', authenticate, async (req, res) => {
   try {
-    const route = await Route.findByPk(req.params.id)
+    const route = await Route.findByPk(req.params.id, {
+      include: [{ model: Stop, as: 'stops', attributes: ['id', 'name', 'latitude', 'longitude'] }]
+    })
     if (!route) {
       return res.status(404).json({ message: 'Route not found.' })
     }

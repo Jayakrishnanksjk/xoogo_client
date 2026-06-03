@@ -106,7 +106,7 @@ export default function GroupScreensPage() {
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-slate-900">{owner.full_name}</p>
-                    <p className="text-xs text-brand capitalize">Partner</p>
+                    <p className="text-xs text-brand capitalize">{owner.role || 'Partner'}</p>
                   </div>
                 </div>
                 <div className="space-y-2 pt-2 border-t border-slate-50">
