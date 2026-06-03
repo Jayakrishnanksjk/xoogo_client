@@ -5,7 +5,7 @@ import { Badge, EmptyState, StatCard, Button, DataCard, Pagination, SearchInput,
 import { Bus, Plus, Users, MapPin, Wifi, WifiOff, MoreVertical, SlidersHorizontal, LayoutGrid, List } from 'lucide-react'
 import clsx from 'clsx'
 import { groupsApi, routesApi } from '@/api'
-import toast from 'react-hot-toast'
+import { toast } from 'sonner'
 
 function GroupCard({ group, onViewScreens, onLiveTracking }) {
   return (

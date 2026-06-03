@@ -34,7 +34,7 @@ router.get('/:id', authenticate, async (req, res) => {
 // POST /api/routes - Create route
 router.post('/', authenticate, async (req, res) => {
   try {
-    const { name, code, estimatedDuration, distance, routeType, status, stops } = req.body
+    const { name, code, estimatedDuration, distance, routeType, status } = req.body
 
     // Check unique code
     const existing = await Route.findOne({ where: { code } })
@@ -48,8 +48,7 @@ router.post('/', authenticate, async (req, res) => {
       estimatedDuration,
       distance,
       routeType,
-      status: status || 'active',
-      stops: stops || []
+      status: status || 'active'
     })
     res.status(201).json(route)
   } catch (error) {
@@ -61,7 +60,7 @@ router.post('/', authenticate, async (req, res) => {
 // PATCH /api/routes/:id - Update route
 router.patch('/:id', authenticate, async (req, res) => {
   try {
-    const { name, code, estimatedDuration, distance, routeType, status, stops } = req.body
+    const { name, code, estimatedDuration, distance, routeType, status } = req.body
     const route = await Route.findByPk(req.params.id)
     if (!route) {
       return res.status(404).json({ message: 'Route not found.' })
@@ -80,8 +79,7 @@ router.patch('/:id', authenticate, async (req, res) => {
       estimatedDuration,
       distance,
       routeType,
-      status,
-      stops
+      status
     })
     res.json(route)
   } catch (error) {

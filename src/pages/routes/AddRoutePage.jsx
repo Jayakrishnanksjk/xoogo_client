@@ -10,7 +10,7 @@ import {
 } from 'lucide-react'
 import clsx from 'clsx'
 import { routesApi } from '@/api'
-import toast from 'react-hot-toast'
+import { toast } from 'sonner'
 
 // ── Helpers ─────────────────────────────────────────────
 function createNumberedIcon(number, type = 'intermediate') {

@@ -5,7 +5,7 @@ import { Badge, Button, Pagination, SearchInput } from '@/components/ui'
 import { Bus, Wifi, WifiOff, MoreVertical, Plus } from 'lucide-react'
 import clsx from 'clsx'
 import { busesApi } from '@/api'
-import toast from 'react-hot-toast'
+import { toast } from 'sonner'
 
 const FILTERS = [
   { value: 'all', label: 'All', icon: Bus },

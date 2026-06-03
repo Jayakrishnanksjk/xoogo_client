@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { useAuth } from '@/context/AuthContext'
-import toast from 'react-hot-toast'
+import { toast } from 'sonner'
 import { Eye, EyeOff, Bus } from 'lucide-react'
 import { Input, Button } from '@/components/ui'
 
