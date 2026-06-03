@@ -50,8 +50,18 @@ async function ensureDatabaseExists() {
 
 async function startServer() {
   try {
-    // 1. Ensure the PostgreSQL database exists
-    await ensureDatabaseExists()
+    if (process.env.NODE_ENV === 'production' && !process.env.DATABASE_URL) {
+      console.error('FATAL: DATABASE_URL environment variable is not set.')
+      console.error('Set it in your Render dashboard under Environment Variables.')
+      process.exit(1)
+    }
+
+    // 1. Ensure the PostgreSQL database exists (skip if using DATABASE_URL / Neon)
+    if (!process.env.DATABASE_URL) {
+      await ensureDatabaseExists()
+    } else {
+      console.log('Using DATABASE_URL — skipping local DB creation check.')
+    }
 
     // 2. Test Sequelize connection and Sync models
     console.log('Connecting to database via Sequelize...')

@@ -8,8 +8,11 @@ import { User, Group } from '../models/index.js'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 dotenv.config({ path: path.resolve(__dirname, '../.env') })
 
-// Helper to ensure database exists before sync
 async function ensureDatabaseExists() {
+  if (process.env.DATABASE_URL) {
+    console.log('Using DATABASE_URL — skipping local DB creation check.')
+    return
+  }
   const dbName = process.env.DB_NAME || 'xoogo_dev'
   const config = {
     host: process.env.DB_HOST || '127.0.0.1',
@@ -118,17 +121,23 @@ async function seed() {
 
     console.log('Seeding users...')
     // Seed default superadmin admin@xoogo.com if it doesn't exist
-    const [defaultSuperadmin] = await User.findOrCreate({
+    const [defaultSuperadmin, created] = await User.findOrCreate({
       where: { email: 'admin@xoogo.com' },
       defaults: {
         full_name: 'Super Admin',
         email: 'admin@xoogo.com',
         phone: '+91 90000 00000',
-        password: 'Admin@123',
+        password: 'admin@123',
         role: 'superadmin',
         status: 'active'
       }
     })
+    // Update password if user already exists
+    if (!created) {
+      defaultSuperadmin.password = 'admin@123'
+      await defaultSuperadmin.save()
+      console.log(`- Default Super Admin password updated.`)
+    }
     console.log(`- Default Super Admin "admin@xoogo.com" verified/created.`)
 
     // Seed mock users

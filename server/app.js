@@ -10,7 +10,19 @@ import busRoutes from './routes/buses.js'
 const app = express()
 
 // Global Middleware
-app.use(cors())
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'https://xoogo-client.onrender.com',
+  ...(process.env.CLIENT_URL ? [process.env.CLIENT_URL] : []),
+]
+app.use(cors({
+  origin: (origin, cb) => {
+    if (!origin || allowedOrigins.includes(origin)) return cb(null, true)
+    cb(null, false)
+  },
+  credentials: true,
+}))
 app.use(morgan('dev'))
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
