@@ -20,7 +20,7 @@ router.get('/', async (req, res) => {
       where: whereClause,
       include: [
         { model: Group, as: 'group', attributes: ['id', 'name'] },
-        { model: Route, as: 'route', attributes: ['id', 'name', 'stops'] }
+        { model: Route, as: 'route', attributes: ['id', 'name'] }
       ],
       order: [['created_at', 'DESC']]
     })
@@ -43,8 +43,7 @@ router.post('/', async (req, res) => {
       contactNumber,
       chassisNumber,
       model,
-      routeId,
-      selectedStops
+      routeId
     } = req.body
 
     if (!regNumber || !groupId || !simNumber || !busType || !contactName || !contactNumber) {
@@ -81,14 +80,13 @@ router.post('/', async (req, res) => {
       chassisNumber: chassisNumber || null,
       model: model || null,
       routeId: routeId || null,
-      selectedStops: selectedStops || null,
       status: 'offline', // default
     })
 
     const fullBus = await Bus.findByPk(bus.id, {
       include: [
         { model: Group, as: 'group', attributes: ['id', 'name'] },
-        { model: Route, as: 'route', attributes: ['id', 'name', 'stops'] }
+        { model: Route, as: 'route', attributes: ['id', 'name'] }
       ]
     })
 
@@ -105,7 +103,7 @@ router.get('/:id', async (req, res) => {
     const bus = await Bus.findByPk(req.params.id, {
       include: [
         { model: Group, as: 'group', attributes: ['id', 'name'] },
-        { model: Route, as: 'route', attributes: ['id', 'name', 'stops'] }
+        { model: Route, as: 'route', attributes: ['id', 'name'] }
       ]
     })
     if (!bus) {
@@ -136,7 +134,6 @@ router.patch('/:id', async (req, res) => {
       chassisNumber,
       model,
       routeId,
-      selectedStops,
       status
     } = req.body
 
@@ -172,7 +169,6 @@ router.patch('/:id', async (req, res) => {
     if (contactNumber) bus.contactNumber = contactNumber
     if (chassisNumber !== undefined) bus.chassisNumber = chassisNumber
     if (model !== undefined) bus.model = model
-    if (selectedStops !== undefined) bus.selectedStops = selectedStops
     if (status) bus.status = status
 
     await bus.save()
@@ -180,7 +176,7 @@ router.patch('/:id', async (req, res) => {
     const fullBus = await Bus.findByPk(bus.id, {
       include: [
         { model: Group, as: 'group', attributes: ['id', 'name'] },
-        { model: Route, as: 'route', attributes: ['id', 'name', 'stops'] }
+        { model: Route, as: 'route', attributes: ['id', 'name'] }
       ]
     })
 
