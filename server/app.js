@@ -33,6 +33,8 @@ app.use(express.urlencoded({ extended: true }))
 
 // Serve built frontend
 const distPath = path.resolve(__dirname, '../dist')
+console.log('[app] distPath:', distPath)
+console.log('[app] CWD:', process.cwd())
 app.use(express.static(distPath))
 
 // API Routes
