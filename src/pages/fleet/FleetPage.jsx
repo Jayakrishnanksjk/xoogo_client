@@ -1,13 +1,14 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AppLayout from '@/components/layout/AppLayout'
-import { Badge, EmptyState, StatCard, Button, DataCard, Pagination, SearchInput, Select, Tabs, Modal, LiveTrackingMap } from '@/components/ui'
-import { Bus, Plus, Users, MapPin, Wifi, WifiOff, MoreVertical, SlidersHorizontal, LayoutGrid, List } from 'lucide-react'
+import { Badge, EmptyState, StatCard, Button, DataCard, Pagination, SearchInput, Select, Tabs, Modal, SlidePanel, ConfirmDialog, Input, Textarea } from '@/components/ui'
+import { Bus, Plus, Users, MapPin, Wifi, WifiOff, MoreVertical, SlidersHorizontal, LayoutGrid, List, Pencil, Trash2 } from 'lucide-react'
 import clsx from 'clsx'
 import { groupsApi, routesApi } from '@/api'
 import { toast } from 'sonner'
 
-function GroupCard({ group, onViewScreens, onLiveTracking }) {
+function GroupCard({ group, onViewScreens, onLiveTracking, onEdit, onDelete }) {
+  const [menuOpen, setMenuOpen] = useState(false)
   return (
     <div
       onClick={onViewScreens}
@@ -17,9 +18,33 @@ function GroupCard({ group, onViewScreens, onLiveTracking }) {
       <div className="h-32 bg-gradient-to-br from-slate-100 to-slate-200 rounded-lg mb-3 flex items-center justify-center relative overflow-hidden">
         <Bus size={32} className="text-slate-300" />
         <div className="absolute top-2 right-2">
-          <button className="p-1 bg-white/80 hover:bg-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity">
-            <MoreVertical size={14} className="text-slate-500" />
-          </button>
+          <div className="relative">
+            <button
+              onClick={e => { e.stopPropagation(); setMenuOpen(v => !v) }}
+              className="p-1 bg-white/80 hover:bg-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <MoreVertical size={14} className="text-slate-500" />
+            </button>
+            {menuOpen && (
+              <div
+                className="absolute right-0 top-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-20 w-36 py-1"
+                onClick={e => e.stopPropagation()}
+              >
+                <button
+                  onClick={() => { onEdit(); setMenuOpen(false) }}
+                  className="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 flex items-center gap-2 text-slate-700"
+                >
+                  <Pencil size={12} /> Edit Group
+                </button>
+                <button
+                  onClick={() => { onDelete(); setMenuOpen(false) }}
+                  className="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 flex items-center gap-2 text-red-600"
+                >
+                  <Trash2 size={12} /> Delete Group
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -63,7 +88,7 @@ function GroupCard({ group, onViewScreens, onLiveTracking }) {
   )
 }
 
-function ByGroupsTab({ groups = [], loading = false, onLiveTracking }) {
+function ByGroupsTab({ groups = [], loading = false, onLiveTracking, onEditGroup, onDeleteGroup }) {
   const navigate = useNavigate()
 
   // Calculate totals dynamically
@@ -107,18 +132,20 @@ function ByGroupsTab({ groups = [], loading = false, onLiveTracking }) {
             const offlineCount = numBuses - onlineCount
             return (
               <GroupCard
-                key={g.id}
-                group={{
-                  id: g.id,
-                  name: g.name,
-                  status: g.status || 'active',
-                  buses: numBuses,
-                  online: onlineCount,
-                  offline: offlineCount
-                }}
-                onViewScreens={() => navigate(`/fleet/group/${g.id}/screens`)}
-                onLiveTracking={() => onLiveTracking(g)}
-              />
+                  key={g.id}
+                  group={{
+                    id: g.id,
+                    name: g.name,
+                    status: g.status || 'active',
+                    buses: numBuses,
+                    online: onlineCount,
+                    offline: offlineCount
+                  }}
+                  onViewScreens={() => navigate(`/fleet/group/${g.id}/screens`)}
+                  onLiveTracking={() => onLiveTracking(g)}
+                  onEdit={() => onEditGroup(g)}
+                  onDelete={() => onDeleteGroup(g)}
+                />
             )
           })}
         </div>
@@ -296,6 +323,12 @@ export default function FleetPage() {
   const [loading, setLoading] = useState(true)
   const [trackingGroup, setTrackingGroup] = useState(null)
 
+  // Edit state
+  const [editGroup, setEditGroup] = useState(null)
+  const [editForm, setEditForm] = useState({ name: '', code: '', description: '', status: 'active' })
+  const [savingEdit, setSavingEdit] = useState(false)
+  const [deleteGroup, setDeleteGroup] = useState(null)
+
   const fetchData = async () => {
     try {
       setLoading(true)
@@ -316,6 +349,53 @@ export default function FleetPage() {
   useEffect(() => {
     fetchData()
   }, [])
+
+  const handleEditGroup = useCallback((g) => {
+    setEditGroup(g)
+    setEditForm({
+      name: g.name || '',
+      code: g.code || '',
+      description: g.description || '',
+      status: g.status || 'active',
+    })
+  }, [])
+
+  const handleSaveEdit = async () => {
+    if (!editForm.name.trim()) {
+      toast.error('Group name is required')
+      return
+    }
+    try {
+      setSavingEdit(true)
+      await groupsApi.update(editGroup.id, {
+        name: editForm.name.trim(),
+        code: editForm.code.trim() || null,
+        description: editForm.description.trim() || null,
+        status: editForm.status,
+      })
+      toast.success('Group updated')
+      setEditGroup(null)
+      fetchData()
+    } catch (err) {
+      console.error('Failed to update group:', err)
+      toast.error(err.response?.data?.message || 'Failed to update group')
+    } finally {
+      setSavingEdit(false)
+    }
+  }
+
+  const handleDeleteGroup = useCallback(async () => {
+    if (!deleteGroup) return
+    try {
+      await groupsApi.delete(deleteGroup.id)
+      toast.success('Group deleted')
+      setDeleteGroup(null)
+      fetchData()
+    } catch (err) {
+      console.error('Failed to delete group:', err)
+      toast.error(err.response?.data?.message || 'Failed to delete group')
+    }
+  }, [deleteGroup])
 
   const trackingBuses = trackingGroup
     ? (groups.find(g => g.id === trackingGroup.id)?.buses || []).map(b => ({
@@ -354,7 +434,9 @@ export default function FleetPage() {
           <ByGroupsTab 
             groups={groups} 
             loading={loading} 
-            onLiveTracking={(g) => setTrackingGroup(g)} 
+            onLiveTracking={(g) => setTrackingGroup(g)}
+            onEditGroup={handleEditGroup}
+            onDeleteGroup={setDeleteGroup}
           />
         ) : (
           <ByRoutesTab routes={routes} loading={loading} />
@@ -380,6 +462,62 @@ export default function FleetPage() {
           </div>
         )}
       </Modal>
+
+      {/* Edit Group Panel */}
+      <SlidePanel
+        open={!!editGroup}
+        onClose={() => setEditGroup(null)}
+        title="Edit Group"
+        subtitle={editGroup?.name ? `Editing: ${editGroup.name}` : ''}
+      >
+        <div className="space-y-4">
+          <Input
+            label="Group Name *"
+            value={editForm.name}
+            onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))}
+          />
+          <Input
+            label="Group Code"
+            value={editForm.code}
+            onChange={e => setEditForm(f => ({ ...f, code: e.target.value }))}
+          />
+          <div>
+            <Textarea
+              label="Description"
+              value={editForm.description}
+              onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
+              rows={3}
+            />
+          </div>
+          <Select
+            label="Status"
+            value={editForm.status}
+            onChange={e => setEditForm(f => ({ ...f, status: e.target.value }))}
+          >
+            <option value="active">● Active</option>
+            <option value="inactive">● Inactive</option>
+          </Select>
+          <div className="pt-4 border-t border-slate-100">
+            <Button
+              label="Save Changes"
+              onClick={handleSaveEdit}
+              loading={savingEdit}
+              className="w-full"
+            />
+          </div>
+        </div>
+      </SlidePanel>
+
+      {/* Delete Group Confirmation */}
+      <ConfirmDialog
+        open={!!deleteGroup}
+        onClose={() => setDeleteGroup(null)}
+        onConfirm={handleDeleteGroup}
+        title="Delete Group"
+        message={`Are you sure you want to delete "${deleteGroup?.name}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        danger
+      />
     </AppLayout>
   )
 }
