@@ -170,7 +170,7 @@ function RouteStopsStep({ form, setForm, routes = [], reviewed }) {
                 setForm(f => ({
                   ...f,
                   routeId: e.target.value,
-                  selectedStops: route ? route.stops.map((_, i) => i) : [],
+                  selectedStops: route && route.stops ? route.stops.map((_, i) => i) : [],
                 }))
               }}
             >
@@ -190,7 +190,7 @@ function RouteStopsStep({ form, setForm, routes = [], reviewed }) {
             <p className="text-[11px] text-slate-400 mb-3">Choose the stops where this bus will display content</p>
 
             <div className="border border-slate-200 rounded-lg overflow-hidden">
-              {selectedRoute.stops.map((stop, idx) => (
+              {(selectedRoute.stops || []).map((stop, idx) => (
                 <div
                   key={stop.id || idx}
                   className="flex items-center gap-3 px-3 py-2.5 border-b border-slate-100 last:border-b-0 hover:bg-slate-50 transition-colors"
@@ -208,7 +208,7 @@ function RouteStopsStep({ form, setForm, routes = [], reviewed }) {
                     }}
                   />
                   <span className="text-xs font-medium text-slate-500 w-5">{idx + 1}</span>
-                  <span className="text-sm text-slate-800">{stop.lat != null ? `${stop.lat.toFixed(5)}, ${stop.lng.toFixed(5)}` : stop}</span>
+                  <span className="text-sm text-slate-800">{stop.name || (stop.lat != null ? `${stop.lat.toFixed(5)}, ${stop.lng.toFixed(5)}` : stop?.latitude != null ? `${stop.latitude.toFixed(5)}, ${stop.longitude.toFixed(5)}` : stop)}</span>
                 </div>
               ))}
             </div>
@@ -265,14 +265,14 @@ function PreviewStep({ form, groups = [], routes = [], isEditMode = false, revie
       </div>
 
       {/* Stops list */}
-      {selectedRoute && form.selectedStops?.length > 0 && (
+      {selectedRoute && selectedRoute.stops && form.selectedStops?.length > 0 && (
         <div className="mt-4">
           <p className="text-xs text-slate-500 mb-2">Stops ({form.selectedStops.length})</p>
           <div className="space-y-1.5">
-            {form.selectedStops.sort((a, b) => a - b).map((stopIdx, i) => (
+            {[...form.selectedStops].sort((a, b) => a - b).map((stopIdx, i) => (
               <div key={stopIdx} className="flex items-center gap-2">
                 <span className={`w-2 h-2 rounded-full ${STOP_COLORS[i % STOP_COLORS.length]} shrink-0`} />
-                <span className="text-xs text-slate-700">{selectedRoute.stops[stopIdx]?.lat != null ? `${selectedRoute.stops[stopIdx].lat.toFixed(5)}, ${selectedRoute.stops[stopIdx].lng.toFixed(5)}` : selectedRoute.stops[stopIdx]}</span>
+                <span className="text-xs text-slate-700">{(() => { const s = selectedRoute.stops[stopIdx]; return s?.name || (s?.lat != null ? `${s.lat.toFixed(5)}, ${s.lng.toFixed(5)}` : s?.latitude != null ? `${s.latitude.toFixed(5)}, ${s.longitude.toFixed(5)}` : s) })()}</span>
               </div>
             ))}
           </div>
