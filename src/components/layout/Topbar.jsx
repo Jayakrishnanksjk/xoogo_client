@@ -9,11 +9,11 @@ export default function Topbar({ title, subtitle }) {
         {subtitle && <p className="text-xs text-slate-400 mt-1">{subtitle}</p>}
       </div>
 
-      {/* Search Bar - Shadcn input aesthetic */}
+      {/* Search Bar - Shadcn input aesthetic aligned to brand primary color */}
       <div className="relative hidden md:block">
         <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
         <input
-          className="pl-9 pr-4 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-300 focus:border-slate-300 w-64 placeholder:text-slate-400 transition-all text-slate-700"
+          className="pl-9 pr-4 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand w-64 placeholder:text-slate-400 transition-all text-slate-700"
           placeholder="Search anything..."
         />
       </div>

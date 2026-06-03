@@ -163,7 +163,7 @@ export function LiveTrackingMap({ buses = [], height = '400px' }) {
   }, [mappedBuses, selectedBusId])
 
   return (
-    <div className="w-full flex flex-col lg:flex-row gap-4">
+    <div className="w-full h-full flex flex-col lg:flex-row gap-4">
       {/* Map Window */}
       <div 
         className="flex-1 bg-white border border-slate-100 rounded-xl overflow-hidden shadow-sm relative z-10"

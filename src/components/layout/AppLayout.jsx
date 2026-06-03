@@ -7,7 +7,7 @@ export default function AppLayout({ children, title, subtitle }) {
       <Sidebar />
       <div className="ml-[220px] min-h-screen flex flex-col">
         <Topbar title={title} subtitle={subtitle} />
-        <main className="flex-1 pt-16">
+        <main className="flex-1 pt-16 flex flex-col">
           {children}
         </main>
       </div>
