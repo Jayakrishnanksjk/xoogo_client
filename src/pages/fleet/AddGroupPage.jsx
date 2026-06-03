@@ -4,7 +4,7 @@ import AppLayout from '@/components/layout/AppLayout'
 import { Stepper, Input, Select, Textarea, Button, Badge, SearchInput } from '@/components/ui'
 import { ArrowLeft, ArrowRight, Info, CheckCircle, User, Mail, Phone, Check } from 'lucide-react'
 import { usersApi, groupsApi } from '@/api'
-import toast from 'react-hot-toast'
+import { toast } from 'sonner'
 
 const STEPS = ['Group Details', 'Assign Owner', 'Review & Complete']
 

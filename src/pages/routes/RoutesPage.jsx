@@ -6,7 +6,7 @@ import AppLayout from '@/components/layout/AppLayout'
 import { Badge, EmptyState, Button, Input, Tabs, ConfirmDialog } from '@/components/ui'
 import { MapPin, Plus, ChevronRight, MoreVertical, Search, Trash2 } from 'lucide-react'
 import { routesApi } from '@/api'
-import toast from 'react-hot-toast'
+import { toast } from 'sonner'
 
 // ── Leaflet Helpers ─────────────────────────────────────
 function createNumberedIcon(number, type = 'intermediate') {

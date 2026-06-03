@@ -4,7 +4,7 @@ import AppLayout from '@/components/layout/AppLayout'
 import { Stepper, Input, Select, Checkbox, Button, Badge } from '@/components/ui'
 import { ArrowLeft, ArrowRight, Info, CheckCircle, GripVertical, Bus, Check } from 'lucide-react'
 import { groupsApi, routesApi, busesApi } from '@/api'
-import toast from 'react-hot-toast'
+import { toast } from 'sonner'
 
 const STEPS = ['Bus Details', 'Route & Stops', 'Preview & Complete']
 

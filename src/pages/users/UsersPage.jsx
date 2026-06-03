@@ -4,7 +4,7 @@ import { Badge, StatCard, SlidePanel, Stepper, Button, Input, Select, ConfirmDia
 import { Users, Shield, Building2, UserCog, Plus, Search, Trash2, X } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { usersApi, groupsApi } from '@/api'
-import toast from 'react-hot-toast'
+import { toast } from 'sonner'
 import clsx from 'clsx'
 
 const STEPS = ['User Details', 'Assign Role & Group', 'Review & Confirm']
