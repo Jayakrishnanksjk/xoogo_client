@@ -9,12 +9,12 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground shadow hover:bg-primary/90",
-        destructive: "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
-        outline: "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
-        secondary: "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
+        default: "bg-brand text-white shadow hover:bg-brand-dark transition-colors",
+        destructive: "bg-red-600 text-white shadow-sm hover:bg-red-700 transition-colors",
+        outline: "border border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50 transition-colors",
+        secondary: "bg-slate-100 text-slate-800 shadow-sm hover:bg-slate-200/80 transition-colors",
+        ghost: "text-slate-600 hover:bg-slate-100 hover:text-slate-950 transition-colors",
+        link: "text-brand underline-offset-4 hover:underline",
       },
       size: {
         default: "h-9 px-4 py-2",
@@ -54,10 +54,12 @@ const Button = React.forwardRef(({
     >
       {asChild ? (
         children
+      ) : children ? (
+        children
       ) : (
         <>
           {StartIcon && <StartIcon className="size-4 shrink-0" />}
-          {(children || label) && <span>{children || label}</span>}
+          {label && <span>{label}</span>}
           {EndIcon && <EndIcon className="size-4 shrink-0" />}
         </>
       )}
