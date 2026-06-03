@@ -655,7 +655,7 @@ export default function AddRoutePage() {
                 </div>
 
                 {/* Route Type Toggle */}
-                {/* <div>
+                <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1.5">Route Type</label>
                   <div className="flex rounded-lg border border-slate-200 overflow-hidden">
                     <button
@@ -681,7 +681,7 @@ export default function AddRoutePage() {
                       Outbound
                     </button>
                   </div>
-                </div> */}
+                </div>
 
                 {/* Status Toggle */}
                 <div>
@@ -835,7 +835,7 @@ export default function AddRoutePage() {
                   </div>
                 </div>
                 <div className="w-px h-8 bg-slate-100" />
-                {/* <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
                   <div className="w-6 h-6 rounded-full bg-green-50 flex items-center justify-center">
                     <RouteIcon size={12} className="text-green-500" />
                   </div>
@@ -843,7 +843,7 @@ export default function AddRoutePage() {
                     <p className="text-[11px] text-slate-400">Route Type</p>
                     <p className="text-sm font-semibold text-slate-800 capitalize">{routeType}</p>
                   </div>
-                </div> */}
+                </div>
               </div>
             </div>
           </div>
