@@ -67,7 +67,7 @@ router.get('/:id', authenticate, async (req, res) => {
     const group = await Group.findByPk(req.params.id, {
       include: [
         { model: Bus, as: 'buses', include: [{ model: Route, as: 'route', attributes: ['id', 'name'] }] },
-        { model: User, as: 'owner', attributes: ['id', 'full_name', 'email', 'phone'] }
+        { model: User, as: 'owner', attributes: ['id', 'full_name', 'email', 'phone', 'role'] }
       ]
     })
     if (!group) {
