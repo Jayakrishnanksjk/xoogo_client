@@ -9,6 +9,10 @@ export default {
         ring: 'var(--ring)',
         background: 'var(--background)',
         foreground: 'var(--foreground)',
+        primary: {
+          DEFAULT: 'var(--primary)',
+          foreground: 'var(--primary-foreground)',
+        },
         // Xoogo brand
         brand: {
           DEFAULT: '#2563EB',
