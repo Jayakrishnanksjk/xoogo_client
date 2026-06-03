@@ -1,11 +1,15 @@
 import express from 'express'
 import cors from 'cors'
 import morgan from 'morgan'
+import path from 'path'
+import { fileURLToPath } from 'url'
 import authRoutes from './routes/auth.js'
 import userRoutes from './routes/users.js'
 import groupRoutes from './routes/groups.js'
 import routeRoutes from './routes/routes.js'
 import busRoutes from './routes/buses.js'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const app = express()
 
@@ -27,6 +31,10 @@ app.use(morgan('dev'))
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
+// Serve built frontend
+const distPath = path.resolve(__dirname, '../dist')
+app.use(express.static(distPath))
+
 // API Routes
 app.use('/api/auth', authRoutes)
 app.use('/api/users', userRoutes)
@@ -43,8 +51,13 @@ app.get('/api/health', (req, res) => {
   })
 })
 
-// 404 Route handler
-app.use((req, res, next) => {
+// Serve index.html for all non-API routes (client-side routing)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(distPath, 'index.html'))
+})
+
+// 404 for API routes only
+app.use('/api/*', (req, res) => {
   res.status(404).json({ message: `Route ${req.originalUrl} not found.` })
 })
 
