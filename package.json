@@ -30,9 +30,7 @@
     "vite": "^5.3.4"
   },
   "scripts": {
-    "dev:client": "vite",
-    "dev:server": "npm run dev --prefix server",
-    "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
+    "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
   }
