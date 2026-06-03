@@ -208,8 +208,8 @@ export default function RoutesPage() {
 
               {/* Route summary */}
               <div className="grid grid-cols-4 gap-4 mb-5 p-4 bg-slate-50 rounded-xl">
-                <div><p className="text-xs text-slate-500">Start</p><p className="text-sm font-medium text-slate-800 truncate">{selected.stops?.[0]?.name || '—'}</p></div>
-                <div><p className="text-xs text-slate-500">End</p><p className="text-sm font-medium text-slate-800 truncate">{selected.stops?.[selected.stops.length - 1]?.name || '—'}</p></div>
+                <div><p className="text-xs text-slate-500">Start Coords</p><p className="text-sm font-mono font-medium text-slate-800 truncate">{selected.stops?.[0] ? `${selected.stops[0].lat.toFixed(5)}, ${selected.stops[0].lng.toFixed(5)}` : '—'}</p></div>
+                <div><p className="text-xs text-slate-500">End Coords</p><p className="text-sm font-mono font-medium text-slate-800 truncate">{selected.stops?.[selected.stops.length - 1] ? `${selected.stops[selected.stops.length - 1].lat.toFixed(5)}, ${selected.stops[selected.stops.length - 1].lng.toFixed(5)}` : '—'}</p></div>
                 <div><p className="text-xs text-slate-500">Total Stops</p><p className="text-sm font-medium text-slate-800">{selected.stops?.length || 0}</p></div>
                 <div><p className="text-xs text-slate-500">Distance</p><p className="text-sm font-medium text-slate-800">{selected.distance ? `${selected.distance.toFixed(1)} km` : '—'}</p></div>
               </div>
@@ -243,8 +243,6 @@ export default function RoutesPage() {
                         <thead>
                           <tr className="bg-slate-50 border-b border-slate-100">
                             <th className="p-3 text-xs font-semibold text-slate-500 uppercase">Seq</th>
-                            <th className="p-3 text-xs font-semibold text-slate-500 uppercase">Stop Name</th>
-                            <th className="p-3 text-xs font-semibold text-slate-500 uppercase">Location</th>
                             <th className="p-3 text-xs font-semibold text-slate-500 uppercase">Coordinates</th>
                           </tr>
                         </thead>
@@ -252,8 +250,6 @@ export default function RoutesPage() {
                           {selected.stops.map((stop, idx) => (
                             <tr key={stop.id || idx} className="border-b border-slate-50 hover:bg-slate-50/50">
                               <td className="p-3 text-xs font-medium text-slate-500">{idx + 1}</td>
-                              <td className="p-3 text-xs font-semibold text-slate-800">{stop.name}</td>
-                              <td className="p-3 text-xs text-slate-500">{stop.location}</td>
                               <td className="p-3 text-xs text-slate-400 font-mono">
                                 {stop.lat?.toFixed(5)}, {stop.lng?.toFixed(5)}
                               </td>

@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { MapContainer, TileLayer, Marker, Polyline, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import AppLayout from '@/components/layout/AppLayout'
-import { Input, Button, Modal, LocationAutocomplete } from '@/components/ui'
+import { Input, Button, Modal } from '@/components/ui'
 import {
   ArrowLeft, Plus, Trash2, Pencil, GripVertical, MapPin, Navigation,
   Route as RouteIcon, Clock, Milestone, X, Check, MousePointerClick, Crosshair
@@ -68,6 +68,10 @@ function parseCoordinate(val) {
   return parseFloat(str)
 }
 
+function coordStr(lat, lng) {
+  return `${parseFloat(lat).toFixed(5)}, ${parseFloat(lng).toFixed(5)}`
+}
+
 
 // ── Map sub-components ──────────────────────────────────
 function FitBounds({ stops }) {
@@ -125,10 +129,10 @@ export default function AddRoutePage() {
   // Route form state
   const [routeName, setRouteName] = useState('')
   const [routeCode, setRouteCode] = useState('')
-  const [startLocation, setStartLocation] = useState('')
-  const [endLocation, setEndLocation] = useState('')
-  const [startCoords, setStartCoords] = useState(null)
-  const [endCoords, setEndCoords] = useState(null)
+  const [startLat, setStartLat] = useState('')
+  const [startLng, setStartLng] = useState('')
+  const [endLat, setEndLat] = useState('')
+  const [endLng, setEndLng] = useState('')
   const [estimatedDuration, setEstimatedDuration] = useState('')
   const [routeType, setRouteType] = useState('inbound')
   const [isActive, setIsActive] = useState(true)
@@ -149,13 +153,13 @@ export default function AddRoutePage() {
 
           const startStop = route.stops?.[0]
           if (startStop) {
-            setStartLocation(startStop.name)
-            setStartCoords({ lat: startStop.lat, lng: startStop.lng })
+            setStartLat(String(startStop.lat))
+            setStartLng(String(startStop.lng))
           }
           const endStop = route.stops?.[route.stops.length - 1]
           if (endStop && route.stops.length > 1) {
-            setEndLocation(endStop.name)
-            setEndCoords({ lat: endStop.lat, lng: endStop.lng })
+            setEndLat(String(endStop.lat))
+            setEndLng(String(endStop.lng))
           }
         })
         .catch((err) => {
@@ -174,7 +178,7 @@ export default function AddRoutePage() {
   // Modal state
   const [showAddModal, setShowAddModal] = useState(false)
   const [editingStop, setEditingStop] = useState(null)
-  const [stopForm, setStopForm] = useState({ name: '', location: '', lat: '', lng: '' })
+  const [stopForm, setStopForm] = useState({ lat: '', lng: '' })
   const [modalError, setModalError] = useState('')
 
   // Map click-to-add mode
@@ -249,14 +253,14 @@ export default function AddRoutePage() {
 
   // ── Handlers ────────────────────────────────────────────
   const handleOpenAddModal = () => {
-    setStopForm({ name: '', location: '', lat: '', lng: '' })
+    setStopForm({ lat: '', lng: '' })
     setEditingStop(null)
     setModalError('')
     setShowAddModal(true)
   }
 
   const handleOpenEditModal = (stop) => {
-    setStopForm({ name: stop.name, location: stop.location, lat: String(stop.lat), lng: String(stop.lng) })
+    setStopForm({ lat: String(stop.lat), lng: String(stop.lng) })
     setEditingStop(stop.id)
     setModalError('')
     setShowAddModal(true)
@@ -266,10 +270,6 @@ export default function AddRoutePage() {
     const lat = parseCoordinate(stopForm.lat)
     const lng = parseCoordinate(stopForm.lng)
 
-    if (!stopForm.name) {
-      setModalError('Stop name is required')
-      return
-    }
     if (isNaN(lat) || lat < -90 || lat > 90) {
       setModalError('Invalid latitude (must be between -90 and 90)')
       return
@@ -284,16 +284,15 @@ export default function AddRoutePage() {
     if (editingStop) {
       setStops((prev) => {
         const next = prev.map((s) =>
-          s.id === editingStop ? { ...s, name: stopForm.name, location: stopForm.location || stopForm.name, lat, lng } : s
+          s.id === editingStop ? { ...s, lat, lng } : s
         )
-        // If editing the first or last stop, update start/end location fields
         if (next[0]?.id === editingStop) {
-          setStartLocation(stopForm.name)
-          setStartCoords({ lat, lng })
+          setStartLat(String(lat))
+          setStartLng(String(lng))
         }
         if (next.length > 1 && next[next.length - 1]?.id === editingStop) {
-          setEndLocation(stopForm.name)
-          setEndCoords({ lat, lng })
+          setEndLat(String(lat))
+          setEndLng(String(lng))
         }
         return next
       })
@@ -301,12 +300,9 @@ export default function AddRoutePage() {
       setStops((prev) => {
         const newStop = {
           id: genId(),
-          name: stopForm.name,
-          location: stopForm.location || stopForm.name,
           lat,
           lng,
         }
-        // Insert intermediate stops before the end stop
         const endIdx = prev.findIndex((s) => s._isEnd)
         if (endIdx !== -1) {
           const next = [...prev]
@@ -341,8 +337,6 @@ export default function AddRoutePage() {
       setStops((prev) => {
         const newStop = {
           id: genId(),
-          name: `Stop ${prev.length + 1}`,
-          location: `${latlng.lat.toFixed(5)}, ${latlng.lng.toFixed(5)}`,
           lat: latlng.lat,
           lng: latlng.lng,
         }
@@ -361,16 +355,15 @@ export default function AddRoutePage() {
   const handleMarkerDrag = useCallback((id, lat, lng) => {
     setStops((prev) => {
       const next = prev.map((s) =>
-        s.id === id ? { ...s, lat, lng, location: `${lat.toFixed(5)}, ${lng.toFixed(5)}` } : s
+        s.id === id ? { ...s, lat, lng } : s
       )
-      // Check if the dragged marker was the start or end stop, and update inputs
       if (next[0]?.id === id) {
-        setStartLocation(next[0].name)
-        setStartCoords({ lat, lng })
+        setStartLat(String(lat))
+        setStartLng(String(lng))
       }
       if (next.length > 1 && next[next.length - 1]?.id === id) {
-        setEndLocation(next[next.length - 1].name)
-        setEndCoords({ lat, lng })
+        setEndLat(String(lat))
+        setEndLng(String(lng))
       }
       return next
     })
@@ -393,12 +386,12 @@ export default function AddRoutePage() {
     setDragIdx(null)
     setStops((prev) => {
       if (prev.length > 0) {
-        setStartLocation(prev[0].name)
-        setStartCoords({ lat: prev[0].lat, lng: prev[0].lng })
+        setStartLat(String(prev[0].lat))
+        setStartLng(String(prev[0].lng))
       }
       if (prev.length > 1) {
-        setEndLocation(prev[prev.length - 1].name)
-        setEndCoords({ lat: prev[prev.length - 1].lat, lng: prev[prev.length - 1].lng })
+        setEndLat(String(prev[prev.length - 1].lat))
+        setEndLng(String(prev[prev.length - 1].lng))
       }
       return prev
     })
@@ -429,8 +422,6 @@ export default function AddRoutePage() {
         status: isActive ? 'active' : 'inactive',
         stops: stops.map((s, idx) => ({
           id: s.id,
-          name: s.name,
-          location: s.location,
           lat: s.lat,
           lng: s.lng,
           _isStart: idx === 0,
@@ -466,8 +457,6 @@ export default function AddRoutePage() {
         status: 'inactive',
         stops: stops.map((s, idx) => ({
           id: s.id,
-          name: s.name,
-          location: s.location,
           lat: s.lat,
           lng: s.lng,
           _isStart: idx === 0,
@@ -490,15 +479,6 @@ export default function AddRoutePage() {
       setSaving(false)
     }
   }
-
-  // Auto-update start/end labels
-  useEffect(() => {
-    if (stops.length > 0 && !startLocation) setStartLocation(stops[0].name)
-  }, [stops, startLocation])
-
-  useEffect(() => {
-    if (stops.length > 1 && !endLocation) setEndLocation(stops[stops.length - 1].name)
-  }, [stops, endLocation])
 
   return (
     <AppLayout title="Routes & Stops" subtitle="Create and manage routes and their stops">
@@ -551,55 +531,103 @@ export default function AddRoutePage() {
                   <p className="text-[10px] text-slate-400 mt-0.5">Unique code for this route</p>
                 </div>
 
-                <LocationAutocomplete
-                  label="Start Location *"
-                  placeholder="Search start location..."
-                  value={startLocation}
-                  onChange={setStartLocation}
-                  onSelect={(place) => {
-                    setStartCoords({ lat: place.lat, lng: place.lng })
-                    // Auto-add or update the first stop
-                    setStops((prev) => {
-                      const startStop = {
-                        id: prev.length > 0 && prev[0]._isStart ? prev[0].id : genId(),
-                        name: place.name,
-                        location: place.displayName?.split(',').slice(0, 3).join(',') || place.name,
-                        lat: place.lat,
-                        lng: place.lng,
-                        _isStart: true,
+                <div className="grid grid-cols-2 gap-3">
+                  <Input
+                    label="Start Latitude *"
+                    placeholder="e.g. 11.7413"
+                    value={startLat}
+                    onChange={(e) => {
+                      setStartLat(e.target.value)
+                      const lat = parseCoordinate(e.target.value)
+                      if (!isNaN(lat)) {
+                        setStops((prev) => {
+                          const startStop = {
+                            id: prev.length > 0 && prev[0]._isStart ? prev[0].id : genId(),
+                            lat,
+                            lng: parseFloat(prev[0]?.lng || 0) || 0,
+                            _isStart: true,
+                          }
+                          if (prev.length > 0 && prev[0]._isStart) {
+                            return [startStop, ...prev.slice(1)]
+                          }
+                          return [startStop, ...prev]
+                        })
                       }
-                      if (prev.length > 0 && prev[0]._isStart) {
-                        return [startStop, ...prev.slice(1)]
+                    }}
+                  />
+                  <Input
+                    label="Start Longitude *"
+                    placeholder="e.g. 75.4907"
+                    value={startLng}
+                    onChange={(e) => {
+                      setStartLng(e.target.value)
+                      const lng = parseCoordinate(e.target.value)
+                      if (!isNaN(lng)) {
+                        setStops((prev) => {
+                          const startStop = {
+                            id: prev.length > 0 && prev[0]._isStart ? prev[0].id : genId(),
+                            lat: parseFloat(prev[0]?.lat || 0) || 0,
+                            lng,
+                            _isStart: true,
+                          }
+                          if (prev.length > 0 && prev[0]._isStart) {
+                            return [startStop, ...prev.slice(1)]
+                          }
+                          return [startStop, ...prev]
+                        })
                       }
-                      return [startStop, ...prev]
-                    })
-                  }}
-                />
+                    }}
+                  />
+                </div>
 
-                <LocationAutocomplete
-                  label="End Location *"
-                  placeholder="Search end location..."
-                  value={endLocation}
-                  onChange={setEndLocation}
-                  onSelect={(place) => {
-                    setEndCoords({ lat: place.lat, lng: place.lng })
-                    // Auto-add or update the last stop
-                    setStops((prev) => {
-                      const endStop = {
-                        id: prev.length > 0 && prev[prev.length - 1]._isEnd ? prev[prev.length - 1].id : genId(),
-                        name: place.name,
-                        location: place.displayName?.split(',').slice(0, 3).join(',') || place.name,
-                        lat: place.lat,
-                        lng: place.lng,
-                        _isEnd: true,
+                <div className="grid grid-cols-2 gap-3">
+                  <Input
+                    label="End Latitude *"
+                    placeholder="e.g. 12.2958"
+                    value={endLat}
+                    onChange={(e) => {
+                      setEndLat(e.target.value)
+                      const lat = parseCoordinate(e.target.value)
+                      if (!isNaN(lat)) {
+                        setStops((prev) => {
+                          const endStop = {
+                            id: prev.length > 0 && prev[prev.length - 1]._isEnd ? prev[prev.length - 1].id : genId(),
+                            lat,
+                            lng: parseFloat(prev[prev.length - 1]?.lng || 0) || 0,
+                            _isEnd: true,
+                          }
+                          if (prev.length > 0 && prev[prev.length - 1]._isEnd) {
+                            return [...prev.slice(0, -1), endStop]
+                          }
+                          return [...prev, endStop]
+                        })
                       }
-                      if (prev.length > 0 && prev[prev.length - 1]._isEnd) {
-                        return [...prev.slice(0, -1), endStop]
+                    }}
+                  />
+                  <Input
+                    label="End Longitude *"
+                    placeholder="e.g. 75.7503"
+                    value={endLng}
+                    onChange={(e) => {
+                      setEndLng(e.target.value)
+                      const lng = parseCoordinate(e.target.value)
+                      if (!isNaN(lng)) {
+                        setStops((prev) => {
+                          const endStop = {
+                            id: prev.length > 0 && prev[prev.length - 1]._isEnd ? prev[prev.length - 1].id : genId(),
+                            lat: parseFloat(prev[prev.length - 1]?.lat || 0) || 0,
+                            lng,
+                            _isEnd: true,
+                          }
+                          if (prev.length > 0 && prev[prev.length - 1]._isEnd) {
+                            return [...prev.slice(0, -1), endStop]
+                          }
+                          return [...prev, endStop]
+                        })
                       }
-                      return [...prev, endStop]
-                    })
-                  }}
-                />
+                    }}
+                  />
+                </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -627,7 +655,7 @@ export default function AddRoutePage() {
                 </div>
 
                 {/* Route Type Toggle */}
-                <div>
+                {/* <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1.5">Route Type</label>
                   <div className="flex rounded-lg border border-slate-200 overflow-hidden">
                     <button
@@ -653,7 +681,7 @@ export default function AddRoutePage() {
                       Outbound
                     </button>
                   </div>
-                </div>
+                </div> */}
 
                 {/* Status Toggle */}
                 <div>
@@ -807,7 +835,7 @@ export default function AddRoutePage() {
                   </div>
                 </div>
                 <div className="w-px h-8 bg-slate-100" />
-                <div className="flex items-center gap-2">
+                {/* <div className="flex items-center gap-2">
                   <div className="w-6 h-6 rounded-full bg-green-50 flex items-center justify-center">
                     <RouteIcon size={12} className="text-green-500" />
                   </div>
@@ -815,7 +843,7 @@ export default function AddRoutePage() {
                     <p className="text-[11px] text-slate-400">Route Type</p>
                     <p className="text-sm font-semibold text-slate-800 capitalize">{routeType}</p>
                   </div>
-                </div>
+                </div> */}
               </div>
             </div>
           </div>
@@ -878,7 +906,7 @@ export default function AddRoutePage() {
                         {/* Stop info */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5">
-                            <p className="text-xs font-medium text-slate-800 truncate">{stop.name}</p>
+                            <p className="text-xs font-medium text-slate-800 font-mono truncate">{coordStr(stop.lat, stop.lng)}</p>
                             {isFirst && (
                               <span className="text-[9px] font-semibold text-green-600 bg-green-50 px-1.5 py-0.5 rounded">
                                 Start
@@ -890,7 +918,6 @@ export default function AddRoutePage() {
                               </span>
                             )}
                           </div>
-                          <p className="text-[10px] text-slate-400 truncate">{stop.location}</p>
                         </div>
 
                         {/* Actions */}
@@ -939,7 +966,7 @@ export default function AddRoutePage() {
                                 : STOP_COLORS[idx % STOP_COLORS.length]
                           )}
                         />
-                        <span className="text-[11px] text-slate-600 truncate">{stop.name}</span>
+                        <span className="text-[11px] text-slate-600 font-mono truncate">{coordStr(stop.lat, stop.lng)}</span>
                       </div>
                     ))}
                   </div>
@@ -980,18 +1007,6 @@ export default function AddRoutePage() {
               {modalError}
             </div>
           )}
-          <Input
-            label="Stop Name *"
-            placeholder="e.g. Taliparamba"
-            value={stopForm.name}
-            onChange={(e) => setStopForm((f) => ({ ...f, name: e.target.value }))}
-          />
-          <Input
-            label="Location"
-            placeholder="e.g. Taliparamba, Kannur"
-            value={stopForm.location}
-            onChange={(e) => setStopForm((f) => ({ ...f, location: e.target.value }))}
-          />
           <div className="grid grid-cols-2 gap-3">
             <Input
               label="Latitude *"
@@ -1009,7 +1024,7 @@ export default function AddRoutePage() {
           <div className="bg-blue-50 rounded-lg p-2.5 flex items-start gap-2">
             <Crosshair size={13} className="text-blue-500 shrink-0 mt-0.5" />
             <p className="text-[11px] text-blue-700">
-              Tip: Enable <strong>Draw Route</strong> mode and click directly on the map to add stops with auto-filled coordinates.
+              Tip: Enable <strong>Draw Route</strong> mode and click directly on the map to add stops.
             </p>
           </div>
         </div>
@@ -1025,7 +1040,7 @@ export default function AddRoutePage() {
           <Button
             label={editingStop ? 'Save Changes' : 'Add Stop'}
             onClick={handleSaveStop}
-            disabled={!stopForm.name || !stopForm.lat || !stopForm.lng}
+            disabled={!stopForm.lat || !stopForm.lng}
           />
         </div>
       </Modal>
