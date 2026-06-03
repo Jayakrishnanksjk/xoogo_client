@@ -6,6 +6,7 @@ import userRoutes from './routes/users.js'
 import groupRoutes from './routes/groups.js'
 import routeRoutes from './routes/routes.js'
 import busRoutes from './routes/buses.js'
+import transitRoutes from './routes/transit.js'
 
 const app = express()
 
@@ -21,6 +22,7 @@ app.use('/api/users', userRoutes)
 app.use('/api/groups', groupRoutes)
 app.use('/api/routes', routeRoutes)
 app.use('/api/buses', busRoutes)
+app.use('/api', transitRoutes)
 
 // Health Check Endpoint
 app.get('/api/health', (req, res) => {

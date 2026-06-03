@@ -27,11 +27,11 @@ const Route = sequelize.define('Route', {
   routeType: {
     type: DataTypes.ENUM('inbound', 'outbound'),
     defaultValue: 'inbound',
+    field: 'route_type',
   },
-  stops: {
-    type: DataTypes.JSONB,
-    allowNull: false,
-    defaultValue: [],
+  polyline: {
+    type: DataTypes.TEXT,
+    allowNull: true,
   },
   status: {
     type: DataTypes.ENUM('active', 'inactive'),
