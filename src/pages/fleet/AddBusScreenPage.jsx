@@ -208,7 +208,7 @@ function RouteStopsStep({ form, setForm, routes = [], reviewed }) {
                     }}
                   />
                   <span className="text-xs font-medium text-slate-500 w-5">{idx + 1}</span>
-                  <span className="text-sm text-slate-800">{stop?.name || stop}</span>
+                  <span className="text-sm text-slate-800">{stop.lat != null ? `${stop.lat.toFixed(5)}, ${stop.lng.toFixed(5)}` : stop}</span>
                 </div>
               ))}
             </div>
@@ -272,7 +272,7 @@ function PreviewStep({ form, groups = [], routes = [], isEditMode = false, revie
             {form.selectedStops.sort((a, b) => a - b).map((stopIdx, i) => (
               <div key={stopIdx} className="flex items-center gap-2">
                 <span className={`w-2 h-2 rounded-full ${STOP_COLORS[i % STOP_COLORS.length]} shrink-0`} />
-                <span className="text-xs text-slate-700">{selectedRoute.stops[stopIdx]?.name || selectedRoute.stops[stopIdx]}</span>
+                <span className="text-xs text-slate-700">{selectedRoute.stops[stopIdx]?.lat != null ? `${selectedRoute.stops[stopIdx].lat.toFixed(5)}, ${selectedRoute.stops[stopIdx].lng.toFixed(5)}` : selectedRoute.stops[stopIdx]}</span>
               </div>
             ))}
           </div>
