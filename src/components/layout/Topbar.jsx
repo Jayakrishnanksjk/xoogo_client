@@ -5,6 +5,7 @@ import clsx from 'clsx'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
+import { Button } from '@/components/ui/Button'
 
 // ─── Alert data & config ────────────────────────────────────────────────────
 
@@ -85,13 +86,15 @@ function AlertRow({ alert, index, onDismiss }) {
           <span className="text-[10px] text-slate-400 tabular-nums">{alert.time}</span>
           {alert.unread && <span className={clsx('w-1.5 h-1.5 rounded-full shrink-0', s.dot)} />}
         </div>
-        <button
+        <Button
+          variant="ghost"
+          size="icon-xs"
           onClick={(e) => { e.stopPropagation(); onDismiss(alert.id) }}
-          className="opacity-0 group-hover:opacity-100 transition-opacity duration-150 w-5 h-5 rounded flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
+          className="opacity-0 group-hover:opacity-100 transition-opacity duration-150 text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
           aria-label={`Dismiss: ${alert.title}`}
         >
           <X size={10} />
-        </button>
+        </Button>
       </div>
     </motion.div>
   )
@@ -122,9 +125,13 @@ function AlertsDropdown({ alerts, onDismiss, unreadCount, onMarkAllRead }) {
             )}
           </AnimatePresence>
         </div>
-        {/* <button className="flex items-center gap-0.5 text-xs text-brand hover:text-brand font-medium hover:underline cursor-pointer">
+        <Button
+          variant="link"
+          size="sm"
+          className="h-auto p-0 text-xs text-brand hover:text-brand font-medium hover:underline cursor-pointer flex items-center gap-0.5"
+        >
           View all <ArrowRight size={10} />
-        </button> */}
+        </Button>
       </div>
 
       <Separator />
@@ -159,12 +166,14 @@ function AlertsDropdown({ alerts, onDismiss, unreadCount, onMarkAllRead }) {
         <>
           <Separator />
           <div className="px-4 py-2.5">
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={onMarkAllRead}
               className="w-full text-center text-xs text-slate-400 hover:text-slate-600 font-medium transition-colors cursor-pointer"
             >
               Mark all as read
-            </button>
+            </Button>
           </div>
         </>
       )}
