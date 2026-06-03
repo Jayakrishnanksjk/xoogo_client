@@ -4,7 +4,7 @@ import AppLayout from '@/components/layout/AppLayout'
 import { Badge, EmptyState, StatCard, Button, ConfirmDialog, LiveTrackingMap } from '@/components/ui'
 import { Bus, Plus, User, Mail, Phone, ChevronRight, ShieldAlert, Monitor, Wifi, WifiOff, Trash2, ArrowLeft, Edit } from 'lucide-react'
 import { groupsApi, busesApi } from '@/api'
-import toast from 'react-hot-toast'
+import { toast } from 'sonner'
 
 export default function GroupScreensPage() {
   const { id } = useParams()

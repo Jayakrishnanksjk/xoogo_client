@@ -46,11 +46,6 @@ const Bus = sequelize.define('Bus', {
     type: DataTypes.ENUM('online', 'offline'),
     defaultValue: 'offline',
   },
-  selectedStops: {
-    type: DataTypes.JSONB,
-    allowNull: true,
-    field: 'selected_stops',
-  },
   groupId: {
     type: DataTypes.UUID,
     allowNull: false,
