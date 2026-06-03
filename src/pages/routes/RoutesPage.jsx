@@ -24,7 +24,11 @@ function FitBounds({ stops }) {
   const map = useMap()
   useEffect(() => {
     if (!stops || stops.length === 0) return
-    const bounds = L.latLngBounds(stops.map((s) => [s.lat, s.lng]))
+    const coords = stops
+      .filter((s) => s.lat != null && s.lng != null)
+      .map((s) => [s.lat, s.lng])
+    if (coords.length === 0) return
+    const bounds = L.latLngBounds(coords)
     map.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 })
   }, [stops, map])
   return null
@@ -135,11 +139,12 @@ export default function RoutesPage() {
                 className="py-1.5"
               />
               <Button
-                startIcon={Plus}
-                label="Create"
                 className="shrink-0"
                 onClick={() => navigate('/routes/add')}
-              />
+              >
+                <Plus className="mr-1.5 h-3.5 w-3.5" />
+                Create
+              </Button>
             </div>
 
             <div className="space-y-2">
@@ -190,28 +195,30 @@ export default function RoutesPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
-                    variant="secondary"
+                    variant="outline"
                     size="sm"
                     className="px-4 rounded-lg"
-                    label="Edit"
                     onClick={() => navigate(`/routes/edit/${selected.id}`)}
-                  />
+                  >
+                    Edit
+                  </Button>
                   <Button
-                    variant="danger"
+                    variant="destructive"
                     size="sm"
                     className="px-4 rounded-lg"
-                    label="Delete"
                     onClick={() => setDeleteConfirm({ open: true, routeId: selected.id, routeName: selected.name })}
-                  />
+                  >
+                    Delete
+                  </Button>
                 </div>
               </div>
 
               {/* Route summary */}
               <div className="grid grid-cols-4 gap-4 mb-5 p-4 bg-slate-50 rounded-xl">
-                <div><p className="text-xs text-slate-500">Start Coords</p><p className="text-sm font-mono font-medium text-slate-800 truncate">{selected.stops?.[0] ? `${selected.stops[0].lat.toFixed(5)}, ${selected.stops[0].lng.toFixed(5)}` : '—'}</p></div>
-                <div><p className="text-xs text-slate-500">End Coords</p><p className="text-sm font-mono font-medium text-slate-800 truncate">{selected.stops?.[selected.stops.length - 1] ? `${selected.stops[selected.stops.length - 1].lat.toFixed(5)}, ${selected.stops[selected.stops.length - 1].lng.toFixed(5)}` : '—'}</p></div>
+                <div><p className="text-xs text-slate-500">Start Coords</p><p className="text-sm font-mono font-medium text-slate-800 truncate">{selected.stops?.[0]?.lat != null ? `${selected.stops[0].lat.toFixed(5)}, ${selected.stops[0].lng.toFixed(5)}` : '—'}</p></div>
+                <div><p className="text-xs text-slate-500">End Coords</p><p className="text-sm font-mono font-medium text-slate-800 truncate">{selected.stops?.[selected.stops.length - 1]?.lat != null ? `${selected.stops[selected.stops.length - 1].lat.toFixed(5)}, ${selected.stops[selected.stops.length - 1].lng.toFixed(5)}` : '—'}</p></div>
                 <div><p className="text-xs text-slate-500">Total Stops</p><p className="text-sm font-medium text-slate-800">{selected.stops?.length || 0}</p></div>
-                <div><p className="text-xs text-slate-500">Distance</p><p className="text-sm font-medium text-slate-800">{selected.distance ? `${selected.distance.toFixed(1)} km` : '—'}</p></div>
+                <div><p className="text-xs text-slate-500">Distance</p><p className="text-sm font-medium text-slate-800">{selected.distance != null ? `${selected.distance.toFixed(1)} km` : '—'}</p></div>
               </div>
 
               {/* Tabs */}
@@ -271,7 +278,7 @@ export default function RoutesPage() {
                   ) : (
                     <div className="bg-white rounded-xl border border-slate-100 overflow-hidden h-[360px] relative z-10">
                       <MapContainer
-                        center={[selected.stops[0].lat, selected.stops[0].lng]}
+                        center={selected.stops?.[0]?.lat != null && selected.stops?.[0]?.lng != null ? [selected.stops[0].lat, selected.stops[0].lng] : [10.8505, 76.2711]}
                         zoom={11}
                         className="w-full h-full min-h-[360px]"
                         zoomControl={true}
@@ -286,32 +293,33 @@ export default function RoutesPage() {
                         {/* Polyline */}
                         {selected.stops.length >= 2 && (
                           <Polyline
-                            positions={selectedRouteGeometry.length > 0 ? selectedRouteGeometry : selected.stops.map((s) => [s.lat, s.lng])}
+                            positions={selectedRouteGeometry.length > 0 ? selectedRouteGeometry : selected.stops.filter((s) => s.lat != null && s.lng != null).map((s) => [s.lat, s.lng])}
                             pathOptions={{
                               color: '#2563EB',
                               weight: 4,
                               opacity: 0.8,
                               lineCap: 'round',
                               lineJoin: 'round',
-                            }}
-                          />
-                        )}
-
-                        {/* Markers */}
-                        {selected.stops.map((stop, idx) => {
-                          const isFirst = idx === 0
-                          const isLast = idx === selected.stops.length - 1
-                          const type = isFirst ? 'start' : isLast ? 'end' : 'intermediate'
-                          const icon = createNumberedIcon(idx + 1, type)
-                          return (
-                            <Marker
-                              key={stop.id || idx}
-                              position={[stop.lat, stop.lng]}
-                              icon={icon}
+                              }}
                             />
-                          )
-                        })}
-                      </MapContainer>
+                          )}
+  
+                          {/* Markers */}
+                          {selected.stops.map((stop, idx) => {
+                            if (stop.lat == null || stop.lng == null) return null
+                            const isFirst = idx === 0
+                            const isLast = idx === selected.stops.length - 1
+                            const type = isFirst ? 'start' : isLast ? 'end' : 'intermediate'
+                            const icon = createNumberedIcon(idx + 1, type)
+                            return (
+                              <Marker
+                                key={stop.id || idx}
+                                position={[stop.lat, stop.lng]}
+                                icon={icon}
+                              />
+                            )
+                          })}
+                        </MapContainer>
                     </div>
                   )}
                 </div>

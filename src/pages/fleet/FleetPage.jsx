@@ -1,65 +1,101 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import AppLayout from '@/components/layout/AppLayout'
-import { Badge, EmptyState, StatCard, Button, DataCard, Pagination, SearchInput, Select, Tabs, Modal, LiveTrackingMap } from '@/components/ui'
+import { Badge, EmptyState, StatCard, Button, DataCard, Pagination, SearchInput, Select, Tabs, Modal, LiveTrackingMap, StatCardSkeleton, GroupCardSkeleton, DataCardSkeleton, TableRowSkeleton } from '@/components/ui'
 import { Bus, Plus, Users, MapPin, Wifi, WifiOff, MoreVertical, SlidersHorizontal, LayoutGrid, List } from 'lucide-react'
 import clsx from 'clsx'
 import { groupsApi, routesApi } from '@/api'
 import { toast } from 'sonner'
 
 function GroupCard({ group, onViewScreens, onLiveTracking }) {
+  const isActive = group.status === 'active'
+
   return (
-    <div
+    <motion.div
       onClick={onViewScreens}
-      className="bg-white rounded-xl shadow-card border border-slate-100 p-5 hover:shadow-card-md transition-shadow cursor-pointer group"
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -5, transition: { duration: 0.25, ease: 'easeOut' } }}
+      className="bg-white rounded-2xl border border-slate-100 p-5 flex flex-col gap-4 shadow-[0_1px_3px_rgba(0,0,0,0.05),0_1px_2px_rgba(0,0,0,0.03)] hover:shadow-[0_12px_24px_-4px_rgba(0,0,0,0.08)] transition-shadow duration-300 cursor-pointer select-none group relative overflow-hidden"
     >
-      {/* Image placeholder */}
-      <div className="h-32 bg-gradient-to-br from-slate-100 to-slate-200 rounded-lg mb-3 flex items-center justify-center relative overflow-hidden">
-        <Bus size={32} className="text-slate-300" />
+      {/* Visual background wrapper */}
+      <div className="absolute inset-0 bg-gradient-to-br from-slate-500/0 via-slate-400/0 to-slate-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+
+      {/* Image / Icon container */}
+      <div className="h-32 bg-slate-50 border border-slate-100/50 rounded-xl flex items-center justify-center relative overflow-hidden shrink-0">
+        <Bus size={32} className="text-slate-300 group-hover:scale-110 group-hover:text-brand/50 transition-all duration-300" />
         <div className="absolute top-2 right-2">
-          <button className="p-1 bg-white/80 hover:bg-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity">
-            <MoreVertical size={14} className="text-slate-500" />
+          <button
+            onClick={(e) => e.stopPropagation()}
+            className="p-1.5 bg-white/95 hover:bg-white text-slate-400 hover:text-slate-600 rounded-lg shadow-sm border border-slate-100/80 transition-colors cursor-pointer"
+          >
+            <MoreVertical size={13} />
           </button>
         </div>
       </div>
 
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-semibold text-slate-900">{group.name}</h3>
-        <Badge status={group.status} />
+      <div className="flex flex-col gap-1.5">
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-sm font-semibold text-slate-800 tracking-tight truncate">
+            {group.name}
+          </h3>
+          <Badge
+            variant={isActive ? 'default' : 'secondary'}
+            className="text-[9px] font-semibold tracking-wide uppercase px-1.5 py-0.5 rounded-full shrink-0"
+          >
+            {group.status || 'Active'}
+          </Badge>
+        </div>
+
+        <p className="text-[11px] font-medium text-slate-400 leading-none">
+          {group.buses} {group.buses === 1 ? 'Bus Screen' : 'Bus Screens'}
+        </p>
+
+        {/* Online/Offline status line */}
+        <div className="flex items-center gap-3 text-[11px] font-semibold text-slate-600 mt-1">
+          <div className="flex items-center gap-1">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
+            </span>
+            <span>{group.online} Online</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
+            <span>{group.offline} Offline</span>
+          </div>
+        </div>
       </div>
 
-      <p className="text-xs text-slate-500 mb-3">{group.buses} Bus Screens</p>
-
-      <div className="flex items-center gap-3 text-xs mb-3">
-        <span className="flex items-center gap-1">
-          <span className="w-2 h-2 rounded-full bg-online inline-block" /> <span className="text-slate-600">{group.online} Online</span>
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="w-2 h-2 rounded-full bg-offline inline-block" /> <span className="text-slate-600">{group.offline} Offline</span>
-        </span>
-      </div>
-
-      <div className="flex items-center gap-3 pt-3 border-t border-slate-100">
-        <button
+      {/* Button controls */}
+      <div className="flex items-center gap-2 pt-3 border-t border-slate-100/80 mt-auto">
+        <Button
+          variant="outline"
+          size="sm"
           onClick={(e) => {
             e.stopPropagation()
             onViewScreens()
           }}
-          className="flex items-center gap-1 text-xs text-brand hover:underline"
+          className="flex-1 text-xs gap-1.5 h-8 font-medium border-slate-100 hover:bg-slate-50 hover:text-slate-900 cursor-pointer"
         >
-          <Bus size={12} /> View Screens
-        </button>
-        <button
+          <Bus size={13} className="text-slate-400" />
+          Screens
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
           onClick={(e) => {
             e.stopPropagation()
             onLiveTracking()
           }}
-          className="flex items-center gap-1 text-xs text-slate-500 hover:text-brand hover:underline"
+          className="flex-1 text-xs gap-1.5 h-8 font-medium border-slate-100 hover:bg-slate-50 hover:text-slate-900 cursor-pointer"
         >
-          <MapPin size={12} /> Live Tracking
-        </button>
+          <MapPin size={13} className="text-slate-400" />
+          Track
+        </Button>
       </div>
-    </div>
+    </motion.div>
   )
 }
 
@@ -77,15 +113,21 @@ function ByGroupsTab({ groups = [], loading = false, onLiveTracking }) {
     <div>
       {/* Stats */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
-        <StatCard icon={Users}  iconBg="bg-blue-50"  iconColor="text-blue-500"  label="Total Groups"        value={String(groups.length)} sub="All bus groups" />
-        <StatCard icon={Bus}    iconBg="bg-slate-50" iconColor="text-slate-500" label="Total Bus Screens"    value={String(totalBuses)} sub="Across all groups" />
-        <StatCard icon={Wifi}   iconBg="bg-green-50" iconColor="text-green-500" label="Online Screens"       value={`${onlineBuses} (${onlinePercentage}%)`} sub="Currently online" />
-        <StatCard icon={WifiOff}iconBg="bg-red-50"   iconColor="text-red-500"   label="Offline Screens"      value={`${offlineBuses} (${offlinePercentage}%)`} sub="Currently offline" />
+        {loading ? (
+          Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} />)
+        ) : (
+          <>
+            <StatCard icon={Users} theme="purple" label="Total Groups" value={String(groups.length)} sub="All bus groups" />
+            <StatCard icon={Bus} theme="blue" label="Total Bus Screens" value={String(totalBuses)} sub="Across all groups" />
+            <StatCard icon={Wifi} theme="green" label="Online Screens" value={String(onlineBuses)} sub={`${onlinePercentage}% of fleet`} />
+            <StatCard icon={WifiOff} theme="red" label="Offline Screens" value={String(offlineBuses)} sub={`${offlinePercentage}% of fleet`} />
+          </>
+        )}
       </div>
 
       {loading ? (
-        <div className="flex justify-center items-center py-12">
-          <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          {Array.from({ length: 8 }).map((_, i) => <GroupCardSkeleton key={i} />)}
         </div>
       ) : groups.length === 0 ? (
         <div className="bg-white rounded-xl border border-slate-100 p-6">
@@ -94,7 +136,10 @@ function ByGroupsTab({ groups = [], loading = false, onLiveTracking }) {
             title="No Groups Found"
             description="You haven't added any bus groups yet. Create one to get started."
             action={
-              <Button startIcon={Plus} label="Add Group" onClick={() => navigate('/fleet/add-group')} />
+              <Button onClick={() => navigate('/fleet/add-group')}>
+                <Plus className="mr-1.5 h-3.5 w-3.5" />
+                Add Group
+              </Button>
             }
           />
         </div>
@@ -162,10 +207,16 @@ function ByRoutesTab({ routes = [], loading = false }) {
     <div>
       {/* Stats */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
-        <StatCard icon={MapPin} iconBg="bg-blue-50"   iconColor="text-blue-500"   label="Total Routes"         value={String(routes.length)} sub="All routes" />
-        <StatCard icon={Bus}    iconBg="bg-green-50"  iconColor="text-green-500"  label="Active Routes"         value={String(routes.filter(r => r.status === 'active').length)} sub="Currently active" />
-        <StatCard icon={Wifi}   iconBg="bg-purple-50" iconColor="text-purple-500" label="Routes in Operation"   value="0" sub="Currently running" />
-        <StatCard icon={WifiOff}iconBg="bg-red-50"    iconColor="text-red-500"    label="Inactive Routes"       value={String(routes.filter(r => r.status === 'inactive').length)} sub="Currently inactive" />
+        {loading ? (
+          Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} />)
+        ) : (
+          <>
+            <StatCard icon={MapPin} theme="blue" label="Total Routes" value={String(routes.length)} sub="All routes" />
+            <StatCard icon={Bus} theme="green" label="Active Routes" value={String(routes.filter(r => r.status === 'active').length)} sub="Currently active" />
+            <StatCard icon={Wifi} theme="purple" label="Routes in Operation" value="0" sub="Currently running" />
+            <StatCard icon={WifiOff} theme="red" label="Inactive Routes" value={String(routes.filter(r => r.status === 'inactive').length)} sub="Currently inactive" />
+          </>
+        )}
       </div>
 
       {/* Filters Toolbar */}
@@ -178,7 +229,10 @@ function ByRoutesTab({ routes = [], loading = false }) {
           />
         </div>
         <div className="flex items-center gap-2 self-end sm:self-auto">
-          <Button variant="secondary" label="Filters" startIcon={SlidersHorizontal} />
+          <Button variant="outline" className="shadow-sm">
+            <SlidersHorizontal className="mr-1.5 h-3.5 w-3.5" />
+            Filters
+          </Button>
           <Select value={sortBy} onChange={e => setSortBy(e.target.value)} className="w-36 text-xs">
             <option value="name">Sort by Name</option>
             <option value="stops">Sort by Stops</option>
@@ -202,9 +256,26 @@ function ByRoutesTab({ routes = [], loading = false }) {
       </div>
 
       {loading ? (
-        <div className="flex justify-center items-center py-12">
-          <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin" />
-        </div>
+        view === 'grid' ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            {Array.from({ length: 8 }).map((_, i) => <DataCardSkeleton key={i} />)}
+          </div>
+        ) : (
+          <div className="bg-white border border-slate-100 rounded-xl shadow-sm overflow-hidden">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-slate-100 bg-slate-50 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                  {['#', 'Route Title', 'Status', 'Details', 'Start Point', 'End Point', 'Actions'].map(h => (
+                    <th key={h} className="px-5 py-3">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {Array.from({ length: 6 }).map((_, i) => <TableRowSkeleton key={i} cols={7} />)}
+              </tbody>
+            </table>
+          </div>
+        )
       ) : filteredRoutes.length === 0 ? (
         <div className="bg-white rounded-xl border border-slate-100 p-6">
           <EmptyState
@@ -212,7 +283,10 @@ function ByRoutesTab({ routes = [], loading = false }) {
             title="No Routes Found"
             description="You haven't added any routes yet. Create one to get started."
             action={
-              <Button startIcon={Plus} label="Add Route" onClick={() => navigate('/routes/add')} />
+              <Button onClick={() => navigate('/routes/add')}>
+                <Plus className="mr-1.5 h-3.5 w-3.5" />
+                Add Route
+              </Button>
             }
           />
         </div>
@@ -328,24 +402,65 @@ export default function FleetPage() {
     <AppLayout title="Fleet" subtitle="Manage all bus screens by groups or routes">
       <div className="p-6 max-w-screen-xl">
         {/* Tab bar + action */}
-        <div className="flex items-center justify-between mb-6">
-          <Tabs
-            tabs={[
-              { value: 'groups', label: 'By Groups' },
-              { value: 'routes', label: 'By Routes' }
-            ]}
-            active={tab}
-            onChange={setTab}
-          />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl w-fit">
+            <button
+              onClick={() => setTab('groups')}
+              className={clsx(
+                "px-4 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 cursor-pointer",
+                tab === 'groups'
+                  ? "bg-white text-slate-900 shadow-sm"
+                  : "text-slate-500 hover:text-slate-900"
+              )}
+            >
+              By Groups
+            </button>
+            <button
+              onClick={() => setTab('routes')}
+              className={clsx(
+                "px-4 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 cursor-pointer",
+                tab === 'routes'
+                  ? "bg-white text-slate-900 shadow-sm"
+                  : "text-slate-500 hover:text-slate-900"
+              )}
+            >
+              By Routes
+            </button>
+          </div>
+
           {tab === 'groups' ? (
             <div className="flex items-center gap-2">
-              <Button variant="secondary" startIcon={Plus} label="Add Screen" onClick={() => navigate('/fleet/add-bus-screen')} />
-              <Button startIcon={Plus} label="Add Group" onClick={() => navigate('/fleet/add-group')} />
+              <Button
+                variant="outline"
+                onClick={() => navigate('/fleet/add-bus-screen')}
+                className="shadow-sm font-medium"
+              >
+                <Plus className="mr-1.5 h-3.5 w-3.5" />
+                Add Screen
+              </Button>
+              <Button
+                onClick={() => navigate('/fleet/add-group')}
+                className="shadow-sm font-medium bg-brand hover:bg-brand-dark text-white"
+              >
+                <Plus className="mr-1.5 h-3.5 w-3.5" />
+                Add Group
+              </Button>
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <Button variant="secondary" label="Import Routes" />
-              <Button startIcon={Plus} label="Add Route" onClick={() => navigate('/routes/add')} />
+              <Button
+                variant="outline"
+                className="shadow-sm font-medium"
+              >
+                Import Routes
+              </Button>
+              <Button
+                onClick={() => navigate('/routes/add')}
+                className="shadow-sm font-medium bg-brand hover:bg-brand-dark text-white"
+              >
+                <Plus className="mr-1.5 h-3.5 w-3.5" />
+                Add Route
+              </Button>
             </div>
           )}
         </div>

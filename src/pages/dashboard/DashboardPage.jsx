@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import AppLayout from '@/components/layout/AppLayout'
-import { StatCard, LiveTrackingMap, Modal, AlertsPanel } from '@/components/ui'
+import { StatCard, LiveTrackingMap, Modal, AlertsPanel, StatCardSkeleton, MapSkeleton, AlertsPanelSkeleton } from '@/components/ui'
 import { Bus, Wifi, WifiOff, Play, Maximize2 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { busesApi } from '@/api'
@@ -77,18 +77,24 @@ export default function DashboardPage() {
       <div className="p-6 max-w-screen-xl flex flex-col gap-6 flex-1 min-h-0">
 
         {/* ── Stat Cards ─────────────────────────────────────── */}
-        <motion.div
-          className="grid grid-cols-2 xl:grid-cols-4 gap-4"
-          variants={stagger.container}
-          initial="hidden"
-          animate="show"
-        >
-          {stats.map(s => (
-            <motion.div key={s.label} variants={stagger.item}>
-              <StatCard {...s} />
-            </motion.div>
-          ))}
-        </motion.div>
+        {loading ? (
+          <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+            {Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} />)}
+          </div>
+        ) : (
+          <motion.div
+            className="grid grid-cols-2 xl:grid-cols-4 gap-4"
+            variants={stagger.container}
+            initial="hidden"
+            animate="show"
+          >
+            {stats.map(s => (
+              <motion.div key={s.label} variants={stagger.item}>
+                <StatCard {...s} />
+              </motion.div>
+            ))}
+          </motion.div>
+        )}
 
         {/* ── Map + Alerts ────────────────────────────────────── */}
         <motion.div
@@ -121,9 +127,7 @@ export default function DashboardPage() {
             </div>
 
             {loading ? (
-              <div className="flex-1 rounded-xl bg-slate-50 flex items-center justify-center border border-slate-100">
-                <div className="w-7 h-7 border-2 border-brand border-t-transparent rounded-full animate-spin" />
-              </div>
+              <MapSkeleton />
             ) : buses.length === 0 ? (
               <div className="flex-1 rounded-xl bg-slate-50 flex flex-col items-center justify-center border border-slate-100 text-slate-400 text-sm p-6 text-center gap-2">
                 <Bus size={30} className="text-slate-300" />
@@ -141,7 +145,11 @@ export default function DashboardPage() {
             variants={stagger.item}
             className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-card p-5 flex flex-col min-h-0"
           >
-            <AlertsPanel onViewAll={() => {/* TODO: navigate to alerts page */}} />
+            {loading ? (
+              <AlertsPanelSkeleton />
+            ) : (
+              <AlertsPanel onViewAll={() => {/* TODO: navigate to alerts page */}} />
+            )}
           </motion.div>
         </motion.div>
       </div>
