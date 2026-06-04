@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import AppLayout from '@/components/layout/AppLayout'
-import { Badge, Button, Pagination, SearchInput } from '@/components/ui'
+import { Badge, Button, Pagination, SearchInput, BusesStatBarSkeleton, TableRowSkeleton } from '@/components/ui'
 import { Bus, Wifi, WifiOff, MoreVertical, Plus } from 'lucide-react'
 import clsx from 'clsx'
 import { busesApi } from '@/api'
@@ -75,43 +75,47 @@ export default function BusesPage() {
     <AppLayout title="Buses" subtitle="View and manage all bus screens">
       <div className="p-6 max-w-screen-xl">
         {/* Stats bar */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          {FILTERS.map(f => {
-            const count = f.value === 'all' ? buses.length : buses.filter(b => b.status === f.value).length
-            const isActive = activeFilter === f.value
-            return (
-              <button
-                key={f.value}
-                onClick={() => handleFilterChange(f.value)}
-                className={clsx(
-                  'bg-white rounded-xl shadow-card border p-4 flex items-center gap-4 transition-all',
-                  isActive
-                    ? 'border-brand ring-1 ring-brand'
-                    : 'border-slate-100 hover:border-slate-200 hover:shadow-card-md'
-                )}
-              >
-                <div className={clsx(
-                  'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
-                  f.value === 'all' && 'bg-slate-50',
-                  f.value === 'online' && 'bg-green-50',
-                  f.value === 'offline' && 'bg-red-50'
-                )}>
-                  <f.icon size={18} className={clsx(
-                    f.value === 'all' && 'text-slate-500',
-                    f.value === 'online' && 'text-green-500',
-                    f.value === 'offline' && 'text-red-500'
-                  )} />
-                </div>
-                <div className="text-left">
-                  <p className="text-xs text-slate-500">{f.label} Buses</p>
-                  <p className="text-xl font-semibold text-slate-900 leading-tight">
-                    {loading ? '...' : count}
-                  </p>
-                </div>
-              </button>
-            )
-          })}
-        </div>
+        {loading ? (
+          <BusesStatBarSkeleton />
+        ) : (
+          <div className="grid grid-cols-3 gap-4 mb-6">
+            {FILTERS.map(f => {
+              const count = f.value === 'all' ? buses.length : buses.filter(b => b.status === f.value).length
+              const isActive = activeFilter === f.value
+              return (
+                <button
+                  key={f.value}
+                  onClick={() => handleFilterChange(f.value)}
+                  className={clsx(
+                    'bg-white rounded-xl shadow-card border p-4 flex items-center gap-4 transition-all',
+                    isActive
+                      ? 'border-brand ring-1 ring-brand'
+                      : 'border-slate-100 hover:border-slate-200 hover:shadow-card-md'
+                  )}
+                >
+                  <div className={clsx(
+                    'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
+                    f.value === 'all' && 'bg-slate-50',
+                    f.value === 'online' && 'bg-green-50',
+                    f.value === 'offline' && 'bg-red-50'
+                  )}>
+                    <f.icon size={18} className={clsx(
+                      f.value === 'all' && 'text-slate-500',
+                      f.value === 'online' && 'text-green-500',
+                      f.value === 'offline' && 'text-red-500'
+                    )} />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-xs text-slate-500">{f.label} Buses</p>
+                    <p className="text-xl font-semibold text-slate-900 leading-tight">
+                      {count}
+                    </p>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        )}
 
         {/* Filters Toolbar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
@@ -129,8 +133,19 @@ export default function BusesPage() {
 
         {/* Buses Table */}
         {loading ? (
-          <div className="flex justify-center items-center py-16">
-            <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin" />
+          <div className="bg-white border border-slate-100 rounded-xl shadow-sm overflow-hidden">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-slate-100 bg-slate-50 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                  {['Reg Number', 'Status', 'Bus Type', 'Model', 'Group', 'SIM Number', 'Contact', 'Actions'].map(h => (
+                    <th key={h} className="px-5 py-3">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {Array.from({ length: 8 }).map((_, i) => <TableRowSkeleton key={i} cols={8} />)}
+              </tbody>
+            </table>
           </div>
         ) : paginatedBuses.length === 0 ? (
           <div className="bg-white rounded-xl border border-slate-100 p-12 text-center">
