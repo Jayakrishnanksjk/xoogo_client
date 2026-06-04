@@ -2,9 +2,9 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AppLayout from '@/components/layout/AppLayout'
 import { Badge, EmptyState, StatCard, Button, DataCard, Pagination, SearchInput, Select, Tabs, Modal, SlidePanel, ConfirmDialog, Input, Textarea } from '@/components/ui'
-import { Bus, Plus, Users, MapPin, Wifi, WifiOff, MoreVertical, SlidersHorizontal, LayoutGrid, List, Pencil, Trash2 } from 'lucide-react'
+import { Bus, Plus, Users, MapPin, Wifi, WifiOff, MoreVertical, SlidersHorizontal, LayoutGrid, List, Pencil, Trash2, Mail, Phone, Check } from 'lucide-react'
 import clsx from 'clsx'
-import { groupsApi, routesApi } from '@/api'
+import { groupsApi, routesApi, usersApi } from '@/api'
 import { toast } from 'sonner'
 
 function GroupCard({ group, onViewScreens, onLiveTracking, onEdit, onDelete }) {
@@ -12,6 +12,7 @@ function GroupCard({ group, onViewScreens, onLiveTracking, onEdit, onDelete }) {
   return (
     <div
       onClick={onViewScreens}
+      onMouseLeave={() => setMenuOpen(false)}
       className="bg-white rounded-xl shadow-card border border-slate-100 p-5 hover:shadow-card-md transition-shadow cursor-pointer group"
     >
       {/* Image placeholder */}
@@ -325,8 +326,11 @@ export default function FleetPage() {
 
   // Edit state
   const [editGroup, setEditGroup] = useState(null)
-  const [editForm, setEditForm] = useState({ name: '', code: '', description: '', status: 'active' })
+  const [editForm, setEditForm] = useState({ name: '', code: '', description: '', status: 'active', ownerId: null })
   const [savingEdit, setSavingEdit] = useState(false)
+  const [editUsers, setEditUsers] = useState([])
+  const [editOwnerSearch, setEditOwnerSearch] = useState('')
+  const [editOwnerDropdown, setEditOwnerDropdown] = useState(false)
   const [deleteGroup, setDeleteGroup] = useState(null)
 
   const fetchData = async () => {
@@ -357,7 +361,17 @@ export default function FleetPage() {
       code: g.code || '',
       description: g.description || '',
       status: g.status || 'active',
+      ownerId: g.ownerId || null,
     })
+    setEditOwnerSearch(g.owner?.full_name || g.owner?.name || '')
+    usersApi.list().then(res => {
+      setEditUsers(res.data.map(u => ({
+        id: u.id,
+        name: u.name || u.full_name || 'Unknown',
+        email: u.email || '',
+        role: u.role,
+      })))
+    }).catch(() => {})
   }, [])
 
   const handleSaveEdit = async () => {
@@ -372,6 +386,7 @@ export default function FleetPage() {
         code: editForm.code.trim() || null,
         description: editForm.description.trim() || null,
         status: editForm.status,
+        ownerId: editForm.ownerId,
       })
       toast.success('Group updated')
       setEditGroup(null)

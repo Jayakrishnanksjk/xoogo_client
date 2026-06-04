@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import AppLayout from '@/components/layout/AppLayout'
 import { Badge, StatCard, SlidePanel, Stepper, Button, Input, Select, ConfirmDialog } from '@/components/ui'
-import { Users, Shield, Building2, UserCog, Plus, Search, Trash2, X, Check } from 'lucide-react'
+import { Users, Shield, Building2, UserCog, Plus, Search, Trash2, Check } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { usersApi, groupsApi } from '@/api'
 import { toast } from 'sonner'
@@ -211,10 +211,10 @@ function AddUserPanel({ open, onClose, onUserAdded }) {
 }
 
 const ROLE_FILTERS = [
-  { value: '', label: 'Total Users', icon: Users, iconBg: 'bg-blue-50', iconColor: 'text-blue-500' },
-  { value: 'superadmin,admin', label: 'Admins', icon: Shield, iconBg: 'bg-purple-50', iconColor: 'text-purple-500' },
-  { value: 'partner', label: 'Bus Owners', icon: Building2, iconBg: 'bg-green-50', iconColor: 'text-green-500' },
-  { value: 'operator', label: 'Operators', icon: UserCog, iconBg: 'bg-orange-50', iconColor: 'text-orange-500' },
+  { value: '', label: 'Total Users', icon: Users, theme: 'blue' },
+  { value: 'superadmin,admin', label: 'Admins', icon: Shield, theme: 'purple' },
+  { value: 'partner', label: 'Bus Owners', icon: Building2, theme: 'green' },
+  { value: 'operator', label: 'Operators', icon: UserCog, theme: 'amber' },
 ]
 
 export default function UsersPage() {
@@ -289,29 +289,15 @@ export default function UsersPage() {
             const isActive = roleFilter === f.value
             const count = roleCardCounts[f.value]
             return (
-              <button
-                key={f.value}
-                onClick={() => handleRoleFilter(f.value)}
-                className={clsx(
-                  'bg-white rounded-xl shadow-card border p-4 flex items-center gap-4 transition-all text-left',
-                  isActive
-                    ? 'border-brand ring-1 ring-brand'
-                    : 'border-slate-100 hover:border-slate-200 hover:shadow-card-md'
-                )}
-              >
-                <div className={clsx('w-10 h-10 rounded-xl flex items-center justify-center shrink-0', f.iconBg)}>
-                  <f.icon size={18} className={f.iconColor} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs text-slate-500">{f.label}</p>
-                  <p className="text-xl font-semibold text-slate-900 leading-tight">{loading ? '...' : count}</p>
-                </div>
-                {isActive && (
-                  <span className="shrink-0 p-0.5 rounded-full bg-slate-100 hover:bg-slate-200 transition-colors" onClick={(e) => { e.stopPropagation(); setRoleFilter('') }}>
-                    <X size={12} className="text-slate-400" />
-                  </span>
-                )}
-              </button>
+              <div key={f.value} className={clsx(isActive && 'ring-2 ring-brand rounded-2xl')}>
+                <StatCard
+                  icon={f.icon}
+                  label={f.label}
+                  value={loading ? '...' : count}
+                  onClick={() => handleRoleFilter(f.value)}
+                  theme={f.theme}
+                />
+              </div>
             )
           })}
         </div>
