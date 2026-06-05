@@ -11,7 +11,7 @@ import {
 import clsx from 'clsx'
 
 // Shadcn components
-import { Badge } from '@/components/ui/badge'
+import { Badge } from '@/components/ui/Badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/Button'
