@@ -2,6 +2,7 @@ import express from 'express'
 import cors from 'cors'
 import morgan from 'morgan'
 import path from 'path'
+import fs from 'fs'
 import { fileURLToPath } from 'url'
 import authRoutes from './routes/auth.js'
 import userRoutes from './routes/users.js'
@@ -53,6 +54,16 @@ app.get('/api/health', (req, res) => {
     timestamp: new Date(),
     uptime: process.uptime()
   })
+})
+
+// Explicit asset fallback (catches any files express.static may miss on Render)
+app.get('/assets/*', (req, res, next) => {
+  const filePath = path.join(distPath, req.path)
+  console.log(`[assets] ${req.path} -> ${filePath} exists: ${fs.existsSync(filePath)}`)
+  if (fs.existsSync(filePath)) {
+    return res.sendFile(filePath)
+  }
+  next()
 })
 
 // Serve index.html for all non-API routes (client-side routing)
