@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, forwardRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   AlertTriangle,
@@ -88,11 +88,12 @@ const DEFAULT_ALERTS = [
 
 // ─── Single alert row ─────────────────────────────────────────────────────────
 
-function AlertRow({ alert, index, onDismiss }) {
+const AlertRow = forwardRef(({ alert, index, onDismiss }, ref) => {
   const s = SEVERITY[alert.severity]
 
   return (
     <motion.div
+      ref={ref}
       layout
       initial={{ opacity: 0, x: -10, scale: 0.98 }}
       animate={{ opacity: 1, x: 0, scale: 1 }}
@@ -157,13 +158,14 @@ function AlertRow({ alert, index, onDismiss }) {
       </div>
     </motion.div>
   )
-}
+})
 
 // ─── Empty state ──────────────────────────────────────────────────────────────
 
-function EmptyAlerts() {
+const EmptyAlerts = forwardRef((props, ref) => {
   return (
     <motion.div
+      ref={ref}
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.28, ease: 'easeOut' }}
@@ -175,7 +177,7 @@ function EmptyAlerts() {
       <p className="text-xs font-medium text-slate-400">All clear — no alerts</p>
     </motion.div>
   )
-}
+})
 
 // ─── Alerts Panel (main export) ───────────────────────────────────────────────
 

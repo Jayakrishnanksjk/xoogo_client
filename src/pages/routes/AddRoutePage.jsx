@@ -149,15 +149,21 @@ export default function AddRoutePage() {
           setEstimatedDuration(route.estimatedDuration || '')
           setRouteType(route.routeType || 'inbound')
           setIsActive(route.status === 'active')
-          setStops(route.stops || [])
+          const fetchedStops = (route.stops || []).map((s) => ({
+            id: s.id,
+            name: s.name,
+            lat: s.latitude !== undefined ? s.latitude : s.lat,
+            lng: s.longitude !== undefined ? s.longitude : s.lng,
+          }))
+          setStops(fetchedStops)
 
-          const startStop = route.stops?.[0]
+          const startStop = fetchedStops[0]
           if (startStop) {
             setStartLat(String(startStop.lat))
             setStartLng(String(startStop.lng))
           }
-          const endStop = route.stops?.[route.stops.length - 1]
-          if (endStop && route.stops.length > 1) {
+          const endStop = fetchedStops[fetchedStops.length - 1]
+          if (endStop && fetchedStops.length > 1) {
             setEndLat(String(endStop.lat))
             setEndLng(String(endStop.lng))
           }

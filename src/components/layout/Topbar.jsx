@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, forwardRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Bell, Search, AlertTriangle, WifiOff, HardDrive, Signal, X, ArrowRight } from 'lucide-react'
 import clsx from 'clsx'
@@ -45,10 +45,11 @@ const DEFAULT_ALERTS = [
 
 // ─── Single alert row ────────────────────────────────────────────────────────
 
-function AlertRow({ alert, index, onDismiss }) {
+const AlertRow = forwardRef(({ alert, index, onDismiss }, ref) => {
   const s = SEVERITY[alert.severity]
   return (
     <motion.div
+      ref={ref}
       layout
       initial={{ opacity: 0, x: -8, scale: 0.98 }}
       animate={{ opacity: 1, x: 0, scale: 1 }}
@@ -98,7 +99,7 @@ function AlertRow({ alert, index, onDismiss }) {
       </div>
     </motion.div>
   )
-}
+})
 
 // ─── Alerts dropdown content ─────────────────────
 

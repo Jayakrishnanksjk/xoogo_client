@@ -1,6 +1,7 @@
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva } from "class-variance-authority"
+import { Loader2 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
@@ -42,6 +43,7 @@ const Button = React.forwardRef(({
   label,
   startIcon: StartIcon,
   endIcon: EndIcon,
+  loading = false,
   children,
   ...props
 }, ref) => {
@@ -50,6 +52,7 @@ const Button = React.forwardRef(({
     <Comp
       className={cn(buttonVariants({ variant, size, className }))}
       ref={ref}
+      disabled={loading || props.disabled}
       {...props}
     >
       {asChild ? (
@@ -58,9 +61,10 @@ const Button = React.forwardRef(({
         children
       ) : (
         <>
-          {StartIcon && <StartIcon className="size-4 shrink-0" />}
+          {loading && <Loader2 className="size-4 shrink-0 animate-spin" />}
+          {!loading && StartIcon && <StartIcon className="size-4 shrink-0" />}
           {label && <span>{label}</span>}
-          {EndIcon && <EndIcon className="size-4 shrink-0" />}
+          {!loading && EndIcon && <EndIcon className="size-4 shrink-0" />}
         </>
       )}
     </Comp>
