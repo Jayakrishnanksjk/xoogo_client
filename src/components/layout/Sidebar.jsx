@@ -40,19 +40,13 @@ export default function Sidebar() {
 
   return (
     <aside className="fixed top-0 left-0 h-screen bg-sidebar-bg text-white flex flex-col z-30 w-[220px] border-r border-white/5 shadow-2xl">
-      {/* Logo Section */}
       <div className="px-6 py-6 border-b border-white/5">
-        <motion.div 
-          className="flex items-center gap-2"
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.4, ease: 'easeOut' }}
-        >
+        <div className="flex items-center gap-2">
           <span className="text-2xl font-bold tracking-tight select-none">
             <span className="text-brand-light">x</span>
             <span className="text-white">oogo</span>
           </span>
-        </motion.div>
+        </div>
       </div>
 
       {/* Navigation Links */}
