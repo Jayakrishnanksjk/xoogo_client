@@ -51,11 +51,11 @@ router.get('/:id', async (req, res) => {
 // POST /api/schedules - Create a new schedule
 router.post('/', async (req, res) => {
   try {
-    const { name, description, status } = req.body
+    const { name, description, status, startTime, endTime } = req.body
     if (!name) {
       return res.status(400).json({ message: 'Schedule name is required.' })
     }
-    const schedule = await Schedule.create({ name, description, status: status || 'active' })
+    const schedule = await Schedule.create({ name, description, status: status || 'active', startTime: startTime || null, endTime: endTime || null })
     res.status(201).json(schedule)
   } catch (error) {
     console.error('Create schedule error:', error)
@@ -70,10 +70,12 @@ router.patch('/:id', async (req, res) => {
     if (!schedule) {
       return res.status(404).json({ message: 'Schedule not found.' })
     }
-    const { name, description, status } = req.body
+    const { name, description, status, startTime, endTime } = req.body
     if (name) schedule.name = name
     if (description !== undefined) schedule.description = description
     if (status) schedule.status = status
+    if (startTime !== undefined) schedule.startTime = startTime
+    if (endTime !== undefined) schedule.endTime = endTime
     await schedule.save()
     res.json(schedule)
   } catch (error) {

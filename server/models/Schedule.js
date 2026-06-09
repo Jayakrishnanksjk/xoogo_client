@@ -18,6 +18,14 @@ const Schedule = sequelize.define('Schedule', {
   status: {
     type: DataTypes.ENUM('active', 'inactive'),
     defaultValue: 'active',
+  },
+  startTime: {
+    type: DataTypes.TIME,
+    allowNull: true,
+  },
+  endTime: {
+    type: DataTypes.TIME,
+    allowNull: true,
   }
 }, {
   timestamps: true,
