@@ -40,6 +40,20 @@ export const routesApi = {
   reorderStops: (routeId, orderedIds) => api.put(`/routes/${routeId}/stops/reorder`, { orderedIds }),
 }
 
+// ── Route Schedules ──────────────────────────────────────
+export const schedulesApi = {
+  list: (params) => api.get('/schedules', { params }),
+  get: (id) => api.get(`/schedules/${id}`),
+  create: (data) => api.post('/schedules', data),
+  update: (id, data) => api.patch(`/schedules/${id}`, data),
+  delete: (id) => api.delete(`/schedules/${id}`),
+  addRoute: (scheduleId, data) => api.post(`/schedules/${scheduleId}/routes`, data),
+  removeRoute: (scheduleId, routeId) => api.delete(`/schedules/${scheduleId}/routes/${routeId}`),
+  copyRoutes: (scheduleId, data) => api.post(`/schedules/${scheduleId}/copy-routes`, data),
+  assignBus: (scheduleId, data) => api.post(`/schedules/${scheduleId}/assign`, data),
+  unassignBus: (scheduleId) => api.delete(`/schedules/${scheduleId}/assign`),
+}
+
 // ── Buses ────────────────────────────────────────────────
 export const busesApi = {
   list: (params) => api.get('/buses', { params }),

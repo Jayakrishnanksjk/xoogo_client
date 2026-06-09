@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '@/components/layout/AppLayout'
-import { Stepper, Input, Select, Checkbox, Button, Badge } from '@/components/ui'
+import { Stepper, Input, Select, Button, Badge } from '@/components/ui'
 import clsx from 'clsx'
-import { ArrowLeft, ArrowRight, Info, CheckCircle, GripVertical, Bus, Check } from 'lucide-react'
-import { groupsApi, routesApi, busesApi } from '@/api'
+import { ArrowLeft, ArrowRight, Info, CheckCircle, Bus, Calendar, Check } from 'lucide-react'
+import { groupsApi, busesApi, schedulesApi } from '@/api'
 import { toast } from 'sonner'
 
-const STEPS = ['Bus Details', 'Route & Stops', 'Preview & Complete']
+const STEPS = ['Bus Details', 'Schedule', 'Preview & Complete']
 
 const BUS_TYPES = ['Limited Stop', 'Express', 'Super Express', 'Ordinary', 'Fast Passenger']
 
@@ -151,89 +151,81 @@ function BusDetailsStep({ form, setForm, groups = [], reviewed }) {
   )
 }
 
-function RouteStopsStep({ form, setForm, routes = [], reviewed }) {
-  const selectedRoute = routes.find(r => String(r.id) === String(form.routeId))
+function ScheduleStep({ form, setForm, schedules = [], reviewed }) {
+  const selectedSchedule = schedules.find(s => String(s.id) === String(form.scheduleId))
+  const scheduleRoutes = selectedSchedule?.scheduleRoutes
+    ? [...selectedSchedule.scheduleRoutes].sort((a, b) => a.sequenceOrder - b.sequenceOrder)
+    : []
 
   return (
     <div>
-      <h3 className="text-sm font-semibold text-slate-900 mb-1">2. Route & Stops</h3>
-      <p className="text-xs text-slate-500 mb-5">Select the route for this bus and choose the stops.</p>
+      <h3 className="text-sm font-semibold text-slate-900 mb-1">2. Schedule</h3>
+      <p className="text-xs text-slate-500 mb-5">Select the schedule for this bus.</p>
 
       <div className="space-y-4">
         <div>
           <div className="relative">
             <Select
-              label="Route *"
-              value={form.routeId}
-              onChange={e => {
-                const route = routes.find(r => String(r.id) === e.target.value)
-                setForm(f => ({
-                  ...f,
-                  routeId: e.target.value,
-                  selectedStops: route && route.stops ? route.stops.map((_, i) => i) : [],
-                }))
-              }}
+              label="Schedule *"
+              value={form.scheduleId}
+              onChange={e => setForm(f => ({ ...f, scheduleId: e.target.value }))}
             >
-              <option value="">Select route</option>
-              {routes.map(r => (
-                <option key={r.id} value={r.id}>{r.name}</option>
+              <option value="">Select schedule</option>
+              {schedules.map(s => (
+                <option key={s.id} value={s.id}>{s.name} ({s.scheduleRoutes?.length || 0} routes)</option>
               ))}
             </Select>
             {reviewed && <span className="absolute right-2 top-[34px] text-green-500"><Check size={14} /></span>}
           </div>
-          <p className="text-[11px] text-slate-400 mt-1">Select the route this bus will operate on</p>
+          <p className="text-[11px] text-slate-400 mt-1">Select the schedule for this bus</p>
         </div>
 
-        {selectedRoute && (
+        {selectedSchedule && scheduleRoutes.length > 0 && (
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-2">Select Stops *</label>
-            <p className="text-[11px] text-slate-400 mb-3">Choose the stops where this bus will display content</p>
-
+            <label className="block text-xs font-medium text-slate-600 mb-2">Routes in this Schedule</label>
             <div className="border border-slate-200 rounded-lg overflow-hidden">
-              {(selectedRoute.stops || []).map((stop, idx) => (
+              {scheduleRoutes.map((sr, idx) => (
                 <div
-                  key={stop.id || idx}
-                  className="flex items-center gap-3 px-3 py-2.5 border-b border-slate-100 last:border-b-0 hover:bg-slate-50 transition-colors"
+                  key={sr.id || idx}
+                  className="flex items-center gap-3 px-3 py-2.5 border-b border-slate-100 last:border-b-0 bg-slate-50"
                 >
-                  <GripVertical size={14} className="text-slate-300 cursor-grab shrink-0" />
-                  <Checkbox
-                    checked={form.selectedStops?.includes(idx)}
-                    onChange={() => {
-                      setForm(f => ({
-                        ...f,
-                        selectedStops: f.selectedStops?.includes(idx)
-                          ? f.selectedStops.filter(i => i !== idx)
-                          : [...(f.selectedStops || []), idx],
-                      }))
-                    }}
-                  />
-                  <span className="text-xs font-medium text-slate-500 w-5">{idx + 1}</span>
-                  <span className="text-sm text-slate-800">{stop.name || (stop.lat != null ? `${stop.lat.toFixed(5)}, ${stop.lng.toFixed(5)}` : stop?.latitude != null ? `${stop.latitude.toFixed(5)}, ${stop.longitude.toFixed(5)}` : stop)}</span>
+                  <span className="w-5 h-5 rounded-full bg-brand text-white text-[10px] font-bold flex items-center justify-center shrink-0">
+                    {sr.sequenceOrder}
+                  </span>
+                  <div>
+                    <span className="text-sm text-slate-800 font-medium">{sr.route?.name || 'Unknown'}</span>
+                    <span className="text-xs text-slate-400 ml-2 font-mono">{sr.route?.code || ''}</span>
+                  </div>
                 </div>
               ))}
-            </div>
-
-            <div className="flex items-center justify-between mt-2">
-              <p className="text-xs text-brand font-medium">{form.selectedStops?.length || 0} stops selected</p>
-              <button className="text-xs text-slate-500 hover:text-brand flex items-center gap-1">
-                ✎ Edit Order
-              </button>
             </div>
           </div>
         )}
 
+        {selectedSchedule && scheduleRoutes.length === 0 && (
+          <div className="flex items-start gap-2 p-3 bg-amber-50 rounded-lg">
+            <Info size={14} className="text-amber-500 shrink-0 mt-0.5" />
+            <p className="text-xs text-amber-700">This schedule has no routes assigned to it yet.</p>
+          </div>
+        )}
+
         <div className="flex items-start gap-2 p-3 bg-blue-50 rounded-lg">
-          <Info size={14} className="text-blue-500 shrink-0 mt-0.5" />
-          <p className="text-xs text-blue-700">You can reorder stops by drag and drop.</p>
+          <Calendar size={14} className="text-blue-500 shrink-0 mt-0.5" />
+          <p className="text-xs text-blue-700">
+            A schedule defines the routes this bus will operate. Each schedule can only be assigned to one bus.
+          </p>
         </div>
       </div>
     </div>
   )
 }
 
-function PreviewStep({ form, groups = [], routes = [], isEditMode = false, reviewed }) {
+function PreviewStep({ form, groups = [], schedules = [], isEditMode = false, reviewed }) {
   const selectedGroup = groups.find(g => String(g.id) === String(form.groupId))
-  const selectedRoute = routes.find(r => String(r.id) === String(form.routeId))
+  const selectedSchedule = schedules.find(s => String(s.id) === String(form.scheduleId))
+  const scheduleRoutes = selectedSchedule?.scheduleRoutes
+    ? [...selectedSchedule.scheduleRoutes].sort((a, b) => a.sequenceOrder - b.sequenceOrder)
+    : []
 
   return (
     <div>
@@ -255,7 +247,7 @@ function PreviewStep({ form, groups = [], routes = [], isEditMode = false, revie
           ['SIM Number', form.simNumber || '–'],
           ['Contact Person', form.contactName || '–'],
           ['Contact Number', form.contactNumber ? `+91 ${form.contactNumber}` : '–'],
-          ['Route', selectedRoute?.name || '–'],
+          ['Schedule', selectedSchedule?.name || '–'],
         ].map(([label, value]) => (
           <div key={label} className="flex items-center justify-between py-1.5 border-b border-slate-100">
             <span className="text-xs text-slate-500">{label}</span>
@@ -264,15 +256,15 @@ function PreviewStep({ form, groups = [], routes = [], isEditMode = false, revie
         ))}
       </div>
 
-      {/* Stops list */}
-      {selectedRoute && selectedRoute.stops && form.selectedStops?.length > 0 && (
+      {/* Routes list from schedule */}
+      {scheduleRoutes.length > 0 && (
         <div className="mt-4">
-          <p className="text-xs text-slate-500 mb-2">Stops ({form.selectedStops.length})</p>
+          <p className="text-xs text-slate-500 mb-2">Routes ({scheduleRoutes.length})</p>
           <div className="space-y-1.5">
-            {[...form.selectedStops].sort((a, b) => a - b).map((stopIdx, i) => (
-              <div key={stopIdx} className="flex items-center gap-2">
-                <span className={`w-2 h-2 rounded-full ${STOP_COLORS[i % STOP_COLORS.length]} shrink-0`} />
-                <span className="text-xs text-slate-700">{(() => { const s = selectedRoute.stops[stopIdx]; return s?.name || (s?.lat != null ? `${s.lat.toFixed(5)}, ${s.lng.toFixed(5)}` : s?.latitude != null ? `${s.latitude.toFixed(5)}, ${s.longitude.toFixed(5)}` : s) })()}</span>
+            {scheduleRoutes.map((sr) => (
+              <div key={sr.id} className="flex items-center gap-2">
+                <span className={`w-2 h-2 rounded-full ${STOP_COLORS[sr.sequenceOrder % STOP_COLORS.length]} shrink-0`} />
+                <span className="text-xs text-slate-700">{sr.route?.name} <span className="text-slate-400 font-mono">({sr.route?.code})</span></span>
               </div>
             ))}
           </div>
@@ -290,7 +282,7 @@ export default function AddBusScreenPage() {
   const [step, setStep] = useState(0)
   const [reviewed, setReviewed] = useState(new Set())
   const [groups, setGroups] = useState([])
-  const [routes, setRoutes] = useState([])
+  const [schedules, setSchedules] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
@@ -302,20 +294,19 @@ export default function AddBusScreenPage() {
     contactNumber: '',
     chassisNumber: '',
     model: '',
-    routeId: '',
-    selectedStops: [],
+    scheduleId: '',
   })
 
   useEffect(() => {
     async function loadData() {
       try {
         setLoading(true)
-        const [groupsRes, routesRes] = await Promise.all([
+        const [groupsRes, schedulesRes] = await Promise.all([
           groupsApi.list(),
-          routesApi.list()
+          schedulesApi.list()
         ])
         setGroups(groupsRes.data)
-        setRoutes(routesRes.data)
+        setSchedules(schedulesRes.data)
 
         if (isEditMode) {
           const busRes = await busesApi.get(id)
@@ -329,13 +320,12 @@ export default function AddBusScreenPage() {
             contactNumber: busData.contactNumber ? busData.contactNumber.replace(/^\+91\s*/, '') : '',
             chassisNumber: busData.chassisNumber || '',
             model: busData.model || '',
-            routeId: busData.routeId ? String(busData.routeId) : '',
-            selectedStops: busData.selectedStops ? busData.selectedStops.map(Number) : [],
+            scheduleId: busData.scheduleId ? String(busData.scheduleId) : '',
           })
         }
       } catch (err) {
         console.error('Failed to load data:', err)
-        toast.error(isEditMode ? 'Failed to load bus screen details' : 'Failed to load groups/routes')
+        toast.error(isEditMode ? 'Failed to load bus screen details' : 'Failed to load data')
       } finally {
         setLoading(false)
       }
@@ -352,7 +342,7 @@ export default function AddBusScreenPage() {
       !form.contactName.trim() ||
       form.contactNumber.length !== 10
     )) return true
-    if (step === 1 && !form.routeId) return true
+    if (step === 1 && !form.scheduleId) return true
     return false
   }
 
@@ -368,8 +358,7 @@ export default function AddBusScreenPage() {
         contactNumber: `+91 ${form.contactNumber}`,
         chassisNumber: form.chassisNumber.trim() || null,
         model: form.model || null,
-        routeId: form.routeId || null,
-        selectedStops: form.selectedStops || [],
+        scheduleId: form.scheduleId || null,
       }
 
       if (isEditMode) {
@@ -418,11 +407,11 @@ export default function AddBusScreenPage() {
           </div>
           <div className={clsx('rounded-xl shadow-card border p-6 transition-colors', reviewed.has(1) ? 'bg-green-50/40 border-green-200' : 'bg-white border-slate-100')}>
             {reviewed.has(1) && <div className="flex items-center gap-1.5 mb-4 text-green-600"><Check size={14} /><span className="text-xs font-semibold">Reviewed</span></div>}
-            <RouteStopsStep form={form} setForm={setForm} routes={routes} reviewed={reviewed.has(1)} />
+            <ScheduleStep form={form} setForm={setForm} schedules={schedules} reviewed={reviewed.has(1)} />
           </div>
           <div className={clsx('rounded-xl shadow-card border p-6 transition-colors', reviewed.has(2) ? 'bg-green-50/40 border-green-200' : 'bg-white border-slate-100')}>
             {reviewed.has(2) && <div className="flex items-center gap-1.5 mb-4 text-green-600"><Check size={14} /><span className="text-xs font-semibold">Reviewed</span></div>}
-            <PreviewStep form={form} groups={groups} routes={routes} isEditMode={isEditMode} reviewed={reviewed.has(2)} />
+            <PreviewStep form={form} groups={groups} schedules={schedules} isEditMode={isEditMode} reviewed={reviewed.has(2)} />
           </div>
         </div>
 

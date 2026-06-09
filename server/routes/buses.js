@@ -1,26 +1,29 @@
 import express from 'express'
-import { Bus, Group, Route } from '../models/index.js'
+import { Op } from 'sequelize'
+import { Bus, Group, Route, Schedule } from '../models/index.js'
 import { authenticate } from '../middleware/auth.js'
 
 const router = express.Router()
 
 router.use(authenticate)
 
-// GET /api/buses - Get all buses (can filter by group_id or route_id)
+// GET /api/buses - Get all buses (can filter by group_id, route_id, or schedule_id)
 router.get('/', async (req, res) => {
   try {
-    const { group_id, route_id, status } = req.query
+    const { group_id, route_id, schedule_id, status } = req.query
     const whereClause = {}
 
     if (group_id) whereClause.groupId = group_id
     if (route_id) whereClause.routeId = route_id
+    if (schedule_id) whereClause.scheduleId = schedule_id
     if (status) whereClause.status = status
 
     const buses = await Bus.findAll({
       where: whereClause,
       include: [
         { model: Group, as: 'group', attributes: ['id', 'name'] },
-        { model: Route, as: 'route', attributes: ['id', 'name'] }
+        { model: Route, as: 'route', attributes: ['id', 'name'] },
+        { model: Schedule, as: 'schedule', attributes: ['id', 'name'] }
       ],
       order: [['created_at', 'DESC']]
     })
@@ -43,7 +46,8 @@ router.post('/', async (req, res) => {
       contactNumber,
       chassisNumber,
       model,
-      routeId
+      routeId,
+      scheduleId
     } = req.body
 
     if (!regNumber || !groupId || !simNumber || !busType || !contactName || !contactNumber) {
@@ -70,6 +74,18 @@ router.post('/', async (req, res) => {
       }
     }
 
+    // Verify schedule exists and is not assigned to another bus
+    if (scheduleId) {
+      const schedule = await Schedule.findByPk(scheduleId)
+      if (!schedule) {
+        return res.status(400).json({ message: 'Assigned schedule not found.' })
+      }
+      const busWithSchedule = await Bus.findOne({ where: { scheduleId } })
+      if (busWithSchedule) {
+        return res.status(400).json({ message: 'This schedule is already assigned to another bus.' })
+      }
+    }
+
     const bus = await Bus.create({
       regNumber,
       groupId,
@@ -80,13 +96,15 @@ router.post('/', async (req, res) => {
       chassisNumber: chassisNumber || null,
       model: model || null,
       routeId: routeId || null,
+      scheduleId: scheduleId || null,
       status: 'offline', // default
     })
 
     const fullBus = await Bus.findByPk(bus.id, {
       include: [
         { model: Group, as: 'group', attributes: ['id', 'name'] },
-        { model: Route, as: 'route', attributes: ['id', 'name'] }
+        { model: Route, as: 'route', attributes: ['id', 'name'] },
+        { model: Schedule, as: 'schedule', attributes: ['id', 'name'] }
       ]
     })
 
@@ -103,7 +121,8 @@ router.get('/:id', async (req, res) => {
     const bus = await Bus.findByPk(req.params.id, {
       include: [
         { model: Group, as: 'group', attributes: ['id', 'name'] },
-        { model: Route, as: 'route', attributes: ['id', 'name'] }
+        { model: Route, as: 'route', attributes: ['id', 'name'] },
+        { model: Schedule, as: 'schedule', attributes: ['id', 'name'] }
       ]
     })
     if (!bus) {
@@ -134,6 +153,7 @@ router.patch('/:id', async (req, res) => {
       chassisNumber,
       model,
       routeId,
+      scheduleId,
       status
     } = req.body
 
@@ -163,6 +183,20 @@ router.patch('/:id', async (req, res) => {
       bus.routeId = null
     }
 
+    if (scheduleId) {
+      const schedule = await Schedule.findByPk(scheduleId)
+      if (!schedule) {
+        return res.status(400).json({ message: 'Assigned schedule not found.' })
+      }
+      const busWithSchedule = await Bus.findOne({ where: { scheduleId, id: { [Op.ne]: bus.id } } })
+      if (busWithSchedule) {
+        return res.status(400).json({ message: 'This schedule is already assigned to another bus.' })
+      }
+      bus.scheduleId = scheduleId
+    } else if (scheduleId === null) {
+      bus.scheduleId = null
+    }
+
     if (simNumber) bus.simNumber = simNumber
     if (busType) bus.busType = busType
     if (contactName) bus.contactName = contactName
@@ -176,7 +210,8 @@ router.patch('/:id', async (req, res) => {
     const fullBus = await Bus.findByPk(bus.id, {
       include: [
         { model: Group, as: 'group', attributes: ['id', 'name'] },
-        { model: Route, as: 'route', attributes: ['id', 'name'] }
+        { model: Route, as: 'route', attributes: ['id', 'name'] },
+        { model: Schedule, as: 'schedule', attributes: ['id', 'name'] }
       ]
     })
 

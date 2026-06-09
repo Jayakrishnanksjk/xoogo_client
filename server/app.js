@@ -10,6 +10,7 @@ import groupRoutes from './routes/groups.js'
 import routeRoutes from './routes/routes.js'
 import busRoutes from './routes/buses.js'
 import transitRoutes from './routes/transit.js'
+import scheduleRoutes from './routes/schedules.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -45,6 +46,7 @@ app.use('/api/users', userRoutes)
 app.use('/api/groups', groupRoutes)
 app.use('/api/routes', routeRoutes)
 app.use('/api/buses', busRoutes)
+app.use('/api/schedules', scheduleRoutes)
 app.use('/api', transitRoutes)
 
 // Health Check Endpoint

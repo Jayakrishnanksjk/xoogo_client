@@ -2,6 +2,8 @@ import sequelize from '../config/database.js'
 import User from './User.js'
 import Group from './Group.js'
 import Route from './Route.js'
+import Schedule from './Schedule.js'
+import ScheduleRoute from './ScheduleRoute.js'
 import Bus from './Bus.js'
 import Stop from './Stop.js'
 import BusAssignment from './BusAssignment.js'
@@ -67,6 +69,16 @@ HistoricalEta.belongsTo(Stop, { foreignKey: 'to_stop_id', as: 'toStop' })
 Bus.hasMany(EventLog, { foreignKey: 'bus_id', as: 'events', onDelete: 'CASCADE' })
 EventLog.belongsTo(Bus, { foreignKey: 'bus_id', as: 'bus' })
 
+// Schedule associations
+Schedule.hasMany(ScheduleRoute, { foreignKey: 'schedule_id', as: 'scheduleRoutes', onDelete: 'CASCADE' })
+ScheduleRoute.belongsTo(Schedule, { foreignKey: 'schedule_id', as: 'schedule' })
+
+Route.hasMany(ScheduleRoute, { foreignKey: 'route_id', as: 'scheduleRoutes', onDelete: 'CASCADE' })
+ScheduleRoute.belongsTo(Route, { foreignKey: 'route_id', as: 'route' })
+
+Schedule.hasOne(Bus, { foreignKey: 'schedule_id', as: 'assignedBus' })
+Bus.belongsTo(Schedule, { foreignKey: 'schedule_id', as: 'schedule' })
+
 export {
   sequelize,
   User,
@@ -77,4 +89,6 @@ export {
   BusAssignment,
   HistoricalEta,
   EventLog,
+  Schedule,
+  ScheduleRoute,
 }
