@@ -4,17 +4,18 @@ import { authenticate } from '../middleware/auth.js'
 
 const router = express.Router()
 
-// GET /api/groups - Get all active groups (authenticated users only)
+// GET /api/groups - Get all groups (authenticated users only)
 router.get('/', authenticate, async (req, res) => {
   try {
     const groups = await Group.findAll({
-      where: { status: 'active' },
       include: [
         {
           model: Bus,
           as: 'buses',
           include: [{ model: Route, as: 'route', attributes: ['id', 'name'] }]
-        }
+        },
+        { model: User, as: 'owner', attributes: ['id', 'full_name', 'email', 'phone', 'role'] },
+        { model: User, as: 'users', attributes: ['id', 'full_name', 'email', 'phone', 'role', 'status'] }
       ],
       order: [['name', 'ASC']]
     })
@@ -67,7 +68,8 @@ router.get('/:id', authenticate, async (req, res) => {
     const group = await Group.findByPk(req.params.id, {
       include: [
         { model: Bus, as: 'buses', include: [{ model: Route, as: 'route', attributes: ['id', 'name'] }] },
-        { model: User, as: 'owner', attributes: ['id', 'full_name', 'email', 'phone', 'role'] }
+        { model: User, as: 'owner', attributes: ['id', 'full_name', 'email', 'phone', 'role'] },
+        { model: User, as: 'users', attributes: ['id', 'full_name', 'email', 'phone', 'role', 'status'] }
       ]
     })
     if (!group) {

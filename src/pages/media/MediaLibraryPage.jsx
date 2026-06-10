@@ -5,7 +5,7 @@ import { Upload, FolderPlus, LayoutGrid, List, SlidersHorizontal } from 'lucide-
 import clsx from 'clsx'
 
 const MOCK_MEDIA = [
-  { id: 1, title: 'Lulu Big Sale Offer', type: 'video', duration: '20s', size: '20s', status: 'active', category: 'Offers', resolution: '1920x1080', uploadDate: 'Apr 20, 2026', author: 'Akhil Pavithran', totalPlays: '12,450', totalImpressions: '15,230', completionRate: '90.2%', uniqueDevices: '18', playlistCount: 12, screenCount: 18, deviceCount: 18 },
+  { id: 1, title: 'Lulu Big Sale Offer', type: 'video', duration: '20s', size: '20s', status: 'active', category: 'Offers', resolution: '1920x1080', uploadDate: '20/04/2026', author: 'Akhil Pavithran', totalPlays: '12,450', totalImpressions: '15,230', completionRate: '90.2%', uniqueDevices: '18', playlistCount: 12, screenCount: 18, deviceCount: 18 },
   { id: 2, title: 'Beauty Cream Ad', type: 'video', duration: '20s', size: '20s', status: 'active', category: 'Ads' },
   { id: 3, title: 'Visit Kannur', type: 'image', duration: '15s', size: '15s', status: 'active', category: 'Tourism' },
   { id: 4, title: 'Local Store Promo', type: 'video', duration: '20s', size: '20s', status: 'active', category: 'Local' },

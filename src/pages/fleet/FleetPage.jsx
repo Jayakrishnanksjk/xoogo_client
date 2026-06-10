@@ -140,9 +140,9 @@ function ByGroupsTab({ groups = [], loading = false, onLiveTracking, onEditGroup
         ) : (
           <>
             <StatCard icon={Users} theme="purple" label="Total Groups" value={String(groups.length)} sub="All bus groups" />
-            <StatCard icon={Bus} theme="blue" label="Total Bus Screens" value={String(totalBuses)} sub="Across all groups" />
-            <StatCard icon={Wifi} theme="green" label="Online Screens" value={String(onlineBuses)} sub={`${onlinePercentage}% of fleet`} />
-            <StatCard icon={WifiOff} theme="red" label="Offline Screens" value={String(offlineBuses)} sub={`${offlinePercentage}% of fleet`} />
+            <StatCard icon={Bus} theme="blue" label="Total Bus Screens" value={String(totalBuses)} sub="Across all groups" onClick={() => navigate('/fleet/buses')} />
+            <StatCard icon={Wifi} theme="green" label="Online Screens" value={String(onlineBuses)} sub={`${onlinePercentage}% of fleet`} onClick={() => navigate('/fleet/buses?status=online')} />
+            <StatCard icon={WifiOff} theme="red" label="Offline Screens" value={String(offlineBuses)} sub={`${offlinePercentage}% of fleet`} onClick={() => navigate('/fleet/buses?status=offline')} />
           </>
         )}
       </div>
@@ -235,10 +235,10 @@ function ByRoutesTab({ routes = [], loading = false }) {
           Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} />)
         ) : (
           <>
-            <StatCard icon={MapPin} theme="blue" label="Total Routes" value={String(routes.length)} sub="All routes" />
-            <StatCard icon={Bus} theme="green" label="Active Routes" value={String(routes.filter(r => r.status === 'active').length)} sub="Currently active" />
-            <StatCard icon={Wifi} theme="purple" label="Routes in Operation" value="0" sub="Currently running" />
-            <StatCard icon={WifiOff} theme="red" label="Inactive Routes" value={String(routes.filter(r => r.status === 'inactive').length)} sub="Currently inactive" />
+            <StatCard icon={MapPin} theme="blue" label="Total Routes" value={String(routes.length)} sub="All routes" onClick={() => navigate('/fleet/buses')} />
+            <StatCard icon={Bus} theme="green" label="Active Routes" value={String(routes.filter(r => r.status === 'active').length)} sub="Currently active" onClick={() => navigate('/fleet/buses?status=online')} />
+            <StatCard icon={Wifi} theme="purple" label="Routes in Operation" value="0" sub="Currently running" onClick={() => navigate('/fleet/buses?status=online')} />
+            <StatCard icon={WifiOff} theme="red" label="Inactive Routes" value={String(routes.filter(r => r.status === 'inactive').length)} sub="Currently inactive" onClick={() => navigate('/fleet/buses?status=offline')} />
           </>
         )}
       </div>

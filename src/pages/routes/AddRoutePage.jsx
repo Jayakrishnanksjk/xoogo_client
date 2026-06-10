@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import clsx from 'clsx'
 import { routesApi } from '@/api'
+import { formatDate } from '@/lib/utils'
 import { toast } from 'sonner'
 
 // ── Helpers ─────────────────────────────────────────────
@@ -455,7 +456,7 @@ export default function AddRoutePage() {
     try {
       setSaving(true)
       const payload = {
-        name: routeName || `Draft Route — ${new Date().toLocaleDateString()}`,
+        name: routeName || `Draft Route — ${formatDate(new Date())}`,
         code: routeCode || `DRAFT-${Date.now()}`,
         estimatedDuration: estimatedDuration || '—',
         distance: parseFloat(totalDistance.toFixed(1)),

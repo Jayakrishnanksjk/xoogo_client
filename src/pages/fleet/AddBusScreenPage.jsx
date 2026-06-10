@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '@/components/layout/AppLayout'
 import { Stepper, Input, Select, Button, Badge } from '@/components/ui'
 import clsx from 'clsx'
-import { ArrowLeft, ArrowRight, Info, CheckCircle, Bus, Calendar, Check } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Info, CheckCircle, Bus, Calendar, Check, User } from 'lucide-react'
 import { groupsApi, busesApi, schedulesApi } from '@/api'
 import { toast } from 'sonner'
 
@@ -17,6 +17,29 @@ const STOP_COLORS = [
 
 function BusDetailsStep({ form, setForm, groups = [], reviewed }) {
   const tick = reviewed ? <Check size={14} className="text-green-500" /> : undefined
+  const selectedGroup = groups.find(g => String(g.id) === String(form.groupId))
+  const groupOwner = selectedGroup?.owner
+  const [useOwner, setUseOwner] = useState(false)
+
+  const handleToggleOwner = () => {
+    if (!useOwner && groupOwner) {
+      setUseOwner(true)
+      setForm(f => ({
+        ...f,
+        contactName: groupOwner.full_name || '',
+        contactNumber: (groupOwner.phone || '').replace(/\D/g, '').slice(0, 10),
+      }))
+    } else {
+      setUseOwner(false)
+      setForm(f => ({ ...f, contactName: '', contactNumber: '' }))
+    }
+  }
+
+  // Reset when group changes
+  useEffect(() => {
+    setUseOwner(false)
+  }, [form.groupId])
+
   return (
     <div>
       <h3 className="text-sm font-semibold text-slate-900 mb-1">1. Bus Details</h3>
@@ -112,6 +135,31 @@ function BusDetailsStep({ form, setForm, groups = [], reviewed }) {
             <p className="text-[11px] text-slate-400 mt-1">Primary contact number</p>
           </div>
         </div>
+
+        {/* Same as group owner option */}
+        {groupOwner && (
+          <div>
+            <button
+              type="button"
+              onClick={handleToggleOwner}
+              className={clsx(
+                'flex items-center gap-2 w-full px-3 py-2.5 rounded-lg border text-xs font-medium transition-all',
+                useOwner
+                  ? 'bg-brand/5 border-brand/30 text-brand'
+                  : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+              )}
+            >
+              <div className={clsx(
+                'w-4 h-4 rounded border flex items-center justify-center transition-colors',
+                useOwner ? 'bg-brand border-brand' : 'border-slate-300'
+              )}>
+                {useOwner && <Check size={10} className="text-white" />}
+              </div>
+              <User size={13} />
+              <span>Same as group owner — <strong>{groupOwner.full_name || 'Unknown'}</strong></span>
+            </button>
+          </div>
+        )}
 
         {/* Additional Information */}
         <div className="pt-2">
@@ -334,16 +382,23 @@ export default function AddBusScreenPage() {
   }, [id, isEditMode])
 
   const isNextDisabled = () => {
-    if (loading || saving) return true
-    if (step === 0 && (
-      !form.regNumber.trim() ||
-      !form.groupId ||
-      !form.simNumber.trim() ||
-      !form.contactName.trim() ||
-      form.contactNumber.length !== 10
-    )) return true
-    if (step === 1 && !form.scheduleId) return true
-    return false
+    return loading || saving
+  }
+
+  const validateStep0 = () => {
+    const missing = []
+    if (!form.regNumber.trim()) missing.push('Registration Number')
+    if (!form.groupId) missing.push('Bus Group')
+    if (!form.simNumber.trim()) missing.push('SIM Number')
+    if (!form.contactName.trim()) missing.push('Contact Person Name')
+    if (form.contactNumber.length !== 10) missing.push('Contact Number (10 digits)')
+    return missing
+  }
+
+  const validateStep1 = () => {
+    const missing = []
+    if (!form.scheduleId) missing.push('Schedule')
+    return missing
   }
 
   const handleSaveBusScreen = async () => {
@@ -441,9 +496,19 @@ export default function AddBusScreenPage() {
               disabled={isNextDisabled()}
               onClick={() => {
                 if (step < STEPS.length - 1) {
+                  const missing = step === 0 ? validateStep0() : validateStep1()
+                  if (missing.length > 0) {
+                    toast.error(`Please fill in: ${missing.join(', ')}`)
+                    return
+                  }
                   setReviewed(prev => new Set([...prev, step]))
                   setStep(step + 1)
                 } else {
+                  const missing = [...validateStep0(), ...validateStep1()]
+                  if (missing.length > 0) {
+                    toast.error(`Please fill in: ${missing.join(', ')}`)
+                    return
+                  }
                   handleSaveBusScreen()
                 }
               }}

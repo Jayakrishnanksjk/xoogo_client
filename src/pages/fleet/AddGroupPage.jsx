@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AppLayout from '@/components/layout/AppLayout'
-import { Stepper, Input, Select, Textarea, Button, Badge, SearchInput } from '@/components/ui'
-import { ArrowLeft, ArrowRight, Info, CheckCircle, User, Mail, Phone, Check } from 'lucide-react'
+import { Stepper, Input, Select, Textarea, Button, Badge } from '@/components/ui'
+import { ArrowLeft, ArrowRight, Info, CheckCircle, User, Mail, Phone, Check, Search, X } from 'lucide-react'
 import clsx from 'clsx'
 import { usersApi, groupsApi } from '@/api'
 import { toast } from 'sonner'
@@ -80,6 +80,7 @@ function GroupDetailsStep({ form, setForm, reviewed }) {
 function AssignOwnerStep({ form, setForm, users = [], reviewed }) {
   const [search, setSearch] = useState('')
   const [showDropdown, setShowDropdown] = useState(false)
+  const dropdownRef = useRef(null)
 
   // Pre-populate search input if selected user is found
   useEffect(() => {
@@ -89,12 +90,29 @@ function AssignOwnerStep({ form, setForm, users = [], reviewed }) {
     }
   }, [form.ownerId, users, search])
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setShowDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
   const filtered = users.filter(u =>
     u.name.toLowerCase().includes(search.toLowerCase()) ||
     u.email.toLowerCase().includes(search.toLowerCase())
   )
 
   const selectedUser = users.find(u => u.id === form.ownerId)
+
+  const handleClearOwner = () => {
+    setForm(f => ({ ...f, ownerId: null }))
+    setSearch('')
+    setShowDropdown(true)
+  }
 
   return (
     <div>
@@ -104,14 +122,33 @@ function AssignOwnerStep({ form, setForm, users = [], reviewed }) {
       <div className="space-y-4">
         <div>
           <label className="block text-xs font-medium text-slate-600 mb-1">Group Owner (User) *</label>
-          <div className="relative">
-            <SearchInput
-              placeholder="Search and select user"
-              value={search}
-              onChange={e => { setSearch(e.target.value); setShowDropdown(true) }}
-              onFocus={() => setShowDropdown(true)}
-            />
-            {reviewed && <span className="absolute right-2 top-1/2 -translate-y-1/2 text-green-500 pointer-events-none"><Check size={14} /></span>}
+          <div className="relative" ref={dropdownRef}>
+            <div className="relative">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Search and select user"
+                value={search}
+                onChange={e => { setSearch(e.target.value); setShowDropdown(true) }}
+                onFocus={() => setShowDropdown(true)}
+                className="w-full pl-8 pr-8 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand bg-white placeholder:text-slate-400 transition-all duration-150"
+              />
+              {selectedUser && (
+                <button
+                  type="button"
+                  onClick={handleClearOwner}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded transition-colors"
+                  title="Change owner"
+                >
+                  <X size={14} />
+                </button>
+              )}
+              {reviewed && !selectedUser && (
+                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-green-500 pointer-events-none">
+                  <Check size={14} />
+                </span>
+              )}
+            </div>
             {showDropdown && (
               <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
                 {filtered.map(user => (
@@ -145,7 +182,15 @@ function AssignOwnerStep({ form, setForm, users = [], reviewed }) {
 
         {/* Selected user card */}
         {selectedUser && (
-          <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
+          <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-sm relative">
+            <button
+              type="button"
+              onClick={handleClearOwner}
+              className="absolute top-2 right-2 text-slate-400 hover:text-red-500 p-1 rounded transition-colors"
+              title="Change owner"
+            >
+              <X size={14} />
+            </button>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-brand flex items-center justify-center text-sm font-semibold text-white shrink-0">
                 {selectedUser.name?.charAt(0) || 'U'}
@@ -259,20 +304,19 @@ export default function AddGroupPage() {
     loadUsers()
   }, [])
 
-  const isNextDisabled = () => {
-    if (step === 0 && !form.name.trim()) return true
-    if (step === 1 && !form.ownerId) return true
-    if (step === 2 && (!form.name.trim() || !form.ownerId)) return true
-    return saving
+  const isNextDisabled = () => saving
+
+  const validateStep0 = () => {
+    const missing = []
+    if (!form.name.trim()) missing.push('Group Name')
+    return missing
   }
 
   const handleCreateGroup = async () => {
-    if (!form.name.trim()) {
-      toast.error('Group name is required')
-      return
-    }
-    if (!form.ownerId) {
-      toast.error('Please assign a group owner')
+    const missing = [...validateStep0()]
+    if (!form.ownerId) missing.push('Group Owner')
+    if (missing.length > 0) {
+      toast.error(`Please fill in: ${missing.join(', ')}`)
       return
     }
 
@@ -344,8 +388,20 @@ export default function AddGroupPage() {
               disabled={isNextDisabled()}
               onClick={() => {
                 if (step < STEPS.length - 1) {
-                  setReviewed(prev => new Set([...prev, step]))
-                  setStep(step + 1)
+                  const missing = validateStep0()
+                  if (missing.length > 0) {
+                    toast.error(`Please fill in: ${missing.join(', ')}`)
+                    return
+                  }
+                  const nextReviewed = new Set([...reviewed, step])
+                  setReviewed(nextReviewed)
+                  if (form.ownerId) {
+                    const allReviewed = new Set([...nextReviewed, 1])
+                    setReviewed(allReviewed)
+                    setStep(STEPS.length - 1)
+                  } else {
+                    setStep(step + 1)
+                  }
                 } else {
                   handleCreateGroup()
                 }

@@ -56,7 +56,7 @@ export function AnalyticsPanel({ media, onClose, activeTab, onTabChange }) {
               </p>
               <p className="text-[11px] text-slate-400 mt-0.5">
                 {media.category && <span className="mr-2">☐ {media.category}</span>}
-                Uploaded on {media.uploadDate || 'Apr 20, 2026'} · By {media.author || 'Akhil Pavithran'}
+                Uploaded on {media.uploadDate || '20/04/2026'} · By {media.author || 'Akhil Pavithran'}
               </p>
             </div>
           </div>

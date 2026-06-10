@@ -5,6 +5,15 @@ import { authenticate, requireRole } from '../middleware/auth.js'
 
 const router = express.Router()
 
+function formatDate(date) {
+  const d = new Date(date)
+  const day = String(d.getDate()).padStart(2, '0')
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const year = d.getFullYear()
+  const time = d.toLocaleTimeString()
+  return `${day}/${month}/${year}, ${time}`
+}
+
 // Restrict all user CRUD routes to superadmin or admin
 router.use(authenticate)
 router.use(requireRole('superadmin', 'admin'))
@@ -46,7 +55,7 @@ router.get('/', async (req, res) => {
       return {
         ...uJson,
         group: user.group ? user.group.name : (user.role === 'superadmin' ? 'All Groups' : 'No Group'),
-        lastLogin: user.last_login_at ? new Date(user.last_login_at).toLocaleString() : 'Never'
+        lastLogin: user.last_login_at ? formatDate(user.last_login_at) : 'Never'
       }
     })
 
@@ -76,7 +85,7 @@ router.get('/:id', async (req, res) => {
     res.json({
       ...uJson,
       group: user.group ? user.group.name : (user.role === 'superadmin' ? 'All Groups' : 'No Group'),
-      lastLogin: user.last_login_at ? new Date(user.last_login_at).toLocaleString() : 'Never'
+      lastLogin: user.last_login_at ? formatDate(user.last_login_at) : 'Never'
     })
   } catch (error) {
     console.error('Get user error:', error)
@@ -200,7 +209,7 @@ router.patch('/:id', async (req, res) => {
     res.json({
       ...uJson,
       group: updatedUser.group ? updatedUser.group.name : (updatedUser.role === 'superadmin' ? 'All Groups' : 'No Group'),
-      lastLogin: updatedUser.last_login_at ? new Date(updatedUser.last_login_at).toLocaleString() : 'Never'
+      lastLogin: updatedUser.last_login_at ? formatDate(updatedUser.last_login_at) : 'Never'
     })
   } catch (error) {
     console.error('Update user error:', error)

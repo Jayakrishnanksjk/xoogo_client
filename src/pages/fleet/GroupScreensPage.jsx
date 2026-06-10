@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import AppLayout from '@/components/layout/AppLayout'
 import { Badge, EmptyState, StatCard, Button, ConfirmDialog, LiveTrackingMap } from '@/components/ui'
+import { formatDate } from '@/lib/utils'
 import { Bus, Plus, User, Mail, Phone, ChevronRight, ShieldAlert, Monitor, Wifi, WifiOff, Trash2, ArrowLeft, Edit } from 'lucide-react'
 import { groupsApi, busesApi } from '@/api'
 import { toast } from 'sonner'
@@ -89,9 +90,9 @@ export default function GroupScreensPage() {
             </div>
             
             <div className="flex items-center gap-4 mt-6 pt-4 border-t border-slate-100 text-xs text-slate-400">
-              <span>Created: {new Date(group.createdAt).toLocaleDateString()}</span>
+              <span>Created: {formatDate(group.createdAt)}</span>
               <span>•</span>
-              <span>Last Updated: {new Date(group.updatedAt).toLocaleDateString()}</span>
+              <span>Last Updated: {formatDate(group.updatedAt)}</span>
             </div>
           </div>
 
@@ -240,6 +241,56 @@ export default function GroupScreensPage() {
                             <Trash2 size={14} />
                           </button>
                         </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+        {/* Group Users section */}
+        <div className="bg-white rounded-xl shadow-card border border-slate-100 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-base font-semibold text-slate-900">Group Users ({(group.users || []).length})</h3>
+          </div>
+
+          {(!group.users || group.users.length === 0) ? (
+            <div className="border border-dashed border-slate-200 rounded-xl p-12">
+              <EmptyState
+                icon={User}
+                title="No Users Assigned"
+                description="This group doesn't have any users assigned to it yet."
+              />
+            </div>
+          ) : (
+            <div className="border border-slate-100 rounded-xl overflow-hidden bg-white">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-100 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                    <th className="px-5 py-3">User</th>
+                    <th className="px-5 py-3">Email</th>
+                    <th className="px-5 py-3">Phone</th>
+                    <th className="px-5 py-3">Role</th>
+                    <th className="px-5 py-3">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
+                  {group.users.map(u => (
+                    <tr key={u.id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-brand flex items-center justify-center text-xs font-semibold text-white shrink-0">
+                            {u.full_name?.charAt(0).toUpperCase() || 'U'}
+                          </div>
+                          <span className="font-semibold text-slate-900">{u.full_name}</span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-4 text-slate-600">{u.email}</td>
+                      <td className="px-5 py-4 font-mono text-slate-500">{u.phone || '—'}</td>
+                      <td className="px-5 py-4 capitalize">{u.role}</td>
+                      <td className="px-5 py-4">
+                        <Badge status={u.status} />
                       </td>
                     </tr>
                   ))}

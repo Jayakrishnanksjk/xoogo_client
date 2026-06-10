@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import AppLayout from '@/components/layout/AppLayout'
 import { Badge, StatCard, SlidePanel, Stepper, Button, Input, Select, ConfirmDialog } from '@/components/ui'
-import { Users, Shield, Building2, UserCog, Plus, Search, Trash2, Check } from 'lucide-react'
+import { Users, Shield, Building2, UserCog, Plus, Search, Trash2, Check, Pencil } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { usersApi, groupsApi } from '@/api'
 import { toast } from 'sonner'
@@ -210,6 +210,152 @@ function AddUserPanel({ open, onClose, onUserAdded }) {
   )
 }
 
+function EditUserPanel({ user, open, onClose, onUserUpdated }) {
+  const [groups, setGroups] = useState([])
+  const [submitting, setSubmitting] = useState(false)
+  const [form, setForm] = useState({
+    full_name: '',
+    email: '',
+    phone: '',
+    password: '',
+    role: '',
+    status: 'active',
+    group_id: ''
+  })
+
+  useEffect(() => {
+    if (open && user) {
+      setForm({
+        full_name: user.full_name || '',
+        email: user.email || '',
+        phone: user.phone?.replace('+91 ', '') || '',
+        password: '',
+        role: user.role || '',
+        status: user.status || 'active',
+        group_id: user.group_id || ''
+      })
+      groupsApi.list()
+        .then(res => setGroups(res.data))
+        .catch(() => toast.error('Failed to load groups'))
+    }
+  }, [open, user])
+
+  const handleChange = (field, value) => {
+    setForm(f => ({ ...f, [field]: value }))
+  }
+
+  const handlePhoneChange = (e) => {
+    const cleanVal = e.target.value.replace(/\D/g, '').slice(0, 10)
+    handleChange('phone', cleanVal)
+  }
+
+  const handleSave = async () => {
+    if (!form.full_name.trim() || !form.email.trim()) {
+      toast.error('Full name and email are required')
+      return
+    }
+    try {
+      setSubmitting(true)
+      const payload = {
+        full_name: form.full_name.trim(),
+        email: form.email.trim(),
+        phone: `+91 ${form.phone}`,
+        role: form.role,
+        status: form.status,
+        group_id: form.group_id || null
+      }
+      if (form.password) payload.password = form.password
+      await usersApi.update(user.id, payload)
+      toast.success('User updated successfully')
+      onUserUpdated()
+      onClose()
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update user')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const selectedGroup = groups.find(g => g.id === form.group_id)
+
+  return (
+    <SlidePanel open={open} onClose={onClose} title="Edit User" subtitle={`Editing: ${user?.full_name || ''}`}>
+      <div className="space-y-4">
+        <Input
+          label="Full Name *"
+          placeholder="Enter full name"
+          value={form.full_name}
+          onChange={e => handleChange('full_name', e.target.value)}
+        />
+        <Input
+          label="Email Address *"
+          type="email"
+          placeholder="email@example.com"
+          value={form.email}
+          onChange={e => handleChange('email', e.target.value)}
+        />
+        <Input
+          label="Phone Number"
+          placeholder="98765 43210"
+          startIcon={
+            <div className="flex items-center pr-2 border-r border-slate-200 select-none">
+              <span className="text-slate-500 text-sm font-semibold font-mono leading-none">+91</span>
+            </div>
+          }
+          className="pl-[60px]"
+          value={form.phone}
+          onChange={handlePhoneChange}
+        />
+        <Input
+          label="New Password (leave blank to keep current)"
+          type="password"
+          placeholder="Enter new password"
+          value={form.password}
+          onChange={e => handleChange('password', e.target.value)}
+        />
+        <Select
+          label="Role *"
+          value={form.role}
+          onChange={e => handleChange('role', e.target.value)}
+        >
+          <option value="">Select role</option>
+          <option value="superadmin">Super Admin</option>
+          <option value="admin">Admin</option>
+          <option value="partner">Partner (Bus Owner)</option>
+          <option value="operator">Operator</option>
+        </Select>
+        <Select
+          label="Assign Bus Group"
+          value={form.group_id}
+          onChange={e => handleChange('group_id', e.target.value)}
+        >
+          <option value="">Select group (optional)</option>
+          {groups.map(g => (
+            <option key={g.id} value={g.id}>{g.name}</option>
+          ))}
+        </Select>
+        <Select
+          label="Status"
+          value={form.status}
+          onChange={e => handleChange('status', e.target.value)}
+        >
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </Select>
+
+        <div className="pt-4 border-t border-slate-100">
+          <Button
+            label="Save Changes"
+            onClick={handleSave}
+            loading={submitting}
+            className="w-full"
+          />
+        </div>
+      </div>
+    </SlidePanel>
+  )
+}
+
 const ROLE_FILTERS = [
   { value: '', label: 'Total Users', icon: Users, theme: 'blue' },
   { value: 'superadmin,admin', label: 'Admins', icon: Shield, theme: 'purple' },
@@ -223,6 +369,7 @@ export default function UsersPage() {
   const [showAdd, setShowAdd] = useState(false)
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState('')
+  const [editingUser, setEditingUser] = useState(null)
   const [deleteConfirm, setDeleteConfirm] = useState({ open: false, userId: null, userName: '' })
 
   const fetchUsers = async () => {
@@ -355,13 +502,22 @@ export default function UsersPage() {
                     <td className="py-3 pr-4"><Badge status={u.status} /></td>
                     <td className="py-3 pr-4 text-xs text-slate-500">{u.lastLogin}</td>
                     <td className="py-3">
-                      <button
-                        onClick={() => triggerDeleteConfirm(u.id, u.full_name)}
-                        className="p-1.5 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-md transition-colors"
-                        title="Delete User"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => setEditingUser(u)}
+                          className="p-1.5 hover:bg-blue-50 text-slate-400 hover:text-blue-600 rounded-md transition-colors"
+                          title="Edit User"
+                        >
+                          <Pencil size={14} />
+                        </button>
+                        <button
+                          onClick={() => triggerDeleteConfirm(u.id, u.full_name)}
+                          className="p-1.5 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-md transition-colors"
+                          title="Delete User"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -372,6 +528,8 @@ export default function UsersPage() {
       </div>
 
       <AddUserPanel open={showAdd} onClose={() => setShowAdd(false)} onUserAdded={fetchUsers} />
+
+      <EditUserPanel user={editingUser} open={!!editingUser} onClose={() => setEditingUser(null)} onUserUpdated={fetchUsers} />
 
       <ConfirmDialog
         open={deleteConfirm.open}
