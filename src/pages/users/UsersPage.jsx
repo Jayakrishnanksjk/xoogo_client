@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import AppLayout from '@/components/layout/AppLayout'
 import { Badge, StatCard, SlidePanel, Stepper, Button, Input, Select, ConfirmDialog } from '@/components/ui'
-import { Users, Shield, Building2, UserCog, Plus, Search, Trash2, Check, Pencil } from 'lucide-react'
+import { Users, Shield, Building2, UserCog, Plus, Trash2, Check, Pencil } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { usersApi, groupsApi } from '@/api'
 import { toast } from 'sonner'
@@ -396,10 +396,25 @@ export default function UsersPage() {
   const handleConfirmDelete = async () => {
     const { userId } = deleteConfirm
     if (!userId) return
+    const userData = users.find(u => u.id === userId)
     try {
       await usersApi.delete(userId)
-      toast.success('User deleted successfully')
       fetchUsers()
+      toast.success('User deleted', {
+        action: userData ? {
+          label: 'Undo',
+          onClick: () => usersApi.create({
+            full_name: userData.full_name,
+            email: userData.email,
+            phone: userData.phone || '',
+            password: 'Reset@123',
+            role: userData.role,
+            status: userData.status || 'active',
+            group_id: userData.group_id || null,
+          }).then(fetchUsers).catch((err) => toast.error(err?.response?.data?.message || 'Failed to restore user'))
+        } : undefined,
+        duration: 5000,
+      })
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to delete user')
     }
@@ -428,7 +443,7 @@ export default function UsersPage() {
   }
 
   return (
-    <AppLayout title="Users" subtitle="Manage system users and permissions">
+    <AppLayout title="Users" subtitle="Manage system users and permissions" searchValue={search} onSearchChange={setSearch}>
       <div className="p-6 max-w-screen-xl">
         {/* Role filter cards */}
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
@@ -451,14 +466,7 @@ export default function UsersPage() {
 
         {/* Table card */}
         <div className="bg-white rounded-xl shadow-card border border-slate-100 p-5">
-          <div className="flex items-center justify-between mb-4">
-            <Input
-              placeholder="Search by name, email or phone..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              startIcon={Search}
-              className="w-72 py-1.5"
-            />
+          <div className="flex items-center justify-end mb-4">
             <Button
               startIcon={Plus}
               label="Add User"

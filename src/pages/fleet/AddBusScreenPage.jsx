@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '@/components/layout/AppLayout'
 import { Stepper, Input, Select, Button, Badge } from '@/components/ui'
@@ -9,7 +9,13 @@ import { toast } from 'sonner'
 
 const STEPS = ['Bus Details', 'Schedule', 'Preview & Complete']
 
-const BUS_TYPES = ['Limited Stop', 'Express', 'Super Express', 'Ordinary', 'Fast Passenger']
+const BUS_TYPES = ['Limited stop', 'Local', 'City']
+
+const BUS_TYPE_COLORS = {
+  'Limited stop': 'bg-rose-400',
+  'Local': 'bg-sky-400',
+  'City': 'bg-green-500',
+}
 
 const STOP_COLORS = [
   'bg-brand', 'bg-purple-500', 'bg-amber-500', 'bg-green-500', 'bg-red-500', 'bg-pink-500', 'bg-teal-500', 'bg-orange-500'
@@ -31,13 +37,13 @@ function BusDetailsStep({ form, setForm, groups = [], reviewed }) {
       }))
     } else {
       setUseOwner(false)
-      setForm(f => ({ ...f, contactName: '', contactNumber: '' }))
     }
   }
 
   // Reset when group changes
   useEffect(() => {
     setUseOwner(false)
+    setForm(f => ({ ...f, contactName: '', contactNumber: '' }))
   }, [form.groupId])
 
   return (
@@ -86,19 +92,43 @@ function BusDetailsStep({ form, setForm, groups = [], reviewed }) {
             />
             <p className="text-[11px] text-slate-400 mt-1">Enter SIM number used for tracking</p>
           </div>
-          <div>
+          <div className="relative">
+            <label className="block text-xs font-medium text-slate-600 mb-1">Bus Type *</label>
             <div className="relative">
-              <Select
-                label="Bus Type *"
-                value={form.busType}
-                onChange={e => setForm(f => ({ ...f, busType: e.target.value }))}
+              <button
+                type="button"
+                onClick={() => setForm(f => ({ ...f, _busTypeOpen: !f._busTypeOpen }))}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all duration-150 bg-white text-left"
               >
-                <option value="">Select the type of service</option>
-                {BUS_TYPES.map(t => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
-              </Select>
-              {reviewed && <span className="absolute right-2 top-[34px] text-green-500"><Check size={14} /></span>}
+                {form.busType ? (
+                  <>
+                    <span className={`w-3 h-3 rounded-sm ${BUS_TYPE_COLORS[form.busType]}`} />
+                    <span>{form.busType}</span>
+                  </>
+                ) : (
+                  <span className="text-slate-400">Select the type of service</span>
+                )}
+              </button>
+              {reviewed && <span className="absolute right-2 top-1/2 -translate-y-1/2 text-green-500"><Check size={14} /></span>}
+              {form._busTypeOpen && (
+                <div className="absolute z-20 mt-1 w-full bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden">
+                  {BUS_TYPES.map(t => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setForm(f => ({ ...f, busType: t, _busTypeOpen: false }))}
+                      className={clsx(
+                        'w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-slate-50 transition-colors text-left',
+                        form.busType === t && 'bg-brand/5 text-brand font-medium'
+                      )}
+                    >
+                      <span className={`w-3 h-3 rounded-sm ${BUS_TYPE_COLORS[t]}`} />
+                      <span className="flex-1">{t}</span>
+                      {form.busType === t && <Check size={14} className="text-brand shrink-0" />}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <p className="text-[11px] text-slate-400 mt-1">Select the type of service</p>
           </div>
@@ -136,7 +166,6 @@ function BusDetailsStep({ form, setForm, groups = [], reviewed }) {
           </div>
         </div>
 
-        {/* Same as group owner option */}
         {groupOwner && (
           <div>
             <button
@@ -204,6 +233,34 @@ function ScheduleStep({ form, setForm, schedules = [], reviewed }) {
   const scheduleRoutes = selectedSchedule?.scheduleRoutes
     ? [...selectedSchedule.scheduleRoutes].sort((a, b) => a.sequenceOrder - b.sequenceOrder)
     : []
+  const [scheduleSearch, setScheduleSearch] = useState('')
+  const [scheduleOpen, setScheduleOpen] = useState(false)
+  const scheduleRef = useRef(null)
+
+  const filteredSchedules = schedules.filter(s =>
+    s.name.toLowerCase().includes(scheduleSearch.toLowerCase())
+  )
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (scheduleRef.current && !scheduleRef.current.contains(e.target)) {
+        setScheduleOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  useEffect(() => {
+    if (!scheduleOpen) {
+      setScheduleSearch('')
+    }
+  }, [scheduleOpen])
+
+  const selectSchedule = (id) => {
+    setForm(f => ({ ...f, scheduleId: id }))
+    setScheduleOpen(false)
+  }
 
   return (
     <div>
@@ -211,20 +268,42 @@ function ScheduleStep({ form, setForm, schedules = [], reviewed }) {
       <p className="text-xs text-slate-500 mb-5">Select the schedule for this bus.</p>
 
       <div className="space-y-4">
-        <div>
-          <div className="relative">
-            <Select
-              label="Schedule *"
-              value={form.scheduleId}
-              onChange={e => setForm(f => ({ ...f, scheduleId: e.target.value }))}
-            >
-              <option value="">Select schedule</option>
-              {schedules.map(s => (
-                <option key={s.id} value={s.id}>{s.name} ({s.scheduleRoutes?.length || 0} routes)</option>
-              ))}
-            </Select>
-            {reviewed && <span className="absolute right-2 top-[34px] text-green-500"><Check size={14} /></span>}
-          </div>
+        <div ref={scheduleRef} className="relative">
+          {reviewed && <span className="absolute right-2 top-[34px] text-green-500 z-10"><Check size={14} /></span>}
+          <label className="block text-xs font-medium text-slate-600 mb-1">
+            Schedule *
+          </label>
+          <input
+            type="text"
+            placeholder={selectedSchedule ? `${selectedSchedule.name} (${selectedSchedule.scheduleRoutes?.length || 0} routes)` : 'Type to search schedules...'}
+            value={scheduleOpen ? scheduleSearch : (selectedSchedule ? '' : '')}
+            onChange={e => { setScheduleSearch(e.target.value); setScheduleOpen(true) }}
+            onFocus={() => { setScheduleOpen(true); setScheduleSearch('') }}
+            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all duration-150 placeholder:text-slate-400"
+          />
+          {scheduleOpen && (
+            <div className="absolute z-20 mt-1 w-full bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+              {filteredSchedules.length === 0 ? (
+                <div className="px-3 py-2 text-xs text-slate-400">No schedules found</div>
+              ) : (
+                filteredSchedules.map(s => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => selectSchedule(s.id)}
+                    className={clsx(
+                      'w-full text-left px-3 py-2 text-sm hover:bg-slate-50 transition-colors flex items-center gap-2',
+                      String(s.id) === String(form.scheduleId) && 'bg-brand/5 text-brand font-medium'
+                    )}
+                  >
+                    <span className="flex-1 truncate">{s.name}</span>
+                    <span className="text-xs text-slate-400 shrink-0">{s.scheduleRoutes?.length || 0} routes</span>
+                    {String(s.id) === String(form.scheduleId) && <Check size={14} className="text-brand shrink-0" />}
+                  </button>
+                ))
+              )}
+            </div>
+          )}
           <p className="text-[11px] text-slate-400 mt-1">Select the schedule for this bus</p>
         </div>
 

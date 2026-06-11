@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { MapContainer, TileLayer, Marker, Polyline, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import AppLayout from '@/components/layout/AppLayout'
-import { Badge, EmptyState, Button, Input, Tabs, ConfirmDialog } from '@/components/ui'
-import { MapPin, Plus, ChevronRight, MoreVertical, Search, Trash2 } from 'lucide-react'
+import { Badge, EmptyState, Button, Tabs, ConfirmDialog, Modal } from '@/components/ui'
+import { MapPin, Plus, ChevronRight, MoreVertical, Trash2, Upload } from 'lucide-react'
 import { routesApi } from '@/api'
 import { toast } from 'sonner'
 
@@ -43,16 +43,27 @@ export default function RoutesPage() {
   const [activeTab, setActiveTab] = useState('stops')
   const [selectedRouteGeometry, setSelectedRouteGeometry] = useState([])
   const [deleteConfirm, setDeleteConfirm] = useState({ open: false, routeId: null, routeName: '' })
+  const [importModalOpen, setImportModalOpen] = useState(false)
+  const [importFile, setImportFile] = useState(null)
+  const [importing, setImporting] = useState(false)
 
   const fetchRoutes = async () => {
     try {
       setLoading(true)
       const res = await routesApi.list()
-      setRoutes(res.data)
-      if (res.data.length > 0) {
+      const normalized = res.data.map(r => ({
+        ...r,
+        stops: (r.stops || []).map(s => ({
+          ...s,
+          lat: s.lat ?? s.latitude,
+          lng: s.lng ?? s.longitude,
+        })),
+      }))
+      setRoutes(normalized)
+      if (normalized.length > 0) {
         setSelected((prev) => {
-          const found = res.data.find((r) => r.id === prev?.id)
-          return found || res.data[0]
+          const found = normalized.find((r) => r.id === prev?.id)
+          return found || normalized[0]
         })
       } else {
         setSelected(null)
@@ -101,14 +112,46 @@ export default function RoutesPage() {
     }
   }, [selected])
 
+  const handleImportCSV = async () => {
+    if (!importFile) return
+    const formData = new FormData()
+    formData.append('file', importFile)
+    try {
+      setImporting(true)
+      const res = await routesApi.importCsv(formData)
+      toast.success(`${res.data.imported} route(s) imported successfully`)
+      if (res.data.errors?.length > 0) {
+        toast.error(`${res.data.errors.length} route(s) had errors`)
+      }
+      setImportModalOpen(false)
+      setImportFile(null)
+      fetchRoutes()
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to import routes')
+    } finally {
+      setImporting(false)
+    }
+  }
+
   const handleDeleteRoute = async () => {
     const { routeId } = deleteConfirm
     if (!routeId) return
+    const routeData = routes.find(r => r.id === routeId)
     try {
       await routesApi.delete(routeId)
-      toast.success('Route deleted successfully')
       setDeleteConfirm({ open: false, routeId: null, routeName: '' })
       fetchRoutes()
+      toast.success('Route deleted', {
+        action: routeData ? { label: 'Undo', onClick: () => routesApi.create({
+          name: routeData.name,
+          code: routeData.code,
+          estimatedDuration: routeData.estimatedDuration,
+          distance: routeData.distance,
+          routeType: routeData.routeType,
+          status: routeData.status,
+        }).then(fetchRoutes).catch((err) => toast.error(err?.response?.data?.message || 'Failed to restore route')) } : undefined,
+        duration: 5000,
+      })
     } catch (err) {
       console.error(err)
       toast.error(err.response?.data?.message || 'Failed to delete route')
@@ -116,28 +159,36 @@ export default function RoutesPage() {
   }
 
   const filtered = useMemo(() => {
+    const q = search.toLowerCase()
     return routes.filter((r) =>
-      r.name.toLowerCase().includes(search.toLowerCase()) ||
-      r.code.toLowerCase().includes(search.toLowerCase())
+      r.name?.toLowerCase().includes(q) ||
+      r.code?.toLowerCase().includes(q)
     )
   }, [routes, search])
 
+  // Clear selection if selected route is no longer in filtered results
+  useEffect(() => {
+    if (selected && !filtered.find(r => r.id === selected.id)) {
+      setSelected(filtered.length > 0 ? filtered[0] : null)
+    }
+  }, [filtered, selected])
+
   return (
-    <AppLayout title="Routes & Stops" subtitle="Create and manage routes and their stops">
+    <AppLayout title="Routes & Stops" subtitle="Create and manage routes and their stops" searchValue={search} onSearchChange={setSearch}>
       <div className="p-6 max-w-screen-xl">
         <div className="flex gap-4">
 
           {/* Left: route list */}
           <div className="w-80 shrink-0">
             <div className="flex items-center gap-2 mb-3">
-              <Input
-                placeholder="Search routes..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                startIcon={Search}
-                containerClassName="flex-1"
-                className="py-1.5"
-              />
+              <Button
+                variant="outline"
+                className="shrink-0"
+                onClick={() => setImportModalOpen(true)}
+              >
+                <Upload className="mr-1.5 h-3.5 w-3.5" />
+                Import CSV
+              </Button>
               <Button
                 className="shrink-0"
                 onClick={() => navigate('/routes/add')}
@@ -358,6 +409,81 @@ export default function RoutesPage() {
           )}
         </div>
       </div>
+
+      <Modal
+        open={importModalOpen}
+        onClose={() => { if (!importing) { setImportModalOpen(false); setImportFile(null) } }}
+        title="Import Routes from CSV"
+        subtitle="Upload a CSV file with route and stop data"
+      >
+        <div className="space-y-4">
+          <div className="border-2 border-dashed border-slate-200 rounded-xl p-6 text-center hover:border-brand/50 transition-colors cursor-pointer" onClick={() => document.getElementById('csv-file-input')?.click()}>
+            {importFile ? (
+              <div className="space-y-1">
+                <Upload className="size-8 text-brand mx-auto" />
+                <p className="text-sm font-medium text-slate-700">{importFile.name}</p>
+                <p className="text-xs text-slate-400">{(importFile.size / 1024).toFixed(1)} KB</p>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                <Upload className="size-8 text-slate-300 mx-auto" />
+                <p className="text-sm font-medium text-slate-600">Click to select CSV file</p>
+                <p className="text-xs text-slate-400">.csv files only</p>
+              </div>
+            )}
+            <input
+              id="csv-file-input"
+              type="file"
+              accept=".csv"
+              className="hidden"
+              onChange={e => setImportFile(e.target.files?.[0] || null)}
+            />
+          </div>
+
+          <div className="bg-slate-50 rounded-lg p-3 text-xs text-slate-500 space-y-1">
+            <p className="font-medium text-slate-700">Expected CSV format:</p>
+            <code className="block text-xs text-slate-400 break-all">
+              route_name,route_code,estimated_duration,distance,route_type,status,stop_name,latitude,longitude,stop_sequence
+            </code>
+            <p className="mt-1">Each stop is a separate row. Route info is grouped by route_code.</p>
+            <button
+              type="button"
+              className="text-brand hover:underline mt-1"
+              onClick={() => {
+                const sample = 'route_name,route_code,estimated_duration,distance,route_type,status,stop_name,latitude,longitude,stop_sequence\n' +
+                  'Downtown Express,D001,45 mins,15.2,outbound,active,Central Station,10.0123,76.1234,1\n' +
+                  'Downtown Express,D001,45 mins,15.2,outbound,active,Market Square,10.0345,76.1456,2\n' +
+                  'Uptown Local,U002,30 mins,8.5,inbound,active,North Terminal,10.1000,76.2000,1\n' +
+                  'Uptown Local,U002,30 mins,8.5,inbound,active,Library Stop,10.1111,76.2111,2'
+                const blob = new Blob([sample], { type: 'text/csv' })
+                const url = URL.createObjectURL(blob)
+                const a = document.createElement('a')
+                a.href = url; a.download = 'sample-routes.csv'; a.click()
+                URL.revokeObjectURL(url)
+              }}
+            >
+              Download sample CSV
+            </button>
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => { setImportModalOpen(false); setImportFile(null) }}
+              disabled={importing}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleImportCSV}
+              disabled={!importFile || importing}
+              loading={importing}
+            >
+              {importing ? 'Importing...' : 'Import'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       <ConfirmDialog
         open={deleteConfirm.open}

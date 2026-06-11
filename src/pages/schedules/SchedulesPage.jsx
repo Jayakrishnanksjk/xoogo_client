@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import AppLayout from '@/components/layout/AppLayout'
 import { Badge, Button, Input, Tabs, Modal, ConfirmDialog, Select } from '@/components/ui'
-import { Calendar, Plus, Search, Trash2, X, Bus, Clock } from 'lucide-react'
+import { Calendar, Plus, Trash2, X, Bus, Clock } from 'lucide-react'
 import { schedulesApi, routesApi, busesApi } from '@/api'
 import { toast } from 'sonner'
 
@@ -127,11 +127,21 @@ export default function SchedulesPage() {
   }
 
   const handleDelete = async () => {
+    const scheduleData = schedules.find(s => s.id === deleteConfirm.id)
     try {
       await schedulesApi.delete(deleteConfirm.id)
-      toast.success('Schedule deleted')
       setDeleteConfirm({ open: false, id: null, name: '' })
       fetchSchedules()
+      toast.success('Schedule deleted', {
+        action: scheduleData ? { label: 'Undo', onClick: () => schedulesApi.create({
+          name: scheduleData.name,
+          description: scheduleData.description,
+          status: scheduleData.status,
+          startTime: scheduleData.startTime,
+          endTime: scheduleData.endTime,
+        }).then(fetchSchedules).catch((err) => toast.error(err?.response?.data?.message || 'Failed to restore schedule')) } : undefined,
+        duration: 5000,
+      })
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to delete schedule')
     }
@@ -184,10 +194,14 @@ export default function SchedulesPage() {
   }
 
   const handleRemoveRoute = async (routeId) => {
+    const routeData = selected?.scheduleRoutes?.find(sr => sr.routeId === routeId)
     try {
       await schedulesApi.removeRoute(selected.id, routeId)
-      toast.success('Route removed from schedule')
       fetchSchedules()
+      toast.success('Route removed from schedule', {
+        action: routeData ? { label: 'Undo', onClick: () => schedulesApi.addRoute(selected.id, { routeId }).then(fetchSchedules).catch((err) => toast.error(err?.response?.data?.message || 'Failed to restore route')) } : undefined,
+        duration: 5000,
+      })
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to remove route')
     }
@@ -247,10 +261,14 @@ export default function SchedulesPage() {
   }
 
   const handleUnassign = async () => {
+    const busId = selected?.assignedBus?.id
     try {
       await schedulesApi.unassignBus(selected.id)
-      toast.success('Schedule unassigned from bus')
       fetchSchedules()
+      toast.success('Schedule unassigned from bus', {
+        action: busId ? { label: 'Undo', onClick: () => schedulesApi.assignBus(selected.id, { busId }).then(fetchSchedules).catch((err) => toast.error(err?.response?.data?.message || 'Failed to reassign bus')) } : undefined,
+        duration: 5000,
+      })
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to unassign schedule')
     }
@@ -327,21 +345,13 @@ export default function SchedulesPage() {
   }
 
   return (
-    <AppLayout title="Route Schedules" subtitle="Create and manage route schedules, assign to buses">
+    <AppLayout title="Route Schedules" subtitle="Create and manage route schedules, assign to buses" searchValue={search} onSearchChange={setSearch}>
       <div className="p-6 max-w-screen-xl">
         <div className="flex gap-4">
 
           {/* Left: schedule list */}
           <div className="w-80 shrink-0">
             <div className="flex items-center gap-2 mb-3">
-              <Input
-                placeholder="Search schedules..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                startIcon={Search}
-                containerClassName="flex-1"
-                className="py-1.5"
-              />
               <Button className="shrink-0" onClick={() => setCreateOpen(true)}>
                 <Plus className="mr-1.5 h-3.5 w-3.5" />
                 Create

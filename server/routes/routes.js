@@ -1,8 +1,121 @@
 import express from 'express'
-import { Route, Stop } from '../models/index.js'
+import multer from 'multer'
+import { parse } from 'csv-parse/sync'
+import { Route, Stop, sequelize } from '../models/index.js'
 import { authenticate } from '../middleware/auth.js'
 
 const router = express.Router()
+const upload = multer({ storage: multer.memoryStorage() })
+
+// POST /api/routes/import - Import routes from CSV
+router.post('/import', authenticate, upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded.' })
+    }
+
+    const csvContent = req.file.buffer.toString()
+    const records = parse(csvContent, {
+      columns: true,
+      skip_empty_lines: true,
+      trim: true,
+    })
+
+    if (records.length === 0) {
+      return res.status(400).json({ message: 'CSV file is empty.' })
+    }
+
+    // Group records by route_code
+    const routeMap = new Map()
+    for (const row of records) {
+      const code = row.route_code?.trim()
+      if (!code) continue
+
+      if (!routeMap.has(code)) {
+        routeMap.set(code, {
+          name: row.route_name?.trim(),
+          code,
+          estimatedDuration: row.estimated_duration?.trim() || null,
+          distance: row.distance ? parseFloat(row.distance) : null,
+          routeType: row.route_type?.trim() || 'inbound',
+          status: row.status?.trim() || 'active',
+          stops: [],
+        })
+      }
+
+      const routeData = routeMap.get(code)
+      if (row.stop_name?.trim() && row.latitude && row.longitude) {
+        routeData.stops.push({
+          name: row.stop_name.trim(),
+          latitude: parseFloat(row.latitude),
+          longitude: parseFloat(row.longitude),
+          sequence: row.stop_sequence ? parseInt(row.stop_sequence, 10) : routeData.stops.length + 1,
+        })
+      }
+    }
+
+    const errors = []
+    const created = []
+
+    for (const [code, data] of routeMap) {
+      if (!data.name) {
+        errors.push({ code, message: 'Route name is required.' })
+        continue
+      }
+
+      const existing = await Route.findOne({ where: { code } })
+      if (existing) {
+        errors.push({ code, message: `Route code "${code}" already exists.` })
+        continue
+      }
+
+      if (data.stops.length === 0) {
+        errors.push({ code, message: 'At least one valid stop is required.' })
+        continue
+      }
+
+      const t = await sequelize.transaction()
+      try {
+        const route = await Route.create({
+          name: data.name,
+          code: data.code,
+          estimatedDuration: data.estimatedDuration,
+          distance: data.distance,
+          routeType: data.routeType,
+          status: data.status,
+        }, { transaction: t })
+
+        data.stops.sort((a, b) => a.sequence - b.sequence)
+
+        await Stop.bulkCreate(
+          data.stops.map(s => ({
+            name: s.name,
+            latitude: s.latitude,
+            longitude: s.longitude,
+            routeId: route.id,
+          })),
+          { transaction: t }
+        )
+
+        await t.commit()
+        created.push({ code, name: data.name, stops: data.stops.length })
+      } catch (err) {
+        await t.rollback()
+        errors.push({ code, message: err.message })
+      }
+    }
+
+    res.json({
+      imported: created.length,
+      total: routeMap.size,
+      created,
+      errors,
+    })
+  } catch (error) {
+    console.error('Import routes error:', error)
+    res.status(500).json({ message: 'Failed to parse CSV. Check the file format.' })
+  }
+})
 
 // GET /api/routes - List all routes (authenticated users)
 router.get('/', authenticate, async (req, res) => {

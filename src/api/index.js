@@ -33,6 +33,10 @@ export const routesApi = {
   update: (id, data) => api.patch(`/routes/${id}`, data),
   delete: (id) => api.delete(`/routes/${id}`),
 
+  importCsv: (formData) => api.post('/routes/import', formData, {
+    headers: { 'Content-Type': undefined },
+  }),
+
   // Stops
   addStop: (routeId, data) => api.post(`/routes/${routeId}/stops`, data),
   updateStop: (routeId, stopId, data) => api.patch(`/routes/${routeId}/stops/${stopId}`, data),

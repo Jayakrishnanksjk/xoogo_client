@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import AppLayout from '@/components/layout/AppLayout'
 import { Badge, EmptyState, StatCard, Button, DataCard, Pagination, SearchInput, Select, Tabs, Modal, LiveTrackingMap, StatCardSkeleton, GroupCardSkeleton, DataCardSkeleton, TableRowSkeleton, ConfirmDialog, SlidePanel, Textarea, Input } from '@/components/ui'
-import { Bus, Plus, Users, MapPin, Wifi, WifiOff, MoreVertical, SlidersHorizontal, LayoutGrid, List, Pencil, Trash2 } from 'lucide-react'
+import { Bus, Plus, Users, MapPin, Wifi, WifiOff, MoreVertical, SlidersHorizontal, LayoutGrid, List, Pencil, Trash2, Search, X, Mail, Phone, Check } from 'lucide-react'
 import clsx from 'clsx'
 import { groupsApi, routesApi, usersApi } from '@/api'
 import { toast } from 'sonner'
@@ -121,8 +121,16 @@ function GroupCard({ group, onViewScreens, onLiveTracking, onEdit, onDelete }) {
   )
 }
 
-function ByGroupsTab({ groups = [], loading = false, onLiveTracking, onEditGroup, onDeleteGroup }) {
+function ByGroupsTab({ groups = [], loading = false, onLiveTracking, onEditGroup, onDeleteGroup, search = '' }) {
   const navigate = useNavigate()
+
+  const q = search.toLowerCase()
+  const filteredGroups = q
+    ? groups.filter(g =>
+        g.name.toLowerCase().includes(q) ||
+        g.buses?.some(b => b.regNumber?.toLowerCase().includes(q))
+      )
+    : groups
 
   // Calculate totals dynamically
   const totalBuses = groups.reduce((sum, g) => sum + (g.buses?.length || 0), 0)
@@ -165,10 +173,17 @@ function ByGroupsTab({ groups = [], loading = false, onLiveTracking, onEditGroup
             }
           />
         </div>
+      ) : filteredGroups.length === 0 ? (
+        <div className="bg-white rounded-xl border border-slate-100 p-6">
+          <EmptyState
+            icon={Users}
+            title="No Groups Match"
+            description="No groups match your search. Try a different search term."
+          />
+        </div>
       ) : (
-        /* Group grid */
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-          {groups.map(g => {
+          {filteredGroups.map(g => {
             const numBuses = g.buses?.length || 0
             const onlineCount = g.buses?.filter(b => b.status === 'online').length || 0
             const offlineCount = numBuses - onlineCount
@@ -196,9 +211,12 @@ function ByGroupsTab({ groups = [], loading = false, onLiveTracking, onEditGroup
   )
 }
 
-function ByRoutesTab({ routes = [], loading = false }) {
+function ByRoutesTab({ routes = [], loading = false, search: searchProp, onSearchChange: onSearchChangeProp }) {
   const navigate = useNavigate()
-  const [search, setSearch] = useState('')
+  const isControlled = searchProp !== undefined
+  const [internalSearch, setInternalSearch] = useState('')
+  const search = isControlled ? searchProp : internalSearch
+  const setSearch = isControlled ? onSearchChangeProp : setInternalSearch
   const [sortBy, setSortBy] = useState('name')
   const [view, setView] = useState('grid')
   const [page, setPage] = useState(1)
@@ -386,6 +404,101 @@ function ByRoutesTab({ routes = [], loading = false }) {
   )
 }
 
+function OwnerSelect({ users, ownerId, search, setSearch, showDropdown, setShowDropdown, onSelect, onClear }) {
+  const dropdownRef = useRef(null)
+  const filtered = users.filter(u =>
+    u.name.toLowerCase().includes(search.toLowerCase()) ||
+    u.email.toLowerCase().includes(search.toLowerCase())
+  )
+  const selectedUser = users.find(u => u.id === ownerId)
+
+  useEffect(() => {
+    const selected = users.find(u => u.id === ownerId)
+    if (selected && !search) {
+      setSearch(selected.name)
+    }
+  }, [ownerId, users, search, setSearch])
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setShowDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [setShowDropdown])
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <div className="relative">
+        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+        <input
+          type="text"
+          placeholder="Search and select user"
+          value={search}
+          onChange={e => { setSearch(e.target.value); setShowDropdown(true) }}
+          onFocus={() => setShowDropdown(true)}
+          className="w-full pl-8 pr-8 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand bg-white placeholder:text-slate-400 transition-all duration-150"
+        />
+        {selectedUser && (
+          <button
+            type="button"
+            onClick={() => { onClear(); setShowDropdown(true) }}
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded transition-colors"
+            title="Change owner"
+          >
+            <X size={14} />
+          </button>
+        )}
+      </div>
+      {showDropdown && (
+        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
+          {filtered.map(user => (
+            <button
+              key={user.id}
+              type="button"
+              onClick={() => {
+                onSelect(user.id)
+                setSearch(user.name)
+                setShowDropdown(false)
+              }}
+              className="w-full text-left px-3 py-2.5 hover:bg-slate-50 flex items-center gap-2 transition-colors border-b border-slate-50 last:border-0"
+            >
+              <div className="w-7 h-7 rounded-full bg-brand flex items-center justify-center text-[10px] font-semibold text-white shrink-0">
+                {user.name?.charAt(0) || 'U'}
+              </div>
+              <div>
+                <p className="text-xs font-medium text-slate-800">{user.name}</p>
+                <p className="text-[11px] text-slate-400">{user.email}</p>
+              </div>
+            </button>
+          ))}
+          {filtered.length === 0 && (
+            <p className="px-3 py-3 text-xs text-slate-400 text-center">No users found</p>
+          )}
+        </div>
+      )}
+      {selectedUser && (
+        <div className="mt-2 p-3 bg-slate-50 rounded-lg border border-slate-100">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-full bg-brand flex items-center justify-center text-xs font-semibold text-white shrink-0">
+              {selectedUser.name?.charAt(0) || 'U'}
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-slate-900">{selectedUser.name}</p>
+              <div className="flex items-center gap-3 text-[11px] text-slate-500 mt-0.5">
+                <span className="flex items-center gap-1"><Mail size={10} />{selectedUser.email}</span>
+                <span className="flex items-center gap-1"><Phone size={10} />{selectedUser.phone || '—'}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function FleetPage() {
   const [tab, setTab] = useState('groups')
   const navigate = useNavigate()
@@ -393,6 +506,7 @@ export default function FleetPage() {
   const [routes, setRoutes] = useState([])
   const [loading, setLoading] = useState(true)
   const [trackingGroup, setTrackingGroup] = useState(null)
+  const [routeSearch, setRouteSearch] = useState('')
 
   // Edit state
   const [editGroup, setEditGroup] = useState(null)
@@ -471,11 +585,21 @@ export default function FleetPage() {
 
   const handleDeleteGroup = useCallback(async () => {
     if (!deleteGroup) return
+    const groupData = deleteGroup
     try {
-      await groupsApi.delete(deleteGroup.id)
-      toast.success('Group deleted')
+      await groupsApi.delete(groupData.id)
       setDeleteGroup(null)
       fetchData()
+      toast.success('Group deleted', {
+        action: { label: 'Undo', onClick: () => groupsApi.create({
+          name: groupData.name,
+          code: groupData.code,
+          description: groupData.description,
+          status: groupData.status,
+          ownerId: groupData.ownerId,
+        }).then(fetchData).catch((err) => toast.error(err?.response?.data?.message || 'Failed to restore group')) },
+        duration: 5000,
+      })
     } catch (err) {
       console.error('Failed to delete group:', err)
       toast.error(err.response?.data?.message || 'Failed to delete group')
@@ -490,7 +614,7 @@ export default function FleetPage() {
     : []
 
   return (
-    <AppLayout title="Fleet" subtitle="Manage all bus screens by groups or routes">
+    <AppLayout title="Fleet" subtitle="Manage all bus screens by groups or routes" searchValue={routeSearch} onSearchChange={setRouteSearch}>
       <div className="p-6 max-w-screen-xl">
         {/* Tab bar + action */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
@@ -563,9 +687,10 @@ export default function FleetPage() {
             onLiveTracking={(g) => setTrackingGroup(g)}
             onEditGroup={handleEditGroup}
             onDeleteGroup={setDeleteGroup}
+            search={routeSearch}
           />
         ) : (
-          <ByRoutesTab routes={routes} loading={loading} />
+          <ByRoutesTab routes={routes} loading={loading} search={routeSearch} onSearchChange={setRouteSearch} />
         )}
       </div>
 
@@ -623,6 +748,23 @@ export default function FleetPage() {
             <option value="active">● Active</option>
             <option value="inactive">● Inactive</option>
           </Select>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Group Owner</label>
+            <OwnerSelect
+              users={editUsers}
+              ownerId={editForm.ownerId}
+              search={editOwnerSearch}
+              setSearch={setEditOwnerSearch}
+              showDropdown={editOwnerDropdown}
+              setShowDropdown={setEditOwnerDropdown}
+              onSelect={(userId) => setEditForm(f => ({ ...f, ownerId: userId }))}
+              onClear={() => {
+                setEditForm(f => ({ ...f, ownerId: null }))
+                setEditOwnerSearch('')
+              }}
+            />
+            <p className="text-[11px] text-slate-400 mt-1">The owner manages this group and its buses</p>
+          </div>
           <div className="pt-4 border-t border-slate-100">
             <Button
               label="Save Changes"

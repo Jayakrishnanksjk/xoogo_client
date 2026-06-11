@@ -188,6 +188,24 @@ export default function AddRoutePage() {
   const [stopForm, setStopForm] = useState({ lat: '', lng: '' })
   const [modalError, setModalError] = useState('')
 
+  // Sync start/end coords from first/last stop
+  useEffect(() => {
+    if (stops.length > 0) {
+      setStartLat(String(stops[0].lat))
+      setStartLng(String(stops[0].lng))
+    } else {
+      setStartLat('')
+      setStartLng('')
+    }
+    if (stops.length > 1) {
+      setEndLat(String(stops[stops.length - 1].lat))
+      setEndLng(String(stops[stops.length - 1].lng))
+    } else {
+      setEndLat('')
+      setEndLng('')
+    }
+  }, [stops])
+
   // Map click-to-add mode
   const [addMode, setAddMode] = useState(false)
 
@@ -289,20 +307,11 @@ export default function AddRoutePage() {
     setModalError('')
 
     if (editingStop) {
-      setStops((prev) => {
-        const next = prev.map((s) =>
+      setStops((prev) =>
+        prev.map((s) =>
           s.id === editingStop ? { ...s, lat, lng } : s
         )
-        if (next[0]?.id === editingStop) {
-          setStartLat(String(lat))
-          setStartLng(String(lng))
-        }
-        if (next.length > 1 && next[next.length - 1]?.id === editingStop) {
-          setEndLat(String(lat))
-          setEndLng(String(lng))
-        }
-        return next
-      })
+      )
     } else {
       setStops((prev) => {
         const newStop = {
@@ -324,19 +333,7 @@ export default function AddRoutePage() {
   }
 
   const handleDeleteStop = (id) => {
-    setStops((prev) => {
-      const next = prev.filter((s) => s.id !== id)
-      // If deleted the start or end stop, clear the inputs
-      if (prev[0]?.id === id) {
-        setStartLocation('')
-        setStartCoords(null)
-      }
-      if (prev.length > 1 && prev[prev.length - 1]?.id === id) {
-        setEndLocation('')
-        setEndCoords(null)
-      }
-      return next
-    })
+    setStops((prev) => prev.filter((s) => s.id !== id))
   }
 
   const handleMapClick = useCallback(
@@ -360,20 +357,11 @@ export default function AddRoutePage() {
   )
 
   const handleMarkerDrag = useCallback((id, lat, lng) => {
-    setStops((prev) => {
-      const next = prev.map((s) =>
+    setStops((prev) =>
+      prev.map((s) =>
         s.id === id ? { ...s, lat, lng } : s
       )
-      if (next[0]?.id === id) {
-        setStartLat(String(lat))
-        setStartLng(String(lng))
-      }
-      if (next.length > 1 && next[next.length - 1]?.id === id) {
-        setEndLat(String(lat))
-        setEndLng(String(lng))
-      }
-      return next
-    })
+    )
   }, [])
 
   // Drag reorder handlers
@@ -391,17 +379,6 @@ export default function AddRoutePage() {
   }
   const handleDragEnd = () => {
     setDragIdx(null)
-    setStops((prev) => {
-      if (prev.length > 0) {
-        setStartLat(String(prev[0].lat))
-        setStartLng(String(prev[0].lng))
-      }
-      if (prev.length > 1) {
-        setEndLat(String(prev[prev.length - 1].lat))
-        setEndLng(String(prev[prev.length - 1].lng))
-      }
-      return prev
-    })
   }
 
   const handleSaveRoute = async () => {
@@ -543,47 +520,13 @@ export default function AddRoutePage() {
                     label="Start Latitude *"
                     placeholder="e.g. 11.7413"
                     value={startLat}
-                    onChange={(e) => {
-                      setStartLat(e.target.value)
-                      const lat = parseCoordinate(e.target.value)
-                      if (!isNaN(lat)) {
-                        setStops((prev) => {
-                          const startStop = {
-                            id: prev.length > 0 && prev[0]._isStart ? prev[0].id : genId(),
-                            lat,
-                            lng: parseFloat(prev[0]?.lng || 0) || 0,
-                            _isStart: true,
-                          }
-                          if (prev.length > 0 && prev[0]._isStart) {
-                            return [startStop, ...prev.slice(1)]
-                          }
-                          return [startStop, ...prev]
-                        })
-                      }
-                    }}
+                    onChange={(e) => setStartLat(e.target.value)}
                   />
                   <Input
                     label="Start Longitude *"
                     placeholder="e.g. 75.4907"
                     value={startLng}
-                    onChange={(e) => {
-                      setStartLng(e.target.value)
-                      const lng = parseCoordinate(e.target.value)
-                      if (!isNaN(lng)) {
-                        setStops((prev) => {
-                          const startStop = {
-                            id: prev.length > 0 && prev[0]._isStart ? prev[0].id : genId(),
-                            lat: parseFloat(prev[0]?.lat || 0) || 0,
-                            lng,
-                            _isStart: true,
-                          }
-                          if (prev.length > 0 && prev[0]._isStart) {
-                            return [startStop, ...prev.slice(1)]
-                          }
-                          return [startStop, ...prev]
-                        })
-                      }
-                    }}
+                    onChange={(e) => setStartLng(e.target.value)}
                   />
                 </div>
 
@@ -592,47 +535,13 @@ export default function AddRoutePage() {
                     label="End Latitude *"
                     placeholder="e.g. 12.2958"
                     value={endLat}
-                    onChange={(e) => {
-                      setEndLat(e.target.value)
-                      const lat = parseCoordinate(e.target.value)
-                      if (!isNaN(lat)) {
-                        setStops((prev) => {
-                          const endStop = {
-                            id: prev.length > 0 && prev[prev.length - 1]._isEnd ? prev[prev.length - 1].id : genId(),
-                            lat,
-                            lng: parseFloat(prev[prev.length - 1]?.lng || 0) || 0,
-                            _isEnd: true,
-                          }
-                          if (prev.length > 0 && prev[prev.length - 1]._isEnd) {
-                            return [...prev.slice(0, -1), endStop]
-                          }
-                          return [...prev, endStop]
-                        })
-                      }
-                    }}
+                    onChange={(e) => setEndLat(e.target.value)}
                   />
                   <Input
                     label="End Longitude *"
                     placeholder="e.g. 75.7503"
                     value={endLng}
-                    onChange={(e) => {
-                      setEndLng(e.target.value)
-                      const lng = parseCoordinate(e.target.value)
-                      if (!isNaN(lng)) {
-                        setStops((prev) => {
-                          const endStop = {
-                            id: prev.length > 0 && prev[prev.length - 1]._isEnd ? prev[prev.length - 1].id : genId(),
-                            lat: parseFloat(prev[prev.length - 1]?.lat || 0) || 0,
-                            lng,
-                            _isEnd: true,
-                          }
-                          if (prev.length > 0 && prev[prev.length - 1]._isEnd) {
-                            return [...prev.slice(0, -1), endStop]
-                          }
-                          return [...prev, endStop]
-                        })
-                      }
-                    }}
+                    onChange={(e) => setEndLng(e.target.value)}
                   />
                 </div>
 
@@ -664,7 +573,7 @@ export default function AddRoutePage() {
                 {/* Route Type Toggle */}
                 <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1.5">Route Type</label>
-                  <div className="flex rounded-lg border border-slate-200 overflow-hidden">
+                  {/* <div className="flex rounded-lg border border-slate-200 overflow-hidden">
                     <button
                       onClick={() => setRouteType('inbound')}
                       className={clsx(
@@ -687,7 +596,7 @@ export default function AddRoutePage() {
                     >
                       Outbound
                     </button>
-                  </div>
+                  </div> */}
                 </div>
 
                 {/* Status Toggle */}

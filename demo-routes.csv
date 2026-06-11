@@ -1,0 +1,11 @@
+route_name,route_code,estimated_duration,distance,route_type,status,stop_name,latitude,longitude,stop_sequence
+Downtown Express,D001,45 mins,15.2,outbound,active,Central Station,10.0123,76.1234,1
+Downtown Express,D001,45 mins,15.2,outbound,active,Market Square,10.0345,76.1456,2
+Downtown Express,D001,45 mins,15.2,outbound,active,University Gate,10.0567,76.1678,3
+Downtown Express,D001,45 mins,15.2,outbound,active,City Hospital,10.0789,76.1890,4
+Uptown Local,U002,30 mins,8.5,inbound,active,North Terminal,10.1000,76.2000,1
+Uptown Local,U002,30 mins,8.5,inbound,active,Library Stop,10.1111,76.2111,2
+Uptown Local,U002,30 mins,8.5,inbound,active,Park Avenue,10.1222,76.2222,3
+Airport Shuttle,A003,60 mins,22.0,outbound,active,Railway Station,10.1333,76.2333,1
+Airport Shuttle,A003,60 mins,22.0,outbound,active,Airport Terminal 1,10.1444,76.2444,2
+Airport Shuttle,A003,60 mins,22.0,outbound,active,Airport Terminal 2,10.1555,76.2555,3

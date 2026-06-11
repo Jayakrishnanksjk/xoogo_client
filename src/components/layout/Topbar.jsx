@@ -184,7 +184,7 @@ function AlertsDropdown({ alerts, onDismiss, unreadCount, onMarkAllRead }) {
 
 // ─── Topbar ──────────────────────────────────────────────────────────────────
 
-export default function Topbar({ title, subtitle }) {
+export default function Topbar({ title, subtitle, searchValue, onSearchChange }) {
   const [alerts, setAlerts] = useState(DEFAULT_ALERTS)
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef(null)
@@ -222,6 +222,8 @@ export default function Topbar({ title, subtitle }) {
       <div className="relative hidden md:block">
         <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
         <input
+          value={searchValue ?? ''}
+          onChange={e => onSearchChange?.(e.target.value)}
           className="pl-9 pr-4 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand w-64 placeholder:text-slate-400 transition-all text-slate-700"
           placeholder="Search anything..."
         />
