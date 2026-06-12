@@ -31,17 +31,37 @@ function Badge({
   className,
   variant = "default",
   asChild = false,
+  status,
+  children,
   ...props
 }) {
   const Comp = asChild ? Slot.Root : "span"
+  const resolvedVariant = status ? statusToVariant(status) : variant
 
   return (
     <Comp
       data-slot="badge"
-      data-variant={variant}
-      className={cn(badgeVariants({ variant }), className)}
-      {...props} />
+      data-variant={resolvedVariant}
+      className={cn(badgeVariants({ variant: resolvedVariant }), className)}
+      {...props}
+    >
+      {children ?? (status ? textContent(status) : null)}
+    </Comp>
   );
+}
+
+function statusToVariant(status) {
+  if (!status) return "default"
+  const s = String(status).toLowerCase()
+  if (s === "active" || s === "online") return "default"
+  if (s === "inactive" || s === "offline") return "secondary"
+  if (s === "deleted" || s === "error") return "destructive"
+  return "outline"
+}
+
+function textContent(status) {
+  if (!status) return ""
+  return String(status).replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())
 }
 
 export { Badge, badgeVariants }

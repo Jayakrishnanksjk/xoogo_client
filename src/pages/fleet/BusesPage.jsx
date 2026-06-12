@@ -30,9 +30,7 @@ export default function BusesPage() {
     const fetchBuses = async () => {
       try {
         setLoading(true)
-        const params = {}
-        if (activeFilter !== 'all') params.status = activeFilter
-        const res = await busesApi.list(params)
+        const res = await busesApi.list()
         setBuses(res.data)
       } catch (err) {
         console.error('Failed to fetch buses:', err)
@@ -42,7 +40,7 @@ export default function BusesPage() {
       }
     }
     fetchBuses()
-  }, [activeFilter])
+  }, [])
 
   const handleFilterChange = (filter) => {
     setActiveFilter(filter)
@@ -54,7 +52,9 @@ export default function BusesPage() {
     }
   }
 
-  const filteredBuses = buses.filter(b => {
+  const statusFiltered = activeFilter === 'all' ? buses : buses.filter(b => b.status === activeFilter)
+
+  const filteredBuses = statusFiltered.filter(b => {
     if (!search) return true
     const q = search.toLowerCase()
     return (

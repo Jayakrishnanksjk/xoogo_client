@@ -123,8 +123,9 @@ function GroupCard({ group, onViewScreens, onLiveTracking, onEdit, onDelete }) {
 
 function ByGroupsTab({ groups = [], loading = false, onLiveTracking, onEditGroup, onDeleteGroup, search = '' }) {
   const navigate = useNavigate()
+  const [groupSearch, setGroupSearch] = useState('')
 
-  const q = search.toLowerCase()
+  const q = (groupSearch || search).toLowerCase()
   const filteredGroups = q
     ? groups.filter(g =>
         g.name.toLowerCase().includes(q) ||
@@ -153,6 +154,16 @@ function ByGroupsTab({ groups = [], loading = false, onLiveTracking, onEditGroup
             <StatCard icon={WifiOff} theme="red" label="Offline Screens" value={String(offlineBuses)} sub={`${offlinePercentage}% of fleet`} onClick={() => navigate('/fleet/buses?status=offline')} />
           </>
         )}
+      </div>
+
+      {/* Groups search */}
+      <div className="mb-6 bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+        <SearchInput
+          placeholder="Search groups..."
+          value={groupSearch}
+          onChange={e => setGroupSearch(e.target.value)}
+          size="md"
+        />
       </div>
 
       {loading ? (
@@ -253,10 +264,10 @@ function ByRoutesTab({ routes = [], loading = false, search: searchProp, onSearc
           Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} />)
         ) : (
           <>
-            <StatCard icon={MapPin} theme="blue" label="Total Routes" value={String(routes.length)} sub="All routes" onClick={() => navigate('/fleet/buses')} />
-            <StatCard icon={Bus} theme="green" label="Active Routes" value={String(routes.filter(r => r.status === 'active').length)} sub="Currently active" onClick={() => navigate('/fleet/buses?status=online')} />
-            <StatCard icon={Wifi} theme="purple" label="Routes in Operation" value="0" sub="Currently running" onClick={() => navigate('/fleet/buses?status=online')} />
-            <StatCard icon={WifiOff} theme="red" label="Inactive Routes" value={String(routes.filter(r => r.status === 'inactive').length)} sub="Currently inactive" onClick={() => navigate('/fleet/buses?status=offline')} />
+            <StatCard icon={MapPin} theme="blue" label="Total Routes" value={String(routes.length)} sub="All routes" onClick={() => navigate('/routes')} />
+            <StatCard icon={Bus} theme="green" label="Active Routes" value={String(routes.filter(r => r.status === 'active').length)} sub="Currently active" onClick={() => navigate('/routes')} />
+            <StatCard icon={Wifi} theme="purple" label="Routes in Operation" value="0" sub="Currently running" onClick={() => navigate('/routes')} />
+            <StatCard icon={WifiOff} theme="red" label="Inactive Routes" value={String(routes.filter(r => r.status === 'inactive').length)} sub="Currently inactive" onClick={() => navigate('/routes')} />
           </>
         )}
       </div>

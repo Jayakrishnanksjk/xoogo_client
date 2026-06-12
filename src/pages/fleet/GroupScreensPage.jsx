@@ -23,6 +23,10 @@ export default function GroupScreensPage() {
   const [editingUser, setEditingUser] = useState(null)
   const [userForm, setUserForm] = useState({ full_name: '', email: '', phone: '', password: '', role: '', status: 'active' })
   const [savingUser, setSavingUser] = useState(false)
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [editingGroup, setEditingGroup] = useState(false)
+  const [groupForm, setGroupForm] = useState({ name: '', code: '', description: '', status: 'active' })
+  const [savingGroup, setSavingGroup] = useState(false)
 
   const fetchGroupDetails = async () => {
     try {
@@ -67,6 +71,29 @@ export default function GroupScreensPage() {
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
+
+  const handleSaveGroup = async () => {
+    if (!groupForm.name.trim()) {
+      toast.error('Group name is required')
+      return
+    }
+    try {
+      setSavingGroup(true)
+      await groupsApi.update(id, {
+        name: groupForm.name.trim(),
+        code: groupForm.code.trim() || null,
+        description: groupForm.description.trim() || null,
+        status: groupForm.status,
+      })
+      toast.success('Group updated')
+      setEditingGroup(false)
+      fetchGroupDetails()
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update group')
+    } finally {
+      setSavingGroup(false)
+    }
+  }
 
   const handleDeleteBus = async () => {
     const { busId } = deleteConfirm
@@ -206,6 +233,7 @@ export default function GroupScreensPage() {
 
   const owner = group.owner
   const screens = group.buses || []
+  const filteredScreens = statusFilter === 'all' ? screens : screens.filter(s => s.status === statusFilter)
   const onlineScreens = screens.filter(s => s.status === 'online').length
   const offlineScreens = screens.length - onlineScreens
 
@@ -220,6 +248,13 @@ export default function GroupScreensPage() {
               <div className="flex items-center gap-3 mb-2">
                 <h2 className="text-xl font-bold text-slate-900">{group.name}</h2>
                 <Badge status={group.status} />
+                <button
+                  onClick={() => { setGroupForm({ name: group.name, code: group.code || '', description: group.description || '', status: group.status || 'active' }); setEditingGroup(true) }}
+                  className="ml-auto p-1.5 text-slate-400 hover:text-brand rounded-md hover:bg-slate-50 transition-all"
+                  title="Edit Group"
+                >
+                  <Pencil size={14} />
+                </button>
               </div>
               <p className="text-xs text-slate-500 font-mono mb-4">Code: {group.code || '—'}</p>
               <p className="text-sm text-slate-600 leading-relaxed">
@@ -334,13 +369,19 @@ export default function GroupScreensPage() {
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4">
-          <StatCard icon={Monitor} iconBg="bg-blue-50" iconColor="text-blue-500" label="Total Screens" value={String(screens.length)} sub="Registered screens" />
-          <StatCard icon={Wifi} iconBg="bg-green-50" iconColor="text-green-500" label="Online Screens" value={String(onlineScreens)} sub="Currently tracking" />
-          <StatCard icon={WifiOff} iconBg="bg-red-50" iconColor="text-red-500" label="Offline Screens" value={String(offlineScreens)} sub="Currently offline" />
+          <div className={`rounded-2xl transition-all ${statusFilter === 'all' ? 'ring-1 ring-brand' : ''}`}>
+            <StatCard icon={Monitor} iconBg={statusFilter === 'all' ? 'bg-blue-100' : 'bg-blue-50'} iconColor="text-blue-500" label="Total Screens" value={String(screens.length)} sub="Registered screens" onClick={() => setStatusFilter('all')} />
+          </div>
+          <div className={`rounded-2xl transition-all ${statusFilter === 'online' ? 'ring-1 ring-brand' : ''}`}>
+            <StatCard icon={Wifi} iconBg={statusFilter === 'online' ? 'bg-green-100' : 'bg-green-50'} iconColor="text-green-500" label="Online Screens" value={String(onlineScreens)} sub="Currently tracking" onClick={() => setStatusFilter('online')} />
+          </div>
+          <div className={`rounded-2xl transition-all ${statusFilter === 'offline' ? 'ring-1 ring-brand' : ''}`}>
+            <StatCard icon={WifiOff} iconBg={statusFilter === 'offline' ? 'bg-red-100' : 'bg-red-50'} iconColor="text-red-500" label="Offline Screens" value={String(offlineScreens)} sub="Currently offline" onClick={() => setStatusFilter('offline')} />
+          </div>
         </div>
 
         {/* Live Screens Tracking Map */}
-        {screens.length > 0 && (
+        {/* {screens.length > 0 && (
           <div className="bg-white rounded-xl shadow-card border border-slate-100 p-6">
             <div className="flex items-center gap-2 mb-4">
               <span className="flex h-2 w-2 relative">
@@ -359,12 +400,12 @@ export default function GroupScreensPage() {
               />
             </div>
           </div>
-        )}
+        )} */}
 
         {/* Screens table section */}
         <div className="bg-white rounded-xl shadow-card border border-slate-100 p-6">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-base font-semibold text-slate-900">Bus Screens ({screens.length})</h3>
+            <h3 className="text-base font-semibold text-slate-900">Bus Screens {statusFilter !== 'all' ? `(${filteredScreens.length} of ${screens.length})` : `(${screens.length})`}</h3>
             <Button
               startIcon={Plus}
               label="Add Screen"
@@ -387,6 +428,14 @@ export default function GroupScreensPage() {
                 }
               />
             </div>
+          ) : filteredScreens.length === 0 ? (
+            <div className="border border-dashed border-slate-200 rounded-xl p-12">
+              <EmptyState
+                icon={Monitor}
+                title={`No ${statusFilter} screens`}
+                description={`There are no ${statusFilter} screens in this group.`}
+              />
+            </div>
           ) : (
             <div className="border border-slate-100 rounded-xl overflow-hidden bg-white">
               <table className="w-full text-left border-collapse">
@@ -402,7 +451,7 @@ export default function GroupScreensPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
-                  {screens.map(screen => (
+                  {filteredScreens.map(screen => (
                     <tr key={screen.id} className="hover:bg-slate-50/50 transition-colors">
                       <td className="px-5 py-4 font-semibold text-slate-900">{screen.regNumber}</td>
                       <td className="px-5 py-4 font-mono text-slate-500">{screen.simNumber}</td>
@@ -516,6 +565,52 @@ export default function GroupScreensPage() {
           )}
         </div>
       </div>
+
+      {/* Edit Group Panel */}
+      <SlidePanel
+        open={editingGroup}
+        onClose={() => setEditingGroup(false)}
+        title="Edit Group"
+        subtitle={`Editing: ${group.name}`}
+      >
+        <div className="space-y-4">
+          <Input
+            label="Group Name *"
+            value={groupForm.name}
+            onChange={e => setGroupForm(f => ({ ...f, name: e.target.value }))}
+          />
+          <Input
+            label="Group Code"
+            value={groupForm.code}
+            onChange={e => setGroupForm(f => ({ ...f, code: e.target.value }))}
+          />
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Description</label>
+            <textarea
+              value={groupForm.description}
+              onChange={e => setGroupForm(f => ({ ...f, description: e.target.value }))}
+              rows={3}
+              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand bg-white placeholder:text-slate-400 transition-all duration-150 resize-none"
+            />
+          </div>
+          <Select
+            label="Status"
+            value={groupForm.status}
+            onChange={e => setGroupForm(f => ({ ...f, status: e.target.value }))}
+          >
+            <option value="active">● Active</option>
+            <option value="inactive">● Inactive</option>
+          </Select>
+          <div className="pt-4 border-t border-slate-100">
+            <Button
+              label="Save Changes"
+              onClick={handleSaveGroup}
+              loading={savingGroup}
+              className="w-full"
+            />
+          </div>
+        </div>
+      </SlidePanel>
 
       {/* Add/Edit User Panel */}
       <SlidePanel

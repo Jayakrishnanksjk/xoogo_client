@@ -7,51 +7,105 @@ import { authenticate } from '../middleware/auth.js'
 const router = express.Router()
 const upload = multer({ storage: multer.memoryStorage() })
 
-// POST /api/routes/import - Import routes from CSV
+function parseTextFormat(text) {
+  const routeMap = new Map()
+  const blocks = text.split(/\n\s*\n/).filter(b => b.trim())
+
+  for (const block of blocks) {
+    const lines = block.split('\n').filter(l => l.trim())
+    if (lines.length < 2) continue
+
+    const header = lines[0].trim()
+    const name = header.replace(/^Route\s*/i, '').trim() || 'Unnamed Route'
+    const code = name.toUpperCase().replace(/\s+/g, '_').replace(/[^A-Z0-9_]/g, '')
+
+    const stops = []
+    for (let i = 1; i < lines.length; i++) {
+      const match = lines[i].match(/^\s*\d+[\.)]\s*(.+?)\s*[-–]\s*([\d.]+)\s*,\s*([\d.]+)/)
+      if (match) {
+        stops.push({
+          name: match[1].trim(),
+          latitude: parseFloat(match[2]),
+          longitude: parseFloat(match[3]),
+          sequence: stops.length + 1,
+        })
+      }
+    }
+
+    if (stops.length > 0) {
+      routeMap.set(code, {
+        name,
+        code,
+        estimatedDuration: null,
+        distance: null,
+        routeType: 'inbound',
+        status: 'active',
+        stops,
+      })
+    }
+  }
+
+  return routeMap
+}
+
+// POST /api/routes/import - Import routes from CSV or text format
 router.post('/import', authenticate, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ message: 'No file uploaded.' })
     }
 
-    const csvContent = req.file.buffer.toString()
-    const records = parse(csvContent, {
-      columns: true,
-      skip_empty_lines: true,
-      trim: true,
-    })
+    const content = req.file.buffer.toString().replace(/^\uFEFF/, '')
+    const trimmed = content.trim()
+    let routeMap
 
-    if (records.length === 0) {
-      return res.status(400).json({ message: 'CSV file is empty.' })
+    // Detect format: if first non-empty line starts with "Route", treat as text format
+    const firstLine = trimmed.split('\n').find(l => l.trim()) || ''
+    if (/^Route\s/i.test(firstLine.trim())) {
+      routeMap = parseTextFormat(trimmed)
+    } else {
+      const records = parse(trimmed, {
+        columns: true,
+        skip_empty_lines: true,
+        trim: true,
+      })
+
+      if (records.length === 0) {
+        return res.status(400).json({ message: 'File is empty.' })
+      }
+
+      // Group records by route_code
+      routeMap = new Map()
+      for (const row of records) {
+        const code = row.route_code?.trim()
+        if (!code) continue
+
+        if (!routeMap.has(code)) {
+          routeMap.set(code, {
+            name: row.route_name?.trim(),
+            code,
+            estimatedDuration: row.estimated_duration?.trim() || null,
+            distance: row.distance ? parseFloat(row.distance) : null,
+            routeType: row.route_type?.trim() || 'inbound',
+            status: row.status?.trim() || 'active',
+            stops: [],
+          })
+        }
+
+        const routeData = routeMap.get(code)
+        if (row.stop_name?.trim() && row.latitude && row.longitude) {
+          routeData.stops.push({
+            name: row.stop_name.trim(),
+            latitude: parseFloat(row.latitude),
+            longitude: parseFloat(row.longitude),
+            sequence: row.stop_sequence ? parseInt(row.stop_sequence, 10) : routeData.stops.length + 1,
+          })
+        }
+      }
     }
 
-    // Group records by route_code
-    const routeMap = new Map()
-    for (const row of records) {
-      const code = row.route_code?.trim()
-      if (!code) continue
-
-      if (!routeMap.has(code)) {
-        routeMap.set(code, {
-          name: row.route_name?.trim(),
-          code,
-          estimatedDuration: row.estimated_duration?.trim() || null,
-          distance: row.distance ? parseFloat(row.distance) : null,
-          routeType: row.route_type?.trim() || 'inbound',
-          status: row.status?.trim() || 'active',
-          stops: [],
-        })
-      }
-
-      const routeData = routeMap.get(code)
-      if (row.stop_name?.trim() && row.latitude && row.longitude) {
-        routeData.stops.push({
-          name: row.stop_name.trim(),
-          latitude: parseFloat(row.latitude),
-          longitude: parseFloat(row.longitude),
-          sequence: row.stop_sequence ? parseInt(row.stop_sequence, 10) : routeData.stops.length + 1,
-        })
-      }
+    if (!routeMap || routeMap.size === 0) {
+      return res.status(400).json({ message: 'No valid routes found in the file.' })
     }
 
     const errors = []
@@ -113,7 +167,7 @@ router.post('/import', authenticate, upload.single('file'), async (req, res) => 
     })
   } catch (error) {
     console.error('Import routes error:', error)
-    res.status(500).json({ message: 'Failed to parse CSV. Check the file format.' })
+    res.status(500).json({ message: 'Failed to parse file. Check the file format.' })
   }
 })
 

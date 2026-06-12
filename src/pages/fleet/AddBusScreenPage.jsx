@@ -26,6 +26,17 @@ function BusDetailsStep({ form, setForm, groups = [], reviewed }) {
   const selectedGroup = groups.find(g => String(g.id) === String(form.groupId))
   const groupOwner = selectedGroup?.owner
   const [useOwner, setUseOwner] = useState(false)
+  const busTypeRef = useRef(null)
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (busTypeRef.current && !busTypeRef.current.contains(e.target)) {
+        setForm(f => ({ ...f, _busTypeOpen: false }))
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   const handleToggleOwner = () => {
     if (!useOwner && groupOwner) {
@@ -92,7 +103,7 @@ function BusDetailsStep({ form, setForm, groups = [], reviewed }) {
             />
             <p className="text-[11px] text-slate-400 mt-1">Enter SIM number used for tracking</p>
           </div>
-          <div className="relative">
+          <div ref={busTypeRef} className="relative">
             <label className="block text-xs font-medium text-slate-600 mb-1">Bus Type *</label>
             <div className="relative">
               <button

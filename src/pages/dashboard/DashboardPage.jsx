@@ -49,6 +49,7 @@ export default function DashboardPage() {
       icon: Bus,     label: 'Total Buses',     theme: 'blue',
       value: loading ? '—' : String(totalBuses),
       sub:   loading ? 'Loading…' : `Across ${groupCount} group${groupCount !== 1 ? 's' : ''}`,
+      onClick: () => navigate('/fleet/buses'),
     },
     {
       icon: Wifi,    label: 'Online Buses',    theme: 'green',

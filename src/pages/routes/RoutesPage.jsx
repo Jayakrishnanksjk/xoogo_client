@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { MapContainer, TileLayer, Marker, Polyline, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import AppLayout from '@/components/layout/AppLayout'
-import { Badge, EmptyState, Button, Tabs, ConfirmDialog, Modal } from '@/components/ui'
+import { Badge, EmptyState, Button, Tabs, ConfirmDialog, Modal, SearchInput } from '@/components/ui'
 import { MapPin, Plus, ChevronRight, MoreVertical, Trash2, Upload } from 'lucide-react'
 import { routesApi } from '@/api'
 import { toast } from 'sonner'
@@ -198,6 +198,15 @@ export default function RoutesPage() {
               </Button>
             </div>
 
+            <div className="mb-3">
+              <SearchInput
+                placeholder="Search routes..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                size="sm"
+              />
+            </div>
+
             <div className="space-y-2">
               {loading ? (
                 <div className="flex justify-center items-center py-12 bg-white rounded-xl border border-slate-100 shadow-card">
@@ -266,8 +275,8 @@ export default function RoutesPage() {
 
               {/* Route summary */}
               <div className="grid grid-cols-4 gap-4 mb-5 p-4 bg-slate-50 rounded-xl">
-                <div><p className="text-xs text-slate-500">Start Coords</p><p className="text-sm font-mono font-medium text-slate-800 truncate">{selected.stops?.[0]?.lat != null ? `${selected.stops[0].lat.toFixed(5)}, ${selected.stops[0].lng.toFixed(5)}` : '—'}</p></div>
-                <div><p className="text-xs text-slate-500">End Coords</p><p className="text-sm font-mono font-medium text-slate-800 truncate">{selected.stops?.[selected.stops.length - 1]?.lat != null ? `${selected.stops[selected.stops.length - 1].lat.toFixed(5)}, ${selected.stops[selected.stops.length - 1].lng.toFixed(5)}` : '—'}</p></div>
+                <div><p className="text-xs text-slate-500">Start Stop</p><p className="text-sm font-medium text-slate-800 truncate">{selected.stops?.[0]?.name || (selected.stops?.[0]?.lat != null ? `${selected.stops[0].lat.toFixed(5)}, ${selected.stops[0].lng.toFixed(5)}` : '—')}</p></div>
+                <div><p className="text-xs text-slate-500">End Stop</p><p className="text-sm font-medium text-slate-800 truncate">{selected.stops?.[selected.stops.length - 1]?.name || (selected.stops?.[selected.stops.length - 1]?.lat != null ? `${selected.stops[selected.stops.length - 1].lat.toFixed(5)}, ${selected.stops[selected.stops.length - 1].lng.toFixed(5)}` : '—')}</p></div>
                 <div><p className="text-xs text-slate-500">Total Stops</p><p className="text-sm font-medium text-slate-800">{selected.stops?.length || 0}</p></div>
                 <div><p className="text-xs text-slate-500">Distance</p><p className="text-sm font-medium text-slate-800">{selected.distance != null ? `${selected.distance.toFixed(1)} km` : '—'}</p></div>
               </div>
@@ -301,6 +310,7 @@ export default function RoutesPage() {
                         <thead>
                           <tr className="bg-slate-50 border-b border-slate-100">
                             <th className="p-3 text-xs font-semibold text-slate-500 uppercase">Seq</th>
+                            <th className="p-3 text-xs font-semibold text-slate-500 uppercase">Stop Name</th>
                             <th className="p-3 text-xs font-semibold text-slate-500 uppercase">Coordinates</th>
                           </tr>
                         </thead>
@@ -308,6 +318,7 @@ export default function RoutesPage() {
                           {selected.stops.map((stop, idx) => (
                             <tr key={stop.id || idx} className="border-b border-slate-50 hover:bg-slate-50/50">
                               <td className="p-3 text-xs font-medium text-slate-500">{idx + 1}</td>
+                              <td className="p-3 text-xs font-medium text-slate-800">{stop.name || '—'}</td>
                               <td className="p-3 text-xs text-slate-400 font-mono">
                                 {stop.lat?.toFixed(5)}, {stop.lng?.toFixed(5)}
                               </td>
@@ -413,11 +424,11 @@ export default function RoutesPage() {
       <Modal
         open={importModalOpen}
         onClose={() => { if (!importing) { setImportModalOpen(false); setImportFile(null) } }}
-        title="Import Routes from CSV"
-        subtitle="Upload a CSV file with route and stop data"
+        title="Import Routes"
+        subtitle="Upload a .txt or .csv file with route and stop data"
       >
         <div className="space-y-4">
-          <div className="border-2 border-dashed border-slate-200 rounded-xl p-6 text-center hover:border-brand/50 transition-colors cursor-pointer" onClick={() => document.getElementById('csv-file-input')?.click()}>
+          <div className="border-2 border-dashed border-slate-200 rounded-xl p-6 text-center hover:border-brand/50 transition-colors cursor-pointer" onClick={() => document.getElementById('import-file-input')?.click()}>
             {importFile ? (
               <div className="space-y-1">
                 <Upload className="size-8 text-brand mx-auto" />
@@ -427,42 +438,90 @@ export default function RoutesPage() {
             ) : (
               <div className="space-y-1">
                 <Upload className="size-8 text-slate-300 mx-auto" />
-                <p className="text-sm font-medium text-slate-600">Click to select CSV file</p>
-                <p className="text-xs text-slate-400">.csv files only</p>
+                <p className="text-sm font-medium text-slate-600">Click to select file</p>
+                <p className="text-xs text-slate-400">.txt or .csv files</p>
               </div>
             )}
             <input
-              id="csv-file-input"
+              id="import-file-input"
               type="file"
-              accept=".csv"
+              accept=".txt,.csv"
               className="hidden"
               onChange={e => setImportFile(e.target.files?.[0] || null)}
             />
           </div>
 
           <div className="bg-slate-50 rounded-lg p-3 text-xs text-slate-500 space-y-1">
-            <p className="font-medium text-slate-700">Expected CSV format:</p>
-            <code className="block text-xs text-slate-400 break-all">
-              route_name,route_code,estimated_duration,distance,route_type,status,stop_name,latitude,longitude,stop_sequence
-            </code>
-            <p className="mt-1">Each stop is a separate row. Route info is grouped by route_code.</p>
+            <p className="font-medium text-slate-700">Expected format:</p>
+            <pre className="text-[10px] text-slate-400 leading-relaxed whitespace-pre-wrap">
+{`Route 1
+1. Taliparamba - 12.0367, 75.3595
+2. Trichambaram - 12.0278, 75.3655
+3. 7th mile - 12.0220, 75.3676
+
+Route 2
+1. Kolmotta - 11.9935, 75.3949
+2. Kannupara - 11.9965, 75.3933`}
+            </pre>
+            <p className="mt-1">Route headers and stops are separated by blank lines.</p>
             <button
               type="button"
               className="text-brand hover:underline mt-1"
               onClick={() => {
-                const sample = 'route_name,route_code,estimated_duration,distance,route_type,status,stop_name,latitude,longitude,stop_sequence\n' +
-                  'Downtown Express,D001,45 mins,15.2,outbound,active,Central Station,10.0123,76.1234,1\n' +
-                  'Downtown Express,D001,45 mins,15.2,outbound,active,Market Square,10.0345,76.1456,2\n' +
-                  'Uptown Local,U002,30 mins,8.5,inbound,active,North Terminal,10.1000,76.2000,1\n' +
-                  'Uptown Local,U002,30 mins,8.5,inbound,active,Library Stop,10.1111,76.2111,2'
-                const blob = new Blob([sample], { type: 'text/csv' })
+                const sample = `Route 1
+1. Taliparamba - 12.036730066050628, 75.35958691521546
+2. Trichambaram - 12.027829157866913, 75.36558922617674
+3. 7th mile - 12.022038228427942, 75.36763785205349
+4. Kuttikol - 12.01369563049186, 75.36860407756156
+5. Bakkalam - 11.996916936926485, 75.37038637347196
+6. Dharmashala - 11.986370218608242, 75.37627266706468
+7. Village office - 11.986728394057142, 75.37806118211978
+8. GCET - 11.987202637438434, 75.38038784856539
+9. Prasar Bharati - 11.988876899686634, 75.38268903233201
+10. Snake park - 11.98954748404902, 75.38833803459815
+11. Kolmotta - 11.993593153392835, 75.39493270130323
+
+Route 2
+1. Kolmotta - 11.993593153392835, 75.39493270130323
+2. Kannupara - 11.996562115182996, 75.39332172681222
+3. Helmos - 12.002099712183453, 75.39309405767128
+4. Pariyaaram vaayanashaala - 12.007202668384428, 75.39298784067569
+5. Ecoupe - 12.010932723896216, 75.39541896972757
+6. Silco - 12.015090419639018, 75.39947870225842
+7. Bavuparambu - 12.019941210173178, 75.40348254363852
+8. Vayanashaala - 12.02132672541719, 75.39931550859812
+9. Muyyam temple - 12.023317567634258, 75.39307287321971
+10. Muyyam school - 12.026541734416488, 75.38963269767704
+11. Akaram - 12.027942624070457, 75.38836445798137
+12. Muyyam - 12.030194208792874, 75.38635633600862
+13. Varadool - 12.031870558742295, 75.38314251608244
+14. Sir syed college - 12.037096205213404, 75.37581807803373
+15. Palakulangara - 12.034828095327976, 75.37368108130174
+16. Trichambaram Temple - 12.03150329042037, 75.3693464236001
+17. Kunjarayal - 12.02925184473706, 75.36753328023084
+18. Trichambaram - 12.027829157866913, 75.36558922617674
+19. Taliparamba - 12.036730066050628, 75.35958691521546
+
+Route 3
+1. Kolmotta - 11.993593153392835, 75.39493270130323
+2. Snake park - 11.98954748404902, 75.38833803459815
+3. Prasar Bharati - 11.988876899686634, 75.38268903233201
+4. GCET - 11.987202637438434, 75.38038784856539
+5. Village office - 11.986728394057142, 75.37806118211978
+6. Dharmashala - 11.986370218608242, 75.37627266706468
+7. Bakkalam - 11.996916936926485, 75.37038637347196
+8. Kuttikol - 12.01369563049186, 75.36860407756156
+9. 7th mile - 12.022038228427942, 75.36763785205349
+10. Trichambaram - 12.027829157866913, 75.36558922617674
+11. Taliparamba - 12.036730066050628, 75.35958691521546`
+                const blob = new Blob([sample], { type: 'text/plain' })
                 const url = URL.createObjectURL(blob)
                 const a = document.createElement('a')
-                a.href = url; a.download = 'sample-routes.csv'; a.click()
+                a.href = url; a.download = 'sample-routes.txt'; a.click()
                 URL.revokeObjectURL(url)
               }}
             >
-              Download sample CSV
+              Download sample
             </button>
           </div>
 

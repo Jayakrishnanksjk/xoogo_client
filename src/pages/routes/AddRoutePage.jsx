@@ -185,7 +185,7 @@ export default function AddRoutePage() {
   // Modal state
   const [showAddModal, setShowAddModal] = useState(false)
   const [editingStop, setEditingStop] = useState(null)
-  const [stopForm, setStopForm] = useState({ lat: '', lng: '' })
+  const [stopForm, setStopForm] = useState({ name: '', lat: '', lng: '' })
   const [modalError, setModalError] = useState('')
 
   // Sync start/end coords from first/last stop
@@ -278,14 +278,14 @@ export default function AddRoutePage() {
 
   // ── Handlers ────────────────────────────────────────────
   const handleOpenAddModal = () => {
-    setStopForm({ lat: '', lng: '' })
+    setStopForm({ name: '', lat: '', lng: '' })
     setEditingStop(null)
     setModalError('')
     setShowAddModal(true)
   }
 
   const handleOpenEditModal = (stop) => {
-    setStopForm({ lat: String(stop.lat), lng: String(stop.lng) })
+    setStopForm({ name: stop.name || '', lat: String(stop.lat), lng: String(stop.lng) })
     setEditingStop(stop.id)
     setModalError('')
     setShowAddModal(true)
@@ -306,16 +306,19 @@ export default function AddRoutePage() {
 
     setModalError('')
 
+    const name = stopForm.name.trim()
+
     if (editingStop) {
       setStops((prev) =>
         prev.map((s) =>
-          s.id === editingStop ? { ...s, lat, lng } : s
+          s.id === editingStop ? { ...s, name: name || s.name, lat, lng } : s
         )
       )
     } else {
       setStops((prev) => {
         const newStop = {
           id: genId(),
+          name: name || '',
           lat,
           lng,
         }
@@ -341,6 +344,7 @@ export default function AddRoutePage() {
       setStops((prev) => {
         const newStop = {
           id: genId(),
+          name: '',
           lat: latlng.lat,
           lng: latlng.lng,
         }
@@ -406,6 +410,7 @@ export default function AddRoutePage() {
         status: isActive ? 'active' : 'inactive',
         stops: stops.map((s, idx) => ({
           id: s.id,
+          name: s.name || '',
           lat: s.lat,
           lng: s.lng,
           _isStart: idx === 0,
@@ -441,6 +446,7 @@ export default function AddRoutePage() {
         status: 'inactive',
         stops: stops.map((s, idx) => ({
           id: s.id,
+          name: s.name || '',
           lat: s.lat,
           lng: s.lng,
           _isStart: idx === 0,
@@ -821,8 +827,9 @@ export default function AddRoutePage() {
 
                         {/* Stop info */}
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <p className="text-xs font-medium text-slate-800 font-mono truncate">{coordStr(stop.lat, stop.lng)}</p>
+                          <p className="text-xs font-medium text-slate-800 truncate">{stop.name || coordStr(stop.lat, stop.lng)}</p>
+                          <p className="text-[10px] text-slate-400 font-mono truncate">{stop.name ? coordStr(stop.lat, stop.lng) : ''}</p>
+                          <div className="flex items-center gap-1.5 mt-0.5">
                             {isFirst && (
                               <span className="text-[9px] font-semibold text-green-600 bg-green-50 px-1.5 py-0.5 rounded">
                                 Start
@@ -882,7 +889,7 @@ export default function AddRoutePage() {
                                 : STOP_COLORS[idx % STOP_COLORS.length]
                           )}
                         />
-                        <span className="text-[11px] text-slate-600 font-mono truncate">{coordStr(stop.lat, stop.lng)}</span>
+                        <span className="text-[11px] text-slate-600 truncate">{stop.name || coordStr(stop.lat, stop.lng)}</span>
                       </div>
                     ))}
                   </div>
@@ -923,6 +930,12 @@ export default function AddRoutePage() {
               {modalError}
             </div>
           )}
+          <Input
+            label="Stop Name"
+            placeholder="e.g. Central Station"
+            value={stopForm.name}
+            onChange={(e) => setStopForm((f) => ({ ...f, name: e.target.value }))}
+          />
           <div className="grid grid-cols-2 gap-3">
             <Input
               label="Latitude *"
