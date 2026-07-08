@@ -50,7 +50,7 @@ async function ensureDatabaseExists() {
 
 async function startServer() {
   try {
-    if (process.env.NODE_ENV === 'production' && !process.env.DATABASE_URL) {
+    if (process.env.NODE_ENV === 'production' && !process.env.DATABASE_URL && !process.env.DB_HOST) {
       console.error('FATAL: DATABASE_URL environment variable is not set.')
       console.error('Set it in your Render dashboard under Environment Variables.')
       process.exit(1)
