@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '@/context/AuthContext'
+import { useBranding } from '@/context/ThemeContext'
 import { toast } from 'sonner'
 import { Eye, EyeOff, Bus, Loader2, CheckCircle2 } from 'lucide-react'
 import { Input, Button } from '@/components/ui'
@@ -31,6 +32,7 @@ const itemVariants = {
 
 export default function LoginPage() {
   const { login } = useAuth()
+  const { branding } = useBranding() || {}
   const navigate = useNavigate()
   const [showPass, setShowPass] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -117,10 +119,14 @@ export default function LoginPage() {
                 transition={{ duration: 0.5 }}
                 className="flex items-center gap-2 relative z-10"
               >
-                <span className="text-3xl font-bold tracking-tight select-none">
-                  <span className="text-brand-light">x</span>
-                  <span className="text-white">oogo</span>
-                </span>
+                {branding?.logo_url ? (
+                  <img src={branding.logo_url} alt="Logo" className="h-8 object-contain" />
+                ) : (
+                  <span className="text-3xl font-bold tracking-tight select-none">
+                    <span className="text-brand-light">x</span>
+                    <span className="text-white">oogo</span>
+                  </span>
+                )}
               </motion.div>
 
               <div className="relative z-10">
@@ -172,9 +178,13 @@ export default function LoginPage() {
               >
                 {/* Mobile branding */}
                 <motion.div variants={itemVariants} className="lg:hidden mb-8">
-                  <span className="text-2xl font-bold tracking-tight select-none">
-                    <span className="text-brand">x</span>oogo
-                  </span>
+                  {branding?.logo_url ? (
+                    <img src={branding.logo_url} alt="Logo" className="h-7 object-contain" />
+                  ) : (
+                    <span className="text-2xl font-bold tracking-tight select-none">
+                      <span className="text-brand">x</span>oogo
+                    </span>
+                  )}
                 </motion.div>
 
                 <div className="mb-8">

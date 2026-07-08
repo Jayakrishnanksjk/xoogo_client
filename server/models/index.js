@@ -9,6 +9,7 @@ import Stop from './Stop.js'
 import BusAssignment from './BusAssignment.js'
 import HistoricalEta from './HistoricalEta.js'
 import EventLog from './EventLog.js'
+import BrandSetting from './BrandSetting.js'
 
 // Setup associations
 Group.hasMany(User, {
@@ -91,4 +92,5 @@ export {
   EventLog,
   Schedule,
   ScheduleRoute,
+  BrandSetting,
 }

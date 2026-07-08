@@ -16,6 +16,7 @@ import AddBusScreenPage from '@/pages/fleet/AddBusScreenPage'
 import BusesPage from '@/pages/fleet/BusesPage'
 import MediaLibraryPage from '@/pages/media/MediaLibraryPage'
 import PlaylistsPage from '@/pages/playlists/PlaylistsPage'
+import BrandingSettingsPage from '@/pages/settings/BrandingSettingsPage'
 
 export default function App() {
   return (
@@ -46,6 +47,7 @@ export default function App() {
               <Route path="/routes/edit/:id" element={<AddRoutePage />} />
               <Route path="/schedules" element={<SchedulesPage />} />
               <Route path="/users" element={<UsersPage />} />
+              <Route path="/settings/branding" element={<BrandingSettingsPage />} />
             </Route>
           </Route>
 

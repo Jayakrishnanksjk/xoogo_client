@@ -59,6 +59,14 @@ export const schedulesApi = {
 }
 
 // ── Buses ────────────────────────────────────────────────
+// ── Branding Settings ────────────────────────────────────
+export const brandingApi = {
+  get: () => api.get('/settings/branding'),
+  update: (formData) => api.put('/settings/branding', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }),
+}
+
 export const busesApi = {
   list: (params) => api.get('/buses', { params }),
   get: (id) => api.get(`/buses/${id}`),

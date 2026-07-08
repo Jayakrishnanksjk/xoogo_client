@@ -13,18 +13,18 @@ export default {
           DEFAULT: 'var(--primary)',
           foreground: 'var(--primary-foreground)',
         },
-        // Xoogo brand
+        // Xoogo brand (runtime-overridable via CSS variables)
         brand: {
-          DEFAULT: '#2563EB',
-          dark: '#1D4ED8',
-          light: '#3B82F6',
+          DEFAULT: 'var(--brand)',
+          dark: 'var(--brand-dark)',
+          light: 'var(--brand-light)',
         },
-        // Sidebar
+        // Sidebar (runtime-overridable via CSS variables)
         sidebar: {
-          bg: '#0F172A',
-          active: '#1E293B',
-          hover: '#1E293B',
-          border: '#1E293B',
+          bg: 'var(--sidebar-bg)',
+          active: 'var(--sidebar-active)',
+          hover: 'var(--sidebar-hover)',
+          border: 'var(--sidebar-hover)',
         },
         // Surface
         surface: {

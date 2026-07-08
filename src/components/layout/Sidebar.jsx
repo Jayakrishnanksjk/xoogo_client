@@ -3,9 +3,10 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   LayoutDashboard, Bus, Library, ListMusic,
-  MapPin, Users, LogOut, ChevronDown, Calendar
+  MapPin, Users, LogOut, ChevronDown, Calendar, Palette
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
+import { useBranding } from '@/context/ThemeContext'
 import clsx from 'clsx'
 
 const NAV_SUPERADMIN = [
@@ -16,6 +17,7 @@ const NAV_SUPERADMIN = [
   { to: '/media', icon: Library, label: 'Media Library' },
   { to: '/playlists', icon: ListMusic, label: 'Playlists' },
   { to: '/users', icon: Users, label: 'Users' },
+  { to: '/settings/branding', icon: Palette, label: 'Branding' },
 ]
 
 const NAV_PARTNER = [
@@ -27,6 +29,7 @@ const NAV_PARTNER = [
 
 export default function Sidebar() {
   const { user, logout, isSuperadmin } = useAuth()
+  const { branding } = useBranding() || {}
   const navigate = useNavigate()
   const location = useLocation()
   const [hoveredPath, setHoveredPath] = useState(null)
@@ -43,10 +46,14 @@ export default function Sidebar() {
     <aside className="fixed top-0 left-0 h-screen bg-sidebar-bg text-white flex flex-col z-30 w-[220px] border-r border-white/5 shadow-2xl">
       <div className="px-6 py-6 border-b border-white/5">
         <div className="flex items-center gap-2">
-          <span className="text-2xl font-bold tracking-tight select-none">
-            <span className="text-brand-light">x</span>
-            <span className="text-white">oogo</span>
-          </span>
+          {branding?.logo_url ? (
+            <img src={branding.logo_url} alt="Logo" className="h-7 object-contain" />
+          ) : (
+            <span className="text-2xl font-bold tracking-tight select-none">
+              <span className="text-brand-light">x</span>
+              <span className="text-white">oogo</span>
+            </span>
+          )}
         </div>
       </div>
 

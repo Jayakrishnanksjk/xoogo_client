@@ -11,6 +11,7 @@ import routeRoutes from './routes/routes.js'
 import busRoutes from './routes/buses.js'
 import transitRoutes from './routes/transit.js'
 import scheduleRoutes from './routes/schedules.js'
+import settingsRoutes from './routes/settings.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -40,6 +41,10 @@ console.log('[app] distPath:', distPath)
 console.log('[app] CWD:', process.cwd())
 app.use(express.static(distPath))
 
+// Serve uploaded files (logos, etc.)
+const uploadsPath = path.resolve(__dirname, 'uploads')
+app.use('/uploads', express.static(uploadsPath))
+
 // API Routes
 app.use('/api/auth', authRoutes)
 app.use('/api/users', userRoutes)
@@ -47,6 +52,7 @@ app.use('/api/groups', groupRoutes)
 app.use('/api/routes', routeRoutes)
 app.use('/api/buses', busRoutes)
 app.use('/api/schedules', scheduleRoutes)
+app.use('/api/settings', settingsRoutes)
 app.use('/api', transitRoutes)
 
 // Health Check Endpoint
