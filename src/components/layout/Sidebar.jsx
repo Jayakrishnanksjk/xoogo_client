@@ -46,14 +46,7 @@ export default function Sidebar() {
     <aside className="fixed top-0 left-0 h-screen bg-sidebar-bg text-white flex flex-col z-30 w-[220px] border-r border-white/5 shadow-2xl">
       <div className="px-6 py-6 border-b border-white/5">
         <div className="flex items-center gap-2">
-          {branding?.logo_url ? (
-            <img src={branding.logo_url} alt="Logo" className="h-7 object-contain" />
-          ) : (
-            <span className="text-2xl font-bold tracking-tight select-none">
-              <span className="text-brand-light">x</span>
-              <span className="text-white">oogo</span>
-            </span>
-          )}
+          <img src={branding?.logo_url || '/logo.svg'} alt="Logo" className="h-20 object-contain border-0 bg-transparent" />
         </div>
       </div>
 

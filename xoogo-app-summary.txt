@@ -1,0 +1,87 @@
+XOOGO WEB APP - COMPLETE SUMMARY
+===================================
+
+TECH STACK
+----------
+Language        : JavaScript (JSX)
+Framework       : React 18.3.1
+Build Tool      : Vite 5
+Routing         : React Router DOM v6
+Styling         : Tailwind CSS 3.4 + shadcn/ui
+State Mgmt      : React Context + TanStack React Query
+HTTP Client     : Axios
+Animation       : Framer Motion 12
+Maps            : Leaflet + React-Leaflet
+Drag & Drop     : @dnd-kit
+Forms           : React Hook Form
+Icons           : Lucide React
+Backend         : Node.js/Express + PostgreSQL (Sequelize ORM)
+
+
+MODULES, FEATURES & ACCESS
+---------------------------
+
+1. AUTHENTICATION - Public (/login)
+   - JWT-based auth, stored in localStorage
+   - Axios 401 interceptor auto-redirects to login
+   - Roles: superadmin (full access) | partner (limited access)
+
+2. DASHBOARD (/dashboard) - All authenticated users
+   - Stat cards: Total/Online/Offline Buses, Ads Played Today
+   - Live bus tracking map (Leaflet)
+   - Alerts panel (playlist expiry, bus offline, storage warnings)
+   - Quick-navigation to filtered fleet views
+
+3. FLEET MANAGEMENT (/fleet) - All authenticated users
+   - By Groups / By Routes tabbed view
+   - Group CRUD with slide panel & undo toast
+   - Buses page: filterable/searchable table, edit/delete buses
+   - Add Group (3-step wizard): details -> owner -> review
+   - Add/Edit Bus Screen (3-step wizard): details -> schedule -> preview
+   - Group detail page: info, owner, screens table, users sub-section
+
+4. ROUTES & STOPS (/routes) - Superadmin only
+   - Split-view: route list (left) + detail (right) with Stops/Map/Details tabs
+   - CSV import for routes/stops
+   - Add/Edit Route: 3-panel editor with interactive Leaflet map
+     (draggable markers, OSRM road routing, drag-reorder stops)
+   - Delete with undo
+
+5. ROUTE SCHEDULES (/schedules) - Superadmin only
+   - Schedule list + detail split view
+   - Manage routes in schedule (add/remove, copy from another schedule)
+   - Bus assignment modal (assign/unassign buses)
+
+6. MEDIA LIBRARY (/media) - All authenticated users
+   - Grid/List view toggle, filters (type, status, folder)
+   - Media cards with metadata (duration, size, status)
+   - Analytics panel (plays, impressions, completion rate, unique devices)
+   - Upload & folder creation (**uses mock data currently**)
+
+7. PLAYLISTS (/playlists) - All authenticated users
+   - **Stub page** - not yet implemented (empty state with "Create Playlist" button)
+
+8. USER MANAGEMENT (/users) - Superadmin only
+   - Role filter cards: Total, Admins, Bus Owners, Operators
+   - User table (avatar, name, email, role, group, status, last login)
+   - Add User (3-step slide panel): details -> role & group -> confirm
+   - Edit User slide panel, optional password change
+   - Delete with undo toast
+
+9. BRANDING (/settings/branding) - Superadmin only
+   - Logo upload (PNG/SVG/JPG/WebP, max 5MB, 200x60px)
+   - 6 brand color pickers with live sidebar preview
+   - Save/reset, dynamically applied via CSS custom properties
+
+
+SUMMARY
+-------
+Xoogo is a fleet management dashboard for bus transit operations. It enables
+admins and bus partners to register/manage bus screens (Android TV devices on
+buses), organize buses into groups, define geographic routes with sequenced
+stops (using an interactive Leaflet map with OSRM routing), create schedules
+that bundle routes with bus assignments, and upload media for advertising/
+announcements on buses. The app features live bus tracking, role-based access
+(superadmin/partner), dynamic tenant branding, and 3-step wizards for complex
+data entry. The backend is a Node.js/Express API with PostgreSQL, serving as
+the control plane for edge-computed Android TV devices on buses.

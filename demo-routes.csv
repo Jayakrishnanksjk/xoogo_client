@@ -9,3 +9,32 @@ Uptown Local,U002,30 mins,8.5,inbound,active,Park Avenue,10.1222,76.2222,3
 Airport Shuttle,A003,60 mins,22.0,outbound,active,Railway Station,10.1333,76.2333,1
 Airport Shuttle,A003,60 mins,22.0,outbound,active,Airport Terminal 1,10.1444,76.2444,2
 Airport Shuttle,A003,60 mins,22.0,outbound,active,Airport Terminal 2,10.1555,76.2555,3
+Ring Road Loop,R004,55 mins,18.7,inbound,active,East Gate,10.2000,76.3000,1
+Ring Road Loop,R004,55 mins,18.7,inbound,active,Civic Centre,10.2111,76.3111,2
+Ring Road Loop,R004,55 mins,18.7,inbound,active,Sports Complex,10.2222,76.3222,3
+Ring Road Loop,R004,55 mins,18.7,inbound,active,Westside Mall,10.2333,76.3333,4
+Ring Road Loop,R004,55 mins,18.7,inbound,active,South Park,10.2444,76.3444,5
+Beach Line,B005,40 mins,12.3,outbound,active,Fish Market,10.3000,76.4000,1
+Beach Line,B005,40 mins,12.3,outbound,active,Lighthouse Point,10.3111,76.4111,2
+Beach Line,B005,40 mins,12.3,outbound,active,Marina Beach,10.3222,76.4222,3
+Beach Line,B005,40 mins,12.3,outbound,active,Seaside Resort,10.3333,76.4333,4
+Industrial Corridor,I006,50 mins,20.5,outbound,inactive,Old Bus Stand,10.4000,76.5000,1
+Industrial Corridor,I006,50 mins,20.5,outbound,inactive,Factory Junction,10.4111,76.5111,2
+Industrial Corridor,I006,50 mins,20.5,outbound,inactive,Export Zone,10.4222,76.5222,3
+Industrial Corridor,I006,50 mins,20.5,outbound,inactive,Logistics Hub,10.4333,76.5333,4
+Industrial Corridor,I006,50 mins,20.5,outbound,inactive,Industrial Park,10.4444,76.5444,5
+Night Rider,N007,35 mins,10.0,inbound,active,City Centre,10.5000,76.6000,1
+Night Rider,N007,35 mins,10.0,inbound,active,Theatre Road,10.5111,76.6111,2
+Night Rider,N007,35 mins,10.0,inbound,active,Pub Street,10.5222,76.6222,3
+College Circuit,C008,25 mins,6.8,outbound,active,Main Junction,10.6000,76.7000,1
+College Circuit,C008,25 mins,6.8,outbound,active,Engineering College,10.6111,76.7111,2
+College Circuit,C008,25 mins,6.8,outbound,active,Medical College,10.6222,76.7222,3
+College Circuit,C008,25 mins,6.8,outbound,active,Polytechnic,10.6333,76.7333,4
+Hospital Direct,H009,20 mins,5.0,outbound,active,General Hospital,10.7000,76.8000,1
+Hospital Direct,H009,20 mins,5.0,outbound,active,Childrens Hospital,10.7111,76.8111,2
+Hospital Direct,H009,20 mins,5.0,outbound,active,Medi Centre,10.7222,76.8222,3
+Sunday Special,S010,90 mins,30.0,inbound,inactive,Market Junction,10.8000,76.9000,1
+Sunday Special,S010,90 mins,30.0,inbound,inactive,Zoo Entry,10.8111,76.9111,2
+Sunday Special,S010,90 mins,30.0,inbound,inactive,Botanical Garden,10.8222,76.9222,3
+Sunday Special,S010,90 mins,30.0,inbound,inactive,Temple Gate,10.8333,76.9333,4
+Sunday Special,S010,90 mins,30.0,inbound,inactive,Convention Centre,10.8444,76.9444,5

@@ -119,14 +119,7 @@ export default function LoginPage() {
                 transition={{ duration: 0.5 }}
                 className="flex items-center gap-2 relative z-10"
               >
-                {branding?.logo_url ? (
-                  <img src={branding.logo_url} alt="Logo" className="h-8 object-contain" />
-                ) : (
-                  <span className="text-3xl font-bold tracking-tight select-none">
-                    <span className="text-brand-light">x</span>
-                    <span className="text-white">oogo</span>
-                  </span>
-                )}
+                <img src={branding?.logo_url || '/logo.svg'} alt="Logo" className="h-28 object-contain border-0" style={{ background: 'transparent', border: 'none', boxShadow: 'none' }} />
               </motion.div>
 
               <div className="relative z-10">
@@ -178,13 +171,7 @@ export default function LoginPage() {
               >
                 {/* Mobile branding */}
                 <motion.div variants={itemVariants} className="lg:hidden mb-8">
-                  {branding?.logo_url ? (
-                    <img src={branding.logo_url} alt="Logo" className="h-7 object-contain" />
-                  ) : (
-                    <span className="text-2xl font-bold tracking-tight select-none">
-                      <span className="text-brand">x</span>oogo
-                    </span>
-                  )}
+                  <img src={branding?.logo_url || '/logo.svg'} alt="Logo" className="h-20 object-contain border-0" style={{ background: 'transparent', border: 'none', boxShadow: 'none' }} />
                 </motion.div>
 
                 <div className="mb-8">

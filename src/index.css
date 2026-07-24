@@ -16,6 +16,11 @@
     font-size: 14px;
   }
 
+  img {
+    border: 0;
+    background: transparent;
+  }
+
   :root {
     --sidebar-width: 220px;
     --background: oklch(1 0 0);

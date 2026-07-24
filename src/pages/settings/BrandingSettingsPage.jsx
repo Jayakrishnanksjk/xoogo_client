@@ -61,14 +61,7 @@ function LivePreview({ colors, logoPreview }) {
           style={{ backgroundColor: colors.sidebar_bg }}
         >
           <div className="flex items-center gap-1.5 mb-3" style={{ color: colors.brand_light }}>
-            {logoPreview ? (
-              <img src={logoPreview} alt="logo" className="h-6 object-contain" />
-            ) : (
-              <span className="text-sm font-bold tracking-tight">
-                <span style={{ color: colors.brand_light }}>x</span>
-                <span className="text-white">oogo</span>
-              </span>
-            )}
+            <img src={logoPreview || '/logo.svg'} alt="logo" className="h-16 object-contain border-0 bg-transparent" />
           </div>
           <div
             className="px-2 py-1.5 rounded-lg text-xs font-medium"
@@ -200,7 +193,7 @@ export default function BrandingSettingsPage() {
     }
   }, [colors, logoFile, refetch])
 
-  const displayLogo = logoPreview || existingLogo
+  const displayLogo = logoPreview || existingLogo || '/logo.svg'
 
   if (loading) {
     return (
@@ -221,7 +214,7 @@ export default function BrandingSettingsPage() {
           <div className="bg-white rounded-xl border border-slate-100 p-6">
             <div className="flex items-start gap-6">
               <div
-                className="w-40 h-16 rounded-lg border-2 border-dashed border-slate-200 flex items-center justify-center overflow-hidden cursor-pointer hover:border-brand/50 transition-colors bg-slate-50/50 shrink-0"
+                className="w-60 h-24 rounded-lg border-2 border-dashed border-slate-200 flex items-center justify-center overflow-hidden cursor-pointer hover:border-brand/50 transition-colors bg-slate-50/50 shrink-0"
                 onClick={() => fileInputRef.current?.click()}
               >
                 {displayLogo ? (
@@ -302,7 +295,7 @@ export default function BrandingSettingsPage() {
         {/* Live Preview */}
         <section>
           <h3 className="text-sm font-semibold text-slate-800 mb-3">Preview</h3>
-          <LivePreview colors={colors} logoPreview={logoPreview} />
+          <LivePreview colors={colors} logoPreview={displayLogo} />
         </section>
 
         {/* Actions */}
