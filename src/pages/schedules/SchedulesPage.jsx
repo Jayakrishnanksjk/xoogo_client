@@ -58,8 +58,8 @@ export default function SchedulesPage() {
   const [copying, setCopying] = useState(false)
 
   const [assignOpen, setAssignOpen] = useState(false)
-  const [availableBuses, setAvailableBuses] = useState([])
   const [selectedBusId, setSelectedBusId] = useState('')
+  const [allBuses, setAllBuses] = useState([])
 
   const [deleteConfirm, setDeleteConfirm] = useState({ open: false, id: null, name: '' })
   const [editingTimes, setEditingTimes] = useState(false)
@@ -210,10 +210,8 @@ export default function SchedulesPage() {
   const openAssign = async () => {
     try {
       const res = await busesApi.list()
-      const allBuses = res.data
-      const currentBusId = selected?.assignedBus?.id
-      setAvailableBuses(allBuses.filter(b => !b.scheduleId || b.id === currentBusId))
-      setSelectedBusId(currentBusId || '')
+      setAllBuses(res.data)
+      setSelectedBusId('')
       setAssignOpen(true)
     } catch (err) {
       toast.error('Failed to load buses')
@@ -226,8 +224,9 @@ export default function SchedulesPage() {
       return
     }
     try {
-      await schedulesApi.assignBus(selected.id, { busId: selectedBusId })
+      const res = await schedulesApi.assignBus(selected.id, { busId: selectedBusId })
       toast.success('Schedule assigned to bus')
+      setSelected(res.data)
       setAssignOpen(false)
       fetchSchedules()
     } catch (err) {
@@ -260,15 +259,13 @@ export default function SchedulesPage() {
     }
   }
 
-  const handleUnassign = async () => {
-    const busId = selected?.assignedBus?.id
+  const handleUnassign = async (busId) => {
     try {
-      await schedulesApi.unassignBus(selected.id)
+      await schedulesApi.unassignBus(selected.id, busId)
+      const updated = { ...selected, buses: selected.buses.filter(b => b.id !== busId) }
+      setSelected(updated)
       fetchSchedules()
-      toast.success('Schedule unassigned from bus', {
-        action: busId ? { label: 'Undo', onClick: () => schedulesApi.assignBus(selected.id, { busId }).then(fetchSchedules).catch((err) => toast.error(err?.response?.data?.message || 'Failed to reassign bus')) } : undefined,
-        duration: 5000,
-      })
+      toast.success('Bus unassigned from schedule')
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to unassign schedule')
     }
@@ -281,7 +278,7 @@ export default function SchedulesPage() {
   }, [schedules, search])
 
   const routeCount = (schedule) => schedule?.scheduleRoutes?.length || 0
-  const assignedBus = selected?.assignedBus
+  const assignedBuses = selected?.buses || []
   const otherSchedules = useMemo(() => {
     return schedules.filter(s => s.id !== selected?.id)
   }, [schedules, selected])
@@ -381,7 +378,7 @@ export default function SchedulesPage() {
                         </div>
                         <div>
                           <p className="text-xs font-semibold text-slate-900 truncate max-w-[180px]">{schedule.name}</p>
-                          <p className="text-xs text-slate-400">{routeCount(schedule)} Routes{schedule.assignedBus ? ` · ${schedule.assignedBus.regNumber}` : ''}{schedule.startTime ? ` · ${to12h(schedule.startTime)}${schedule.endTime ? `-${to12h(schedule.endTime)}` : ''}` : ''}</p>
+                          <p className="text-xs text-slate-400">{routeCount(schedule)} Routes{schedule.buses?.length > 0 ? ` · ${schedule.buses.map(b => b.regNumber).join(', ')}` : ''}{schedule.startTime ? ` · ${to12h(schedule.startTime)}${schedule.endTime ? `-${to12h(schedule.endTime)}` : ''}` : ''}</p>
                         </div>
                       </div>
                     </div>
@@ -523,24 +520,35 @@ export default function SchedulesPage() {
               {activeTab === 'assignment' && (
                 <div>
                   <div className="p-4 bg-slate-50 rounded-xl">
-                    {assignedBus ? (
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-slate-100">
-                          <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
-                            <Bus size={15} className="text-blue-600" />
+                    {assignedBuses.length > 0 ? (
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium text-slate-600 mb-2">Assigned Buses ({assignedBuses.length})</p>
+                        {assignedBuses.map(bus => (
+                          <div key={bus.id} className="flex items-center justify-between gap-3 p-3 bg-white rounded-lg border border-slate-100">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+                                <Bus size={15} className="text-blue-600" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-slate-800">{bus.regNumber}</p>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => handleUnassign(bus.id)}
+                              className="text-xs text-red-500 hover:text-red-700 transition-colors"
+                            >
+                              Unassign
+                            </button>
                           </div>
-                          <div>
-                            <p className="text-sm font-medium text-slate-800">{assignedBus.regNumber}</p>
-                            <p className="text-xs text-slate-400">Currently assigned to this schedule</p>
-                          </div>
-                        </div>
-                        <Button variant="outline" size="sm" onClick={handleUnassign}>
-                          Unassign Bus
+                        ))}
+                        <Button size="sm" onClick={openAssign}>
+                          <Bus className="mr-1.5 h-3.5 w-3.5" />
+                          Assign Another Bus
                         </Button>
                       </div>
                     ) : (
                       <div className="space-y-3">
-                        <p className="text-xs text-slate-500">No bus assigned to this schedule.</p>
+                        <p className="text-xs text-slate-500">No buses assigned to this schedule.</p>
                         <Button size="sm" onClick={openAssign}>
                           <Bus className="mr-1.5 h-3.5 w-3.5" />
                           Assign to a Bus
@@ -649,8 +657,8 @@ export default function SchedulesPage() {
       {/* Assign Bus Modal */}
       <Modal open={assignOpen} onClose={() => setAssignOpen(false)} title="Assign Schedule to Bus" width="max-w-md">
         <div className="space-y-4">
-          {availableBuses.length === 0 ? (
-            <p className="text-sm text-slate-500">No available buses to assign.</p>
+          {allBuses.length === 0 ? (
+            <p className="text-sm text-slate-500">No buses available. Create a bus first.</p>
           ) : (
             <Select
               label="Select Bus"
@@ -658,7 +666,7 @@ export default function SchedulesPage() {
               onChange={e => setSelectedBusId(e.target.value)}
             >
               <option value="">-- Choose a bus --</option>
-              {availableBuses.map(b => (
+              {allBuses.map(b => (
                 <option key={b.id} value={b.id}>{b.regNumber}</option>
               ))}
             </Select>

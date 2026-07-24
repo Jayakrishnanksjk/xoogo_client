@@ -3,11 +3,11 @@ import { useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '@/components/layout/AppLayout'
 import { Stepper, Input, Select, Button, Badge } from '@/components/ui'
 import clsx from 'clsx'
-import { ArrowLeft, ArrowRight, Info, CheckCircle, Bus, Calendar, Check, User } from 'lucide-react'
-import { groupsApi, busesApi, schedulesApi } from '@/api'
+import { ArrowRight, Info, CheckCircle, Bus, Check, User } from 'lucide-react'
+import { groupsApi, busesApi } from '@/api'
 import { toast } from 'sonner'
 
-const STEPS = ['Bus Details', 'Schedule', 'Preview & Complete']
+const STEPS = ['Bus Details', 'Preview & Complete']
 
 const BUS_TYPES = ['Limited stop', 'Local', 'City']
 
@@ -239,135 +239,12 @@ function BusDetailsStep({ form, setForm, groups = [], reviewed }) {
   )
 }
 
-function ScheduleStep({ form, setForm, schedules = [], reviewed }) {
-  const selectedSchedule = schedules.find(s => String(s.id) === String(form.scheduleId))
-  const scheduleRoutes = selectedSchedule?.scheduleRoutes
-    ? [...selectedSchedule.scheduleRoutes].sort((a, b) => a.sequenceOrder - b.sequenceOrder)
-    : []
-  const [scheduleSearch, setScheduleSearch] = useState('')
-  const [scheduleOpen, setScheduleOpen] = useState(false)
-  const scheduleRef = useRef(null)
-
-  const filteredSchedules = schedules.filter(s =>
-    s.name.toLowerCase().includes(scheduleSearch.toLowerCase())
-  )
-
-  useEffect(() => {
-    function handleClickOutside(e) {
-      if (scheduleRef.current && !scheduleRef.current.contains(e.target)) {
-        setScheduleOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
-
-  useEffect(() => {
-    if (!scheduleOpen) {
-      setScheduleSearch('')
-    }
-  }, [scheduleOpen])
-
-  const selectSchedule = (id) => {
-    setForm(f => ({ ...f, scheduleId: id }))
-    setScheduleOpen(false)
-  }
-
-  return (
-    <div>
-      <h3 className="text-sm font-semibold text-slate-900 mb-1">2. Schedule</h3>
-      <p className="text-xs text-slate-500 mb-5">Select the schedule for this bus.</p>
-
-      <div className="space-y-4">
-        <div ref={scheduleRef} className="relative">
-          {reviewed && <span className="absolute right-2 top-[34px] text-green-500 z-10"><Check size={14} /></span>}
-          <label className="block text-xs font-medium text-slate-600 mb-1">
-            Schedule *
-          </label>
-          <input
-            type="text"
-            placeholder={selectedSchedule ? `${selectedSchedule.name} (${selectedSchedule.scheduleRoutes?.length || 0} routes)` : 'Type to search schedules...'}
-            value={scheduleOpen ? scheduleSearch : (selectedSchedule ? '' : '')}
-            onChange={e => { setScheduleSearch(e.target.value); setScheduleOpen(true) }}
-            onFocus={() => { setScheduleOpen(true); setScheduleSearch('') }}
-            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all duration-150 placeholder:text-slate-400"
-          />
-          {scheduleOpen && (
-            <div className="absolute z-20 mt-1 w-full bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-              {filteredSchedules.length === 0 ? (
-                <div className="px-3 py-2 text-xs text-slate-400">No schedules found</div>
-              ) : (
-                filteredSchedules.map(s => (
-                  <button
-                    key={s.id}
-                    type="button"
-                    onClick={() => selectSchedule(s.id)}
-                    className={clsx(
-                      'w-full text-left px-3 py-2 text-sm hover:bg-slate-50 transition-colors flex items-center gap-2',
-                      String(s.id) === String(form.scheduleId) && 'bg-brand/5 text-brand font-medium'
-                    )}
-                  >
-                    <span className="flex-1 truncate">{s.name}</span>
-                    <span className="text-xs text-slate-400 shrink-0">{s.scheduleRoutes?.length || 0} routes</span>
-                    {String(s.id) === String(form.scheduleId) && <Check size={14} className="text-brand shrink-0" />}
-                  </button>
-                ))
-              )}
-            </div>
-          )}
-          <p className="text-[11px] text-slate-400 mt-1">Select the schedule for this bus</p>
-        </div>
-
-        {selectedSchedule && scheduleRoutes.length > 0 && (
-          <div>
-            <label className="block text-xs font-medium text-slate-600 mb-2">Routes in this Schedule</label>
-            <div className="border border-slate-200 rounded-lg overflow-hidden">
-              {scheduleRoutes.map((sr, idx) => (
-                <div
-                  key={sr.id || idx}
-                  className="flex items-center gap-3 px-3 py-2.5 border-b border-slate-100 last:border-b-0 bg-slate-50"
-                >
-                  <span className="w-5 h-5 rounded-full bg-brand text-white text-[10px] font-bold flex items-center justify-center shrink-0">
-                    {sr.sequenceOrder}
-                  </span>
-                  <div>
-                    <span className="text-sm text-slate-800 font-medium">{sr.route?.name || 'Unknown'}</span>
-                    <span className="text-xs text-slate-400 ml-2 font-mono">{sr.route?.code || ''}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {selectedSchedule && scheduleRoutes.length === 0 && (
-          <div className="flex items-start gap-2 p-3 bg-amber-50 rounded-lg">
-            <Info size={14} className="text-amber-500 shrink-0 mt-0.5" />
-            <p className="text-xs text-amber-700">This schedule has no routes assigned to it yet.</p>
-          </div>
-        )}
-
-        <div className="flex items-start gap-2 p-3 bg-blue-50 rounded-lg">
-          <Calendar size={14} className="text-blue-500 shrink-0 mt-0.5" />
-          <p className="text-xs text-blue-700">
-            A schedule defines the routes this bus will operate. Each schedule can only be assigned to one bus.
-          </p>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function PreviewStep({ form, groups = [], schedules = [], isEditMode = false, reviewed }) {
+function PreviewStep({ form, groups = [], isEditMode = false, reviewed }) {
   const selectedGroup = groups.find(g => String(g.id) === String(form.groupId))
-  const selectedSchedule = schedules.find(s => String(s.id) === String(form.scheduleId))
-  const scheduleRoutes = selectedSchedule?.scheduleRoutes
-    ? [...selectedSchedule.scheduleRoutes].sort((a, b) => a.sequenceOrder - b.sequenceOrder)
-    : []
 
   return (
     <div>
-      <h3 className="text-sm font-semibold text-slate-900 mb-1">3. Preview & Complete</h3>
+      <h3 className="text-sm font-semibold text-slate-900 mb-1">2. Preview & Complete</h3>
       <p className="text-xs text-slate-500 mb-5">Review all details before {isEditMode ? 'updating' : 'creating'} the bus screen.</p>
 
       {/* Bus plate preview */}
@@ -385,7 +262,6 @@ function PreviewStep({ form, groups = [], schedules = [], isEditMode = false, re
           ['SIM Number', form.simNumber || '–'],
           ['Contact Person', form.contactName || '–'],
           ['Contact Number', form.contactNumber ? `+91 ${form.contactNumber}` : '–'],
-          ['Schedule', selectedSchedule?.name || '–'],
         ].map(([label, value]) => (
           <div key={label} className="flex items-center justify-between py-1.5 border-b border-slate-100">
             <span className="text-xs text-slate-500">{label}</span>
@@ -393,21 +269,6 @@ function PreviewStep({ form, groups = [], schedules = [], isEditMode = false, re
           </div>
         ))}
       </div>
-
-      {/* Routes list from schedule */}
-      {scheduleRoutes.length > 0 && (
-        <div className="mt-4">
-          <p className="text-xs text-slate-500 mb-2">Routes ({scheduleRoutes.length})</p>
-          <div className="space-y-1.5">
-            {scheduleRoutes.map((sr) => (
-              <div key={sr.id} className="flex items-center gap-2">
-                <span className={`w-2 h-2 rounded-full ${STOP_COLORS[sr.sequenceOrder % STOP_COLORS.length]} shrink-0`} />
-                <span className="text-xs text-slate-700">{sr.route?.name} <span className="text-slate-400 font-mono">({sr.route?.code})</span></span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   )
 }
@@ -420,7 +281,6 @@ export default function AddBusScreenPage() {
   const [step, setStep] = useState(0)
   const [reviewed, setReviewed] = useState(new Set())
   const [groups, setGroups] = useState([])
-  const [schedules, setSchedules] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
@@ -432,19 +292,16 @@ export default function AddBusScreenPage() {
     contactNumber: '',
     chassisNumber: '',
     model: '',
-    scheduleId: '',
   })
 
   useEffect(() => {
     async function loadData() {
       try {
         setLoading(true)
-        const [groupsRes, schedulesRes] = await Promise.all([
-          groupsApi.list(),
-          schedulesApi.list()
+        const [groupsRes] = await Promise.all([
+          groupsApi.list()
         ])
         setGroups(groupsRes.data)
-        setSchedules(schedulesRes.data)
 
         if (isEditMode) {
           const busRes = await busesApi.get(id)
@@ -458,11 +315,9 @@ export default function AddBusScreenPage() {
             contactNumber: busData.contactNumber ? busData.contactNumber.replace(/^\+91\s*/, '') : '',
             chassisNumber: busData.chassisNumber || '',
             model: busData.model || '',
-            scheduleId: busData.scheduleId ? String(busData.scheduleId) : '',
           })
         }
       } catch (err) {
-        console.error('Failed to load data:', err)
         toast.error(isEditMode ? 'Failed to load bus screen details' : 'Failed to load data')
       } finally {
         setLoading(false)
@@ -485,12 +340,6 @@ export default function AddBusScreenPage() {
     return missing
   }
 
-  const validateStep1 = () => {
-    const missing = []
-    if (!form.scheduleId) missing.push('Schedule')
-    return missing
-  }
-
   const handleSaveBusScreen = async () => {
     try {
       setSaving(true)
@@ -503,7 +352,6 @@ export default function AddBusScreenPage() {
         contactNumber: `+91 ${form.contactNumber}`,
         chassisNumber: form.chassisNumber.trim() || null,
         model: form.model || null,
-        scheduleId: form.scheduleId || null,
       }
 
       if (isEditMode) {
@@ -544,19 +392,15 @@ export default function AddBusScreenPage() {
         {/* Stepper */}
         <Stepper steps={STEPS} current={step} />
 
-        {/* 3-column layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* 2-column layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className={clsx('rounded-xl shadow-card border p-6 transition-colors', reviewed.has(0) ? 'bg-green-50/40 border-green-200' : 'bg-white border-slate-100')}>
             {reviewed.has(0) && <div className="flex items-center gap-1.5 mb-4 text-green-600"><Check size={14} /><span className="text-xs font-semibold">Reviewed</span></div>}
             <BusDetailsStep form={form} setForm={setForm} groups={groups} reviewed={reviewed.has(0)} />
           </div>
           <div className={clsx('rounded-xl shadow-card border p-6 transition-colors', reviewed.has(1) ? 'bg-green-50/40 border-green-200' : 'bg-white border-slate-100')}>
             {reviewed.has(1) && <div className="flex items-center gap-1.5 mb-4 text-green-600"><Check size={14} /><span className="text-xs font-semibold">Reviewed</span></div>}
-            <ScheduleStep form={form} setForm={setForm} schedules={schedules} reviewed={reviewed.has(1)} />
-          </div>
-          <div className={clsx('rounded-xl shadow-card border p-6 transition-colors', reviewed.has(2) ? 'bg-green-50/40 border-green-200' : 'bg-white border-slate-100')}>
-            {reviewed.has(2) && <div className="flex items-center gap-1.5 mb-4 text-green-600"><Check size={14} /><span className="text-xs font-semibold">Reviewed</span></div>}
-            <PreviewStep form={form} groups={groups} schedules={schedules} isEditMode={isEditMode} reviewed={reviewed.has(2)} />
+            <PreviewStep form={form} groups={groups} isEditMode={isEditMode} reviewed={reviewed.has(1)} />
           </div>
         </div>
 
@@ -586,7 +430,7 @@ export default function AddBusScreenPage() {
               disabled={isNextDisabled()}
               onClick={() => {
                 if (step < STEPS.length - 1) {
-                  const missing = step === 0 ? validateStep0() : validateStep1()
+                  const missing = validateStep0()
                   if (missing.length > 0) {
                     toast.error(`Please fill in: ${missing.join(', ')}`)
                     return
@@ -594,7 +438,7 @@ export default function AddBusScreenPage() {
                   setReviewed(prev => new Set([...prev, step]))
                   setStep(step + 1)
                 } else {
-                  const missing = [...validateStep0(), ...validateStep1()]
+                  const missing = validateStep0()
                   if (missing.length > 0) {
                     toast.error(`Please fill in: ${missing.join(', ')}`)
                     return

@@ -114,7 +114,6 @@ export default function GroupScreensPage() {
           chassisNumber: busData.chassisNumber,
           model: busData.model,
           routeId: busData.routeId,
-          scheduleId: busData.scheduleId,
         }).then(fetchGroupDetails).catch((err) => toast.error(err?.response?.data?.message || 'Failed to restore bus screen')) } : undefined,
         duration: 5000,
       })

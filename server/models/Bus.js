@@ -55,12 +55,6 @@ const Bus = sequelize.define('Bus', {
     type: DataTypes.UUID,
     allowNull: true,
     field: 'route_id',
-  },
-  scheduleId: {
-    type: DataTypes.UUID,
-    allowNull: true,
-    unique: true,
-    field: 'schedule_id',
   }
 }, {
   timestamps: true,

@@ -61,7 +61,7 @@ function LivePreview({ colors, logoPreview }) {
           style={{ backgroundColor: colors.sidebar_bg }}
         >
           <div className="flex items-center gap-1.5 mb-3" style={{ color: colors.brand_light }}>
-            <img src={logoPreview || '/logo.svg'} alt="logo" className="h-16 object-contain border-0 bg-transparent" />
+            <img src={logoPreview || '/logo.svg'} alt="logo" className="max-h-12 w-auto max-w-full object-contain border-0 bg-transparent" />
           </div>
           <div
             className="px-2 py-1.5 rounded-lg text-xs font-medium"

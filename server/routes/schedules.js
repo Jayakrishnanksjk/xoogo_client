@@ -1,5 +1,5 @@
 import express from 'express'
-import { Schedule, ScheduleRoute, Route, Bus, Group } from '../models/index.js'
+import { Schedule, ScheduleRoute, Route, Bus, BusSchedule } from '../models/index.js'
 import { authenticate } from '../middleware/auth.js'
 
 const router = express.Router()
@@ -15,7 +15,7 @@ router.get('/', async (req, res) => {
           model: ScheduleRoute, as: 'scheduleRoutes',
           include: [{ model: Route, as: 'route', attributes: ['id', 'name', 'code'] }]
         },
-        { model: Bus, as: 'assignedBus', attributes: ['id', 'regNumber'] }
+        { model: Bus, as: 'buses', attributes: ['id', 'regNumber'], through: { attributes: [] } }
       ],
       order: [['created_at', 'DESC']]
     })
@@ -35,7 +35,7 @@ router.get('/:id', async (req, res) => {
           model: ScheduleRoute, as: 'scheduleRoutes',
           include: [{ model: Route, as: 'route', attributes: ['id', 'name', 'code'] }]
         },
-        { model: Bus, as: 'assignedBus', attributes: ['id', 'regNumber'] }
+        { model: Bus, as: 'buses', attributes: ['id', 'regNumber'], through: { attributes: [] } }
       ]
     })
     if (!schedule) {
@@ -91,8 +91,7 @@ router.delete('/:id', async (req, res) => {
     if (!schedule) {
       return res.status(404).json({ message: 'Schedule not found.' })
     }
-    // Unassign from bus if assigned
-    await Bus.update({ scheduleId: null }, { where: { scheduleId: schedule.id } })
+    await BusSchedule.destroy({ where: { scheduleId: schedule.id } })
     await schedule.destroy()
     res.json({ message: 'Schedule deleted successfully.' })
   } catch (error) {
@@ -116,12 +115,10 @@ router.post('/:id/routes', async (req, res) => {
     if (!route) {
       return res.status(404).json({ message: 'Route not found.' })
     }
-    // Check if route already in schedule
     const existing = await ScheduleRoute.findOne({ where: { scheduleId: schedule.id, routeId } })
     if (existing) {
       return res.status(400).json({ message: 'Route is already in this schedule.' })
     }
-    // Get max sequence order
     const lastRoute = await ScheduleRoute.findOne({
       where: { scheduleId: schedule.id },
       order: [['sequence_order', 'DESC']]
@@ -213,7 +210,7 @@ router.delete('/:id/routes/:routeId', async (req, res) => {
   }
 })
 
-// POST /api/schedules/:id/assign - Assign schedule to a bus
+// POST /api/schedules/:id/assign - Assign schedule to a bus (many-to-many)
 router.post('/:id/assign', async (req, res) => {
   try {
     const schedule = await Schedule.findByPk(req.params.id)
@@ -228,42 +225,38 @@ router.post('/:id/assign', async (req, res) => {
     if (!bus) {
       return res.status(404).json({ message: 'Bus not found.' })
     }
-    // Check if schedule is already assigned to another bus
-    const existingBus = await Bus.findOne({ where: { scheduleId: schedule.id } })
-    if (existingBus && existingBus.id !== busId) {
-      return res.status(400).json({ message: 'This schedule is already assigned to another bus.' })
+    const existing = await BusSchedule.findOne({ where: { busId, scheduleId: schedule.id } })
+    if (existing) {
+      return res.status(400).json({ message: 'This bus is already assigned to this schedule.' })
     }
-    // Check if bus already has a different schedule
-    if (bus.scheduleId && bus.scheduleId !== schedule.id) {
-      return res.status(400).json({ message: 'This bus already has a different schedule assigned.' })
-    }
-    await bus.update({ scheduleId: schedule.id })
-    const fullBus = await Bus.findByPk(bus.id, {
+    await BusSchedule.create({ busId, scheduleId: schedule.id })
+    const updated = await Schedule.findByPk(schedule.id, {
       include: [
-        { model: Group, as: 'group', attributes: ['id', 'name'] },
-        { model: Schedule, as: 'schedule', attributes: ['id', 'name'] }
+        { model: ScheduleRoute, as: 'scheduleRoutes', include: [{ model: Route, as: 'route', attributes: ['id', 'name', 'code'] }] },
+        { model: Bus, as: 'buses', attributes: ['id', 'regNumber'], through: { attributes: [] } }
       ]
     })
-    res.json(fullBus)
+    res.json(updated)
   } catch (error) {
     console.error('Assign schedule to bus error:', error)
     res.status(500).json({ message: 'Internal server error.' })
   }
 })
 
-// DELETE /api/schedules/:id/assign - Unassign schedule from its bus
-router.delete('/:id/assign', async (req, res) => {
+// DELETE /api/schedules/:id/assign/:busId - Unassign a specific bus from a schedule
+router.delete('/:id/assign/:busId', async (req, res) => {
   try {
     const schedule = await Schedule.findByPk(req.params.id)
     if (!schedule) {
       return res.status(404).json({ message: 'Schedule not found.' })
     }
-    const bus = await Bus.findOne({ where: { scheduleId: schedule.id } })
-    if (!bus) {
-      return res.status(404).json({ message: 'Schedule is not assigned to any bus.' })
+    const deleted = await BusSchedule.destroy({
+      where: { scheduleId: schedule.id, busId: req.params.busId }
+    })
+    if (!deleted) {
+      return res.status(404).json({ message: 'Bus is not assigned to this schedule.' })
     }
-    await bus.update({ scheduleId: null })
-    res.json({ message: 'Schedule unassigned successfully.' })
+    res.json({ message: 'Bus unassigned from schedule successfully.' })
   } catch (error) {
     console.error('Unassign schedule error:', error)
     res.status(500).json({ message: 'Internal server error.' })
