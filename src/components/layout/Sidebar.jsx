@@ -3,7 +3,7 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   LayoutDashboard, Bus, Library, ListMusic,
-  MapPin, Users, LogOut, ChevronDown, Calendar, Palette
+  MapPin, Users, LogOut, ChevronDown, Palette
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useBranding } from '@/context/ThemeContext'
@@ -13,7 +13,6 @@ const NAV_SUPERADMIN = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/fleet', icon: Bus, label: 'Fleet' },
   { to: '/routes', icon: MapPin, label: 'Routes & Stops' },
-  { to: '/schedules', icon: Calendar, label: 'Route Schedules' },
   { to: '/media', icon: Library, label: 'Media Library' },
   { to: '/playlists', icon: ListMusic, label: 'Playlists' },
   { to: '/users', icon: Users, label: 'Users' },

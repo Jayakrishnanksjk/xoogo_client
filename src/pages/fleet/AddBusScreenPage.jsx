@@ -1,13 +1,13 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '@/components/layout/AppLayout'
-import { Stepper, Input, Select, Button, Badge } from '@/components/ui'
+import { Stepper, Input, Select, Button, Badge, Modal } from '@/components/ui'
 import clsx from 'clsx'
-import { ArrowRight, Info, CheckCircle, Bus, Check, User } from 'lucide-react'
-import { groupsApi, busesApi } from '@/api'
+import { ArrowRight, Check, User, Info, Plus, X, Calendar, Edit2, Trash2 } from 'lucide-react'
+import { groupsApi, busesApi, schedulesApi, routesApi } from '@/api'
 import { toast } from 'sonner'
 
-const STEPS = ['Bus Details', 'Preview & Complete']
+const STEPS = ['Bus Details', 'Bus Schedule', 'Preview & Complete']
 
 const BUS_TYPES = ['Limited stop', 'Local', 'City']
 
@@ -17,9 +17,34 @@ const BUS_TYPE_COLORS = {
   'City': 'bg-green-500',
 }
 
-const STOP_COLORS = [
-  'bg-brand', 'bg-purple-500', 'bg-amber-500', 'bg-green-500', 'bg-red-500', 'bg-pink-500', 'bg-teal-500', 'bg-orange-500'
-]
+const HOURS = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0'))
+const MINUTES = Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, '0'))
+
+function to24h(hour12, minute, ampm) {
+  if (!hour12 || !minute) return null
+  let hour = parseInt(hour12, 10)
+  if (ampm === 'PM' && hour !== 12) hour += 12
+  if (ampm === 'AM' && hour === 12) hour = 0
+  return `${String(hour).padStart(2, '0')}:${minute}:00`
+}
+
+function to12h(time24) {
+  if (!time24) return null
+  const [h, m] = time24.split(':')
+  const hour = parseInt(h, 10)
+  const ampm = hour >= 12 ? 'PM' : 'AM'
+  const hour12 = hour % 12 || 12
+  return `${hour12}:${m} ${ampm}`
+}
+
+function timePartsFrom24(time24) {
+  if (!time24) return { hour: '', minute: '', ampm: 'AM' }
+  const [h, m] = time24.split(':')
+  const hour = parseInt(h, 10)
+  const ampm = hour >= 12 ? 'PM' : 'AM'
+  const hour12 = hour % 12 || 12
+  return { hour: String(hour12).padStart(2, '0'), minute: m || '00', ampm }
+}
 
 function BusDetailsStep({ form, setForm, groups = [], reviewed }) {
   const tick = reviewed ? <Check size={14} className="text-green-500" /> : undefined
@@ -50,12 +75,6 @@ function BusDetailsStep({ form, setForm, groups = [], reviewed }) {
       setUseOwner(false)
     }
   }
-
-  // Reset when group changes
-  useEffect(() => {
-    setUseOwner(false)
-    setForm(f => ({ ...f, contactName: '', contactNumber: '' }))
-  }, [form.groupId])
 
   return (
     <div>
@@ -96,9 +115,18 @@ function BusDetailsStep({ form, setForm, groups = [], reviewed }) {
           <div>
             <Input
               label="SIM Number *"
-              placeholder="987654321012"
+              placeholder="98765 43210"
+              startIcon={
+                <div className="flex items-center pr-2 border-r border-slate-200 select-none">
+                  <span className="text-slate-500 text-sm font-semibold font-mono leading-none">+91</span>
+                </div>
+              }
+              className="pl-[60px]"
               value={form.simNumber}
-              onChange={e => setForm(f => ({ ...f, simNumber: e.target.value }))}
+              onChange={e => {
+                const val = e.target.value.replace(/\D/g, '').slice(0, 10)
+                setForm(f => ({ ...f, simNumber: val }))
+              }}
               suffix={tick}
             />
             <p className="text-[11px] text-slate-400 mt-1">Enter SIM number used for tracking</p>
@@ -201,7 +229,6 @@ function BusDetailsStep({ form, setForm, groups = [], reviewed }) {
           </div>
         )}
 
-        {/* Additional Information */}
         <div className="pt-2">
           <p className="text-xs font-medium text-slate-600 mb-3">Additional Information <span className="text-slate-400 font-normal">(Optional)</span></p>
           <div className="grid grid-cols-2 gap-4">
@@ -239,23 +266,510 @@ function BusDetailsStep({ form, setForm, groups = [], reviewed }) {
   )
 }
 
-function PreviewStep({ form, groups = [], isEditMode = false, reviewed }) {
+function BusScheduleStep({ schedulesList, setSchedulesList, reviewed }) {
+  const [editingIndex, setEditingIndex] = useState(null) // null = showing list, number = modal editing index
+  const [addRouteOpen, setAddRouteOpen] = useState(false)
+  const [availableRoutes, setAvailableRoutes] = useState([])
+  const [selectedRouteId, setSelectedRouteId] = useState('')
+  const [copyFromScheduleId, setCopyFromScheduleId] = useState('')
+  const [allSchedules, setAllSchedules] = useState([])
+  const [copying, setCopying] = useState(false)
+
+  // Existing schedule picker modal state
+  const [assignScheduleModalOpen, setAssignScheduleModalOpen] = useState(false)
+  const [existingSchedules, setExistingSchedules] = useState([])
+  const [selectedExistingScheduleId, setSelectedExistingScheduleId] = useState('')
+
+  const activeSchedule = editingIndex !== null ? schedulesList[editingIndex] : null
+
+  const updateActiveSchedule = (updater) => {
+    if (editingIndex === null) return
+    setSchedulesList(prev => prev.map((sch, i) => i === editingIndex ? (typeof updater === 'function' ? updater(sch) : { ...sch, ...updater }) : sch))
+  }
+
+  const sel = 'text-xs bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand hover:border-slate-300 transition-all duration-150 appearance-none cursor-pointer'
+  const arrow = `bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2210%22%20height%3D%226%22%20fill%3D%22%23949ba3%22%3E%3Cpath%20d%3D%22M0%200l5%206%205-6z%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[right_6px_center] bg-[length_10px_6px]`
+
+  const handleAddNewSchedule = () => {
+    const newSch = {
+      _scheduleId: null,
+      name: `Schedule ${schedulesList.filter(s => s.name.trim()).length + 1}`,
+      description: '',
+      startHour: '',
+      startMinute: '',
+      startAmPm: 'AM',
+      endHour: '',
+      endMinute: '',
+      endAmPm: 'AM',
+      routes: [],
+    }
+    const cleanList = schedulesList.filter(s => s.name.trim() || s._scheduleId)
+    setSchedulesList([...cleanList, newSch])
+    setEditingIndex(cleanList.length)
+  }
+
+  const handleOpenAssignExistingModal = async () => {
+    try {
+      const res = await schedulesApi.list()
+      const currentAssignedIds = new Set(schedulesList.map(s => s._scheduleId).filter(Boolean))
+      const available = res.data.filter(s => !currentAssignedIds.has(s.id))
+      setExistingSchedules(available)
+      setSelectedExistingScheduleId('')
+      setAssignScheduleModalOpen(true)
+    } catch (err) {
+      toast.error('Failed to load existing schedules')
+    }
+  }
+
+  const handleAssignExistingSchedule = async () => {
+    if (!selectedExistingScheduleId) {
+      toast.error('Please select a schedule')
+      return
+    }
+    const found = existingSchedules.find(s => s.id === selectedExistingScheduleId)
+    if (!found) return
+    try {
+      const fullRes = await schedulesApi.get(found.id)
+      const s = fullRes.data
+      const { hour: sh, minute: sm, ampm: sa } = timePartsFrom24(s.startTime)
+      const { hour: eh, minute: em, ampm: ea } = timePartsFrom24(s.endTime)
+      const formatted = {
+        _scheduleId: s.id,
+        name: s.name,
+        description: s.description || '',
+        startHour: sh,
+        startMinute: sm,
+        startAmPm: sa,
+        endHour: eh,
+        endMinute: em,
+        endAmPm: ea,
+        routes: (s.scheduleRoutes || [])
+          .sort((a, b) => a.sequenceOrder - b.sequenceOrder)
+          .map(sr => ({
+            routeId: sr.routeId,
+            route: sr.route,
+            sequenceOrder: sr.sequenceOrder,
+          })),
+      }
+      const cleanList = schedulesList.filter(sch => sch.name.trim() || sch._scheduleId)
+      setSchedulesList([...cleanList, formatted])
+      setAssignScheduleModalOpen(false)
+      toast.success(`Assigned schedule "${s.name}"`)
+    } catch (err) {
+      toast.error('Failed to load schedule details')
+    }
+  }
+
+  const handleRemoveSchedule = (index) => {
+    const validList = schedulesList.filter(s => s.name.trim() || s._scheduleId)
+    const updated = validList.filter((_, i) => i !== index)
+    setSchedulesList(updated.length === 0 ? [{
+      _scheduleId: null,
+      name: '',
+      description: '',
+      startHour: '',
+      startMinute: '',
+      startAmPm: 'AM',
+      endHour: '',
+      endMinute: '',
+      endAmPm: 'AM',
+      routes: [],
+    }] : updated)
+    if (editingIndex === index) {
+      setEditingIndex(null)
+    } else if (editingIndex > index) {
+      setEditingIndex(editingIndex - 1)
+    }
+    toast.success('Schedule removed')
+  }
+
+  const openAddRoute = async () => {
+    if (!activeSchedule) return
+    try {
+      const [routesRes, schedulesRes] = await Promise.all([
+        routesApi.list(),
+        schedulesApi.list()
+      ])
+      const scheduleRouteIds = new Set((activeSchedule.routes || []).map(r => r.routeId))
+      setAvailableRoutes(routesRes.data.filter(r => !scheduleRouteIds.has(r.id)))
+      setAllSchedules(schedulesRes.data.filter(s => s.id !== activeSchedule._scheduleId))
+      setSelectedRouteId('')
+      setCopyFromScheduleId('')
+      setAddRouteOpen(true)
+    } catch (err) {
+      toast.error('Failed to load routes')
+    }
+  }
+
+  const handleAddRoute = () => {
+    if (!selectedRouteId || !activeSchedule) {
+      toast.error('Please select a route')
+      return
+    }
+    const route = availableRoutes.find(r => r.id === selectedRouteId)
+    if (!route) return
+    const nextOrder = (activeSchedule.routes?.length || 0) + 1
+    updateActiveSchedule(f => ({
+      ...f,
+      routes: [...(f.routes || []), { routeId: selectedRouteId, route, sequenceOrder: nextOrder }]
+    }))
+    setAvailableRoutes(prev => prev.filter(r => r.id !== selectedRouteId))
+    setSelectedRouteId('')
+    setAddRouteOpen(false)
+    toast.success('Route added')
+  }
+
+  const handleCopyRoutes = async () => {
+    if (!copyFromScheduleId || !activeSchedule) {
+      toast.error('Please select a schedule to copy from')
+      return
+    }
+    try {
+      setCopying(true)
+      const res = await schedulesApi.get(copyFromScheduleId)
+      const sourceRoutes = res.data.scheduleRoutes || []
+      const existingIds = new Set((activeSchedule.routes || []).map(r => r.routeId))
+      let nextOrder = (activeSchedule.routes?.length || 0) + 1
+      const newRoutes = []
+      for (const sr of sourceRoutes.sort((a, b) => a.sequenceOrder - b.sequenceOrder)) {
+        if (!existingIds.has(sr.routeId)) {
+          newRoutes.push({ routeId: sr.routeId, route: sr.route, sequenceOrder: nextOrder++ })
+        }
+      }
+      if (newRoutes.length === 0) {
+        toast.error('All routes from that schedule are already added')
+        setCopying(false)
+        return
+      }
+      updateActiveSchedule(f => ({ ...f, routes: [...(f.routes || []), ...newRoutes] }))
+      setAddRouteOpen(false)
+      toast.success(`${newRoutes.length} routes copied`)
+    } catch (err) {
+      toast.error('Failed to copy routes')
+    } finally {
+      setCopying(false)
+    }
+  }
+
+  const handleRemoveRoute = (routeId) => {
+    if (!activeSchedule) return
+    updateActiveSchedule(f => ({
+      ...f,
+      routes: f.routes
+        .filter(r => r.routeId !== routeId)
+        .map((r, i) => ({ ...r, sequenceOrder: i + 1 }))
+    }))
+    setAvailableRoutes(prev => {
+      const removed = activeSchedule.routes.find(r => r.routeId === routeId)
+      if (removed) return [...prev, removed.route]
+      return prev
+    })
+    toast.success('Route removed')
+  }
+
+  const validSchedules = schedulesList.filter(s => s.name.trim() || s._scheduleId)
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h3 className="text-sm font-semibold text-slate-900 mb-1">2. Bus Schedules</h3>
+          <p className="text-xs text-slate-500">Currently assigned schedules for this bus screen.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={handleOpenAssignExistingModal}>
+            <Calendar className="mr-1 h-3.5 w-3.5" />
+            Assign Existing Schedule
+          </Button>
+          <Button size="sm" onClick={handleAddNewSchedule}>
+            <Plus className="mr-1 h-3.5 w-3.5" />
+            Create New Schedule
+          </Button>
+        </div>
+      </div>
+
+      {/* List of currently assigned schedules */}
+      <div className="space-y-3 mb-6">
+        {validSchedules.length === 0 ? (
+          <div className="text-center py-10 bg-slate-50 border border-dashed border-slate-200 rounded-xl">
+            <p className="text-xs text-slate-400">No schedules assigned to this bus screen yet.</p>
+          </div>
+        ) : (
+          validSchedules.map((sch, idx) => (
+            <div
+              key={idx}
+              className="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-xl hover:border-slate-300 transition-all shadow-xs"
+            >
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-slate-900">{sch.name || `Schedule #${idx + 1}`}</span>
+                  {sch._scheduleId && <Badge variant="secondary" className="text-[10px] py-0.5 px-2">Assigned</Badge>}
+                </div>
+                {sch.description && <p className="text-xs text-slate-500">{sch.description}</p>}
+                <div className="flex items-center gap-4 text-xs text-slate-400 pt-0.5 font-mono">
+                  <span>
+                    Time: {sch.startHour && sch.startMinute ? `${sch.startHour}:${sch.startMinute} ${sch.startAmPm}` : '--:--'} - {sch.endHour && sch.endMinute ? `${sch.endHour}:${sch.endMinute} ${sch.endAmPm}` : '--:--'}
+                  </span>
+                  <span>Routes: {sch.routes?.length || 0}</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingIndex(idx)}
+                  className="p-2 hover:bg-slate-100 rounded-lg text-slate-600 transition-colors flex items-center gap-1.5 text-xs font-medium border border-slate-200"
+                >
+                  <Edit2 size={14} className="text-brand" />
+                  <span>Edit Schedule</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveSchedule(idx)}
+                  className="p-2 hover:bg-red-50 rounded-lg text-slate-400 hover:text-red-500 transition-colors"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Edit Schedule Modal */}
+      <Modal open={editingIndex !== null} onClose={() => setEditingIndex(null)} title={activeSchedule?.name ? `Edit "${activeSchedule.name}"` : 'Schedule Details'} width="max-w-xl">
+        {activeSchedule && (
+          <div className="space-y-4 pt-1">
+            <Input
+              label="Schedule Name *"
+              placeholder="e.g. Morning Shift"
+              value={activeSchedule.name}
+              onChange={e => updateActiveSchedule({ name: e.target.value })}
+            />
+
+            <Input
+              label="Description (optional)"
+              placeholder="Brief description of the schedule"
+              value={activeSchedule.description}
+              onChange={e => updateActiveSchedule({ description: e.target.value })}
+            />
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="text-xs font-medium text-slate-600 mb-1.5">Start Time</p>
+                <div className="flex items-center gap-1.5">
+                  <select
+                    value={activeSchedule.startHour}
+                    onChange={e => updateActiveSchedule({ startHour: e.target.value })}
+                    className={`${sel} ${arrow} w-[4.25rem] pr-6`}
+                  >
+                    <option value="">--</option>
+                    {HOURS.map(h => <option key={h} value={h}>{h}</option>)}
+                  </select>
+                  <span className="text-slate-400 text-sm font-medium -mt-0.5">:</span>
+                  <select
+                    value={activeSchedule.startMinute}
+                    onChange={e => updateActiveSchedule({ startMinute: e.target.value })}
+                    className={`${sel} ${arrow} w-[4.25rem] pr-6`}
+                  >
+                    <option value="">--</option>
+                    {MINUTES.map(m => <option key={m} value={m}>{m}</option>)}
+                  </select>
+                  <select
+                    value={activeSchedule.startAmPm}
+                    onChange={e => updateActiveSchedule({ startAmPm: e.target.value })}
+                    className={`${sel} ${arrow} w-[4.5rem] pr-6`}
+                  >
+                    <option value="AM">AM</option>
+                    <option value="PM">PM</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-slate-600 mb-1.5">End Time</p>
+                <div className="flex items-center gap-1.5">
+                  <select
+                    value={activeSchedule.endHour}
+                    onChange={e => updateActiveSchedule({ endHour: e.target.value })}
+                    className={`${sel} ${arrow} w-[4.25rem] pr-6`}
+                  >
+                    <option value="">--</option>
+                    {HOURS.map(h => <option key={h} value={h}>{h}</option>)}
+                  </select>
+                  <span className="text-slate-400 text-sm font-medium -mt-0.5">:</span>
+                  <select
+                    value={activeSchedule.endMinute}
+                    onChange={e => updateActiveSchedule({ endMinute: e.target.value })}
+                    className={`${sel} ${arrow} w-[4.25rem] pr-6`}
+                  >
+                    <option value="">--</option>
+                    {MINUTES.map(m => <option key={m} value={m}>{m}</option>)}
+                  </select>
+                  <select
+                    value={activeSchedule.endAmPm}
+                    onChange={e => updateActiveSchedule({ endAmPm: e.target.value })}
+                    className={`${sel} ${arrow} w-[4.5rem] pr-6`}
+                  >
+                    <option value="AM">AM</option>
+                    <option value="PM">PM</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t border-slate-100 pt-4">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-semibold text-slate-700">Routes ({activeSchedule.routes?.length || 0})</p>
+                <Button size="sm" variant="outline" onClick={openAddRoute}>
+                  <Plus className="mr-1 h-3 w-3" />
+                  Add Route
+                </Button>
+              </div>
+
+              {(activeSchedule.routes || []).length === 0 ? (
+                <div className="text-center py-6 text-slate-400 text-xs bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                  No routes added yet.
+                </div>
+              ) : (
+                <div className="border border-slate-100 rounded-xl overflow-hidden bg-white">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-100">
+                        <th className="p-2.5 text-[11px] font-semibold text-slate-500 uppercase w-10">#</th>
+                        <th className="p-2.5 text-[11px] font-semibold text-slate-500 uppercase">Route Name</th>
+                        <th className="p-2.5 text-[11px] font-semibold text-slate-500 uppercase">Code</th>
+                        <th className="p-2.5 text-[11px] font-semibold text-slate-500 uppercase w-12"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {activeSchedule.routes.map((r) => (
+                        <tr key={r.routeId} className="border-b border-slate-50 hover:bg-slate-50/50">
+                          <td className="p-2.5 text-xs font-medium text-slate-500">{r.sequenceOrder}</td>
+                          <td className="p-2.5 text-xs text-slate-800 font-medium">{r.route?.name || 'Unknown'}</td>
+                          <td className="p-2.5 text-xs text-slate-400 font-mono">{r.route?.code || '—'}</td>
+                          <td className="p-2.5">
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveRoute(r.routeId)}
+                              className="p-1 hover:bg-red-50 rounded text-slate-400 hover:text-red-500 transition-colors"
+                            >
+                              <X size={14} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end pt-3">
+              <Button onClick={() => setEditingIndex(null)}>Done</Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Modal to add route */}
+      <Modal open={addRouteOpen} onClose={() => setAddRouteOpen(false)} title="Add Routes to Schedule" width="max-w-md">
+        <div className="space-y-5">
+          <div>
+            <p className="text-xs font-semibold text-slate-700 mb-2">Add a single route</p>
+            {availableRoutes.length === 0 ? (
+              <p className="text-sm text-slate-500">All available routes are already in this schedule.</p>
+            ) : (
+              <Select
+                label="Select Route"
+                value={selectedRouteId}
+                onChange={e => setSelectedRouteId(e.target.value)}
+              >
+                <option value="">-- Choose a route --</option>
+                {availableRoutes.map(r => (
+                  <option key={r.id} value={r.id}>{r.name} ({r.code})</option>
+                ))}
+              </Select>
+            )}
+            <div className="flex justify-end mt-2">
+              <Button onClick={handleAddRoute} disabled={!selectedRouteId} size="sm">Add Route</Button>
+            </div>
+          </div>
+
+          <div className="border-t border-slate-100" />
+
+          <div>
+            <p className="text-xs font-semibold text-slate-700 mb-2">Copy routes from another schedule</p>
+            {allSchedules.length === 0 ? (
+              <p className="text-sm text-slate-500">No other schedules available.</p>
+            ) : (
+              <Select
+                label="Source Schedule"
+                value={copyFromScheduleId}
+                onChange={e => setCopyFromScheduleId(e.target.value)}
+              >
+                <option value="">-- Choose a schedule --</option>
+                {allSchedules.map(s => (
+                  <option key={s.id} value={s.id}>{s.name} ({(s.scheduleRoutes || []).length} routes)</option>
+                ))}
+              </Select>
+            )}
+            <div className="flex justify-end mt-2">
+              <Button onClick={handleCopyRoutes} disabled={!copyFromScheduleId || copying} size="sm">
+                {copying ? 'Copying...' : 'Copy All Routes'}
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-1">
+            <Button variant="outline" onClick={() => setAddRouteOpen(false)}>Cancel</Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal to assign existing schedule */}
+      <Modal open={assignScheduleModalOpen} onClose={() => setAssignScheduleModalOpen(false)} title="Assign Existing Schedule" width="max-w-md">
+        <div className="space-y-4">
+          <p className="text-xs text-slate-500">Select an existing schedule from system to attach to this bus screen.</p>
+          {existingSchedules.length === 0 ? (
+            <p className="text-sm text-slate-500 py-4 text-center">No other unassigned schedules found.</p>
+          ) : (
+            <Select
+              label="Select Schedule"
+              value={selectedExistingScheduleId}
+              onChange={e => setSelectedExistingScheduleId(e.target.value)}
+            >
+              <option value="">-- Choose a schedule --</option>
+              {existingSchedules.map(s => (
+                <option key={s.id} value={s.id}>{s.name} {s.description ? `(${s.description})` : ''}</option>
+              ))}
+            </Select>
+          )}
+
+          <div className="flex justify-end gap-2 pt-3">
+            <Button variant="outline" onClick={() => setAssignScheduleModalOpen(false)}>Cancel</Button>
+            <Button onClick={handleAssignExistingSchedule} disabled={!selectedExistingScheduleId}>Assign Schedule</Button>
+          </div>
+        </div>
+      </Modal>
+    </div>
+  )
+}
+
+function PreviewStep({ form, groups = [], schedulesList = [], isEditMode = false }) {
   const selectedGroup = groups.find(g => String(g.id) === String(form.groupId))
 
   return (
     <div>
-      <h3 className="text-sm font-semibold text-slate-900 mb-1">2. Preview & Complete</h3>
+      <h3 className="text-sm font-semibold text-slate-900 mb-1">3. Preview & Complete</h3>
       <p className="text-xs text-slate-500 mb-5">Review all details before {isEditMode ? 'updating' : 'creating'} the bus screen.</p>
 
-      {/* Bus plate preview */}
       <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-6 mb-5 flex items-center justify-center">
         <div className="bg-brand/90 text-white px-6 py-3 rounded-lg border-2 border-white/20">
           <p className="text-lg font-bold tracking-wider">{form.regNumber || 'KL-XX-XXXX'}</p>
         </div>
       </div>
 
-      {/* Details table */}
-      <div className="space-y-2.5">
+      <div className="space-y-2.5 mb-5">
+        <p className="text-xs font-semibold text-slate-700 uppercase tracking-wider">Bus Details</p>
         {[
           ['Bus Group', selectedGroup?.name || '–'],
           ['Bus Type', form.busType || '–'],
@@ -269,6 +783,31 @@ function PreviewStep({ form, groups = [], isEditMode = false, reviewed }) {
           </div>
         ))}
       </div>
+
+      {schedulesList.filter(s => s.name.trim()).length > 0 && (
+        <div className="space-y-4">
+          <p className="text-xs font-semibold text-slate-700 uppercase tracking-wider">Schedules ({schedulesList.filter(s => s.name.trim()).length})</p>
+          {schedulesList.filter(s => s.name.trim()).map((sch, idx) => (
+            <div key={idx} className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-2">
+              <div className="flex items-center justify-between border-b border-slate-200 pb-1.5">
+                <span className="text-xs font-bold text-slate-800">{sch.name}</span>
+                {sch._scheduleId && <Badge variant="secondary" className="text-[10px] py-0 px-1">Existing Schedule</Badge>}
+              </div>
+              {[
+                ['Description', sch.description || '–'],
+                ['Start Time', sch.startHour && sch.startMinute ? `${sch.startHour}:${sch.startMinute} ${sch.startAmPm}` : '–'],
+                ['End Time', sch.endHour && sch.endMinute ? `${sch.endHour}:${sch.endMinute} ${sch.endAmPm}` : '–'],
+                ['Routes', sch.routes?.length ? sch.routes.map(r => r.route?.name || `Route #${r.routeId}`).join(', ') : 'None'],
+              ].map(([label, value]) => (
+                <div key={label} className="flex items-center justify-between text-xs">
+                  <span className="text-slate-500">{label}</span>
+                  <span className="font-medium text-slate-900">{value}</span>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -293,6 +832,21 @@ export default function AddBusScreenPage() {
     chassisNumber: '',
     model: '',
   })
+  const [schedulesList, setSchedulesList] = useState([
+    {
+      _scheduleId: null,
+      name: '',
+      description: '',
+      startHour: '',
+      startMinute: '',
+      startAmPm: 'AM',
+      endHour: '',
+      endMinute: '',
+      endAmPm: 'AM',
+      routes: [],
+    }
+  ])
+  const [originalScheduleIds, setOriginalScheduleIds] = useState(new Set())
 
   useEffect(() => {
     async function loadData() {
@@ -309,13 +863,52 @@ export default function AddBusScreenPage() {
           setForm({
             regNumber: busData.regNumber || '',
             groupId: busData.groupId ? String(busData.groupId) : '',
-            simNumber: busData.simNumber || '',
+            simNumber: busData.simNumber ? busData.simNumber.replace(/^\+91\s*/, '') : '',
             busType: busData.busType || '',
             contactName: busData.contactName || '',
             contactNumber: busData.contactNumber ? busData.contactNumber.replace(/^\+91\s*/, '') : '',
             chassisNumber: busData.chassisNumber || '',
             model: busData.model || '',
           })
+
+          const assignedSchedules = busData.schedules || []
+          if (assignedSchedules.length > 0) {
+            const loadedList = []
+            const origIds = new Set()
+            for (const schItem of assignedSchedules) {
+              origIds.add(schItem.id)
+              try {
+                const scheduleRes = await schedulesApi.get(schItem.id)
+                const s = scheduleRes.data
+                const { hour: sh, minute: sm, ampm: sa } = timePartsFrom24(s.startTime)
+                const { hour: eh, minute: em, ampm: ea } = timePartsFrom24(s.endTime)
+                loadedList.push({
+                  _scheduleId: s.id,
+                  name: s.name,
+                  description: s.description || '',
+                  startHour: sh,
+                  startMinute: sm,
+                  startAmPm: sa,
+                  endHour: eh,
+                  endMinute: em,
+                  endAmPm: ea,
+                  routes: (s.scheduleRoutes || [])
+                    .sort((a, b) => a.sequenceOrder - b.sequenceOrder)
+                    .map(sr => ({
+                      routeId: sr.routeId,
+                      route: sr.route,
+                      sequenceOrder: sr.sequenceOrder,
+                    })),
+                })
+              } catch {
+                // ignore failed schedule fetch
+              }
+            }
+            setOriginalScheduleIds(origIds)
+            if (loadedList.length > 0) {
+              setSchedulesList(loadedList)
+            }
+          }
         }
       } catch (err) {
         toast.error(isEditMode ? 'Failed to load bus screen details' : 'Failed to load data')
@@ -346,7 +939,7 @@ export default function AddBusScreenPage() {
       const payload = {
         regNumber: form.regNumber.trim(),
         groupId: form.groupId,
-        simNumber: form.simNumber.trim(),
+        simNumber: form.simNumber ? `+91 ${form.simNumber}` : '',
         busType: form.busType,
         contactName: form.contactName.trim(),
         contactNumber: `+91 ${form.contactNumber}`,
@@ -354,13 +947,82 @@ export default function AddBusScreenPage() {
         model: form.model || null,
       }
 
+      let busId = id
       if (isEditMode) {
         await busesApi.update(id, payload)
-        toast.success('Bus screen updated successfully')
       } else {
-        await busesApi.create(payload)
-        toast.success('Bus screen added successfully')
+        const busRes = await busesApi.create(payload)
+        busId = busRes.data.id
       }
+
+      // Process schedules
+      const currentScheduleIds = new Set(schedulesList.map(s => s._scheduleId).filter(Boolean))
+
+      // Unassign schedules that were removed in UI
+      if (isEditMode) {
+        for (const origId of originalScheduleIds) {
+          if (!currentScheduleIds.has(origId)) {
+            try {
+              await schedulesApi.unassignBus(origId, busId)
+            } catch {
+              // ignore unassign errors
+            }
+          }
+        }
+      }
+
+      // Save/Update each schedule in schedulesList
+      for (const sch of schedulesList) {
+        if (!sch.name.trim()) continue
+
+        let targetScheduleId = sch._scheduleId
+
+        if (targetScheduleId) {
+          // Update existing schedule
+          await schedulesApi.update(targetScheduleId, {
+            name: sch.name.trim(),
+            description: sch.description.trim() || undefined,
+            startTime: to24h(sch.startHour, sch.startMinute, sch.startAmPm) || undefined,
+            endTime: to24h(sch.endHour, sch.endMinute, sch.endAmPm) || undefined,
+          })
+          const existingRes = await schedulesApi.get(targetScheduleId)
+          const existingRouteIds = new Set((existingRes.data.scheduleRoutes || []).map(sr => sr.routeId))
+          const newRouteIds = new Set((sch.routes || []).map(r => r.routeId))
+
+          for (const sr of existingRes.data.scheduleRoutes || []) {
+            if (!newRouteIds.has(sr.routeId)) {
+              await schedulesApi.removeRoute(targetScheduleId, sr.routeId)
+            }
+          }
+          for (const r of sch.routes || []) {
+            if (!existingRouteIds.has(r.routeId)) {
+              await schedulesApi.addRoute(targetScheduleId, { routeId: r.routeId })
+            }
+          }
+          // Ensure bus is assigned to this schedule
+          try {
+            await schedulesApi.assignBus(targetScheduleId, { busId })
+          } catch {
+            // Already assigned or ignore error
+          }
+        } else {
+          // Create new schedule and assign
+          const scheduleRes = await schedulesApi.create({
+            name: sch.name.trim(),
+            description: sch.description.trim() || undefined,
+            startTime: to24h(sch.startHour, sch.startMinute, sch.startAmPm) || undefined,
+            endTime: to24h(sch.endHour, sch.endMinute, sch.endAmPm) || undefined,
+          })
+          targetScheduleId = scheduleRes.data.id
+
+          for (const r of sch.routes || []) {
+            await schedulesApi.addRoute(targetScheduleId, { routeId: r.routeId })
+          }
+          await schedulesApi.assignBus(targetScheduleId, { busId })
+        }
+      }
+
+      toast.success(isEditMode ? 'Bus screen updated successfully' : 'Bus screen added successfully')
       navigate(form.groupId ? `/fleet/group/${form.groupId}/screens` : '/fleet')
     } catch (err) {
       console.error('Failed to save bus screen:', err)
@@ -373,7 +1035,7 @@ export default function AddBusScreenPage() {
 
   if (loading) {
     return (
-      <AppLayout title={isEditMode ? "Edit Bus Screen" : "Add New Bus Screen"} subtitle={isEditMode ? "Fleet > Edit Bus Screen" : "Fleet > Add New Bus Screen"} showBack onBack={() => navigate(-1)}>
+      <AppLayout title={isEditMode ? 'Edit Bus Screen' : 'Add New Bus Screen'} subtitle={isEditMode ? 'Fleet > Edit Bus Screen' : 'Fleet > Add New Bus Screen'} showBack onBack={() => navigate(-1)}>
         <div className="flex justify-center items-center py-24">
           <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin" />
         </div>
@@ -383,28 +1045,21 @@ export default function AddBusScreenPage() {
 
   return (
     <AppLayout
-      title={isEditMode ? "Edit Bus Screen" : "Add New Bus Screen"}
-      subtitle={isEditMode ? "Fleet > Edit Bus Screen" : "Fleet > Add New Bus Screen"}
+      title={isEditMode ? 'Edit Bus Screen' : 'Add New Bus Screen'}
+      subtitle={isEditMode ? 'Fleet > Edit Bus Screen' : 'Fleet > Add New Bus Screen'}
       showBack
       onBack={() => navigate(form.groupId ? `/fleet/group/${form.groupId}/screens` : '/fleet')}
     >
       <div className="p-6 max-w-screen-xl">
-        {/* Stepper */}
         <Stepper steps={STEPS} current={step} />
 
-        {/* 2-column layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className={clsx('rounded-xl shadow-card border p-6 transition-colors', reviewed.has(0) ? 'bg-green-50/40 border-green-200' : 'bg-white border-slate-100')}>
-            {reviewed.has(0) && <div className="flex items-center gap-1.5 mb-4 text-green-600"><Check size={14} /><span className="text-xs font-semibold">Reviewed</span></div>}
-            <BusDetailsStep form={form} setForm={setForm} groups={groups} reviewed={reviewed.has(0)} />
-          </div>
-          <div className={clsx('rounded-xl shadow-card border p-6 transition-colors', reviewed.has(1) ? 'bg-green-50/40 border-green-200' : 'bg-white border-slate-100')}>
-            {reviewed.has(1) && <div className="flex items-center gap-1.5 mb-4 text-green-600"><Check size={14} /><span className="text-xs font-semibold">Reviewed</span></div>}
-            <PreviewStep form={form} groups={groups} isEditMode={isEditMode} reviewed={reviewed.has(1)} />
-          </div>
+        <div className={clsx('rounded-xl shadow-card border p-6 transition-colors', step === 0 && reviewed.has(0) ? 'bg-green-50/40 border-green-200' : 'bg-white border-slate-100')}>
+          {step === 0 && reviewed.has(0) && <div className="flex items-center gap-1.5 mb-4 text-green-600"><Check size={14} /><span className="text-xs font-semibold">Reviewed</span></div>}
+          {step === 0 && <BusDetailsStep form={form} setForm={setForm} groups={groups} reviewed={reviewed.has(0)} />}
+          {step === 1 && <BusScheduleStep schedulesList={schedulesList} setSchedulesList={setSchedulesList} reviewed={reviewed.has(1)} />}
+          {step === 2 && <PreviewStep form={form} groups={groups} schedulesList={schedulesList} isEditMode={isEditMode} />}
         </div>
 
-        {/* Bottom action bar */}
         <div className="flex items-center justify-between mt-6 pt-5 border-t border-slate-200">
           {step > 0 ? (
             <Button
@@ -424,16 +1079,22 @@ export default function AddBusScreenPage() {
           <div className="flex items-center gap-3">
             <Button variant="secondary" label="Save as Draft" disabled={saving} />
             <Button
-              label={step < STEPS.length - 1 ? 'Review & Complete' : (isEditMode ? 'Save Changes' : 'Create Bus Screen')}
+              label={
+                step < STEPS.length - 1
+                  ? step === 0 ? 'Next: Bus Schedule' : 'Next: Preview'
+                  : (isEditMode ? 'Save Changes' : 'Create Bus Screen')
+              }
               endIcon={step < STEPS.length - 1 ? ArrowRight : Check}
               loading={saving}
               disabled={isNextDisabled()}
               onClick={() => {
                 if (step < STEPS.length - 1) {
-                  const missing = validateStep0()
-                  if (missing.length > 0) {
-                    toast.error(`Please fill in: ${missing.join(', ')}`)
-                    return
+                  if (step === 0) {
+                    const missing = validateStep0()
+                    if (missing.length > 0) {
+                      toast.error(`Please fill in: ${missing.join(', ')}`)
+                      return
+                    }
                   }
                   setReviewed(prev => new Set([...prev, step]))
                   setStep(step + 1)

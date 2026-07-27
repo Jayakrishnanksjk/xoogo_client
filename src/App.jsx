@@ -9,7 +9,6 @@ import FleetPage from '@/pages/fleet/FleetPage'
 import GroupScreensPage from '@/pages/fleet/GroupScreensPage'
 import RoutesPage from '@/pages/routes/RoutesPage'
 import AddRoutePage from '@/pages/routes/AddRoutePage'
-import SchedulesPage from '@/pages/schedules/SchedulesPage'
 import UsersPage from '@/pages/users/UsersPage'
 import AddGroupPage from '@/pages/fleet/AddGroupPage'
 import AddBusScreenPage from '@/pages/fleet/AddBusScreenPage'
@@ -19,6 +18,8 @@ import PlaylistsPage from '@/pages/playlists/PlaylistsPage'
 import BrandingSettingsPage from '@/pages/settings/BrandingSettingsPage'
 
 export default function App() {
+
+  
   return (
     <AuthProvider>
       <BrowserRouter>
@@ -45,7 +46,6 @@ export default function App() {
               <Route path="/routes" element={<RoutesPage />} />
               <Route path="/routes/add" element={<AddRoutePage />} />
               <Route path="/routes/edit/:id" element={<AddRoutePage />} />
-              <Route path="/schedules" element={<SchedulesPage />} />
               <Route path="/users" element={<UsersPage />} />
               <Route path="/settings/branding" element={<BrandingSettingsPage />} />
             </Route>
