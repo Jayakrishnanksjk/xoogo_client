@@ -46,7 +46,7 @@ function timePartsFrom24(time24) {
   return { hour: String(hour12).padStart(2, '0'), minute: m || '00', ampm }
 }
 
-function BusDetailsStep({ form, setForm, groups = [], reviewed }) {
+function BusDetailsStep({ form, setForm, groups = [], allRoutes = [], reviewed }) {
   const tick = reviewed ? <Check size={14} className="text-green-500" /> : undefined
   const selectedGroup = groups.find(g => String(g.id) === String(form.groupId))
   const groupOwner = selectedGroup?.owner
@@ -252,6 +252,19 @@ function BusDetailsStep({ form, setForm, groups = [], reviewed }) {
               />
               <p className="text-[11px] text-slate-400 mt-1">Enter bus model</p>
             </div>
+          </div>
+          <div className="mt-4">
+            <Select
+              label="Route"
+              value={form.routeId || ''}
+              onChange={e => setForm(f => ({ ...f, routeId: e.target.value }))}
+            >
+              <option value="">No route assigned</option>
+              {allRoutes.map(r => (
+                <option key={r.id} value={r.id}>{r.name} ({r.code})</option>
+              ))}
+            </Select>
+            <p className="text-[11px] text-slate-400 mt-1">Assign this bus screen to a route (optional)</p>
           </div>
         </div>
 
@@ -583,8 +596,9 @@ const validSchedules = schedulesList.filter(s => s.name.trim() || s._scheduleId)
   )
 }
 
-function PreviewStep({ form, groups = [], schedulesList = [], isEditMode = false }) {
+function PreviewStep({ form, groups = [], schedulesList = [], allRoutes = [], isEditMode = false }) {
   const selectedGroup = groups.find(g => String(g.id) === String(form.groupId))
+  const selectedRoute = allRoutes.find(r => r.id === form.routeId)
 
   return (
     <div>
@@ -605,6 +619,7 @@ function PreviewStep({ form, groups = [], schedulesList = [], isEditMode = false
           ['SIM Number', form.simNumber || '–'],
           ['Contact Person', form.contactName || '–'],
           ['Contact Number', form.contactNumber ? `+91 ${form.contactNumber}` : '–'],
+          ['Route', form.routeId ? (selectedRoute?.name || form.routeId) : 'None'],
         ].map(([label, value]) => (
           <div key={label} className="flex items-center justify-between py-1.5 border-b border-slate-100">
             <span className="text-xs text-slate-500">{label}</span>
@@ -660,7 +675,9 @@ export default function AddBusScreenPage() {
     contactNumber: '',
     chassisNumber: '',
     model: '',
+    routeId: '',
   })
+  const [allRoutes, setAllRoutes] = useState([])
   const [schedulesList, setSchedulesList] = useState([
     {
       _scheduleId: null,
@@ -682,10 +699,12 @@ export default function AddBusScreenPage() {
     async function loadData() {
       try {
         setLoading(true)
-        const [groupsRes] = await Promise.all([
-          groupsApi.list()
+        const [groupsRes, routesRes] = await Promise.all([
+          groupsApi.list(),
+          routesApi.list()
         ])
         setGroups(groupsRes.data)
+        setAllRoutes(routesRes.data)
 
         if (isEditMode) {
           const busRes = await busesApi.get(id)
@@ -699,6 +718,7 @@ export default function AddBusScreenPage() {
             contactNumber: busData.contactNumber ? busData.contactNumber.replace(/^\+91\s*/, '') : '',
             chassisNumber: busData.chassisNumber || '',
             model: busData.model || '',
+            routeId: busData.routeId || '',
           })
 
           const assignedSchedules = busData.schedules || []
@@ -764,12 +784,13 @@ export default function AddBusScreenPage() {
       const payload = {
         regNumber: form.regNumber.trim(),
         groupId: form.groupId,
-        simNumber: form.simNumber ? `+91 ${form.simNumber}` : '',
+        simNumber: form.simNumber.trim(),
         busType: form.busType,
         contactName: form.contactName.trim(),
         contactNumber: `+91 ${form.contactNumber}`,
         chassisNumber: form.chassisNumber.trim() || null,
         model: form.model || null,
+        routeId: form.routeId || null,
       }
 
       let busId = id
@@ -875,9 +896,9 @@ export default function AddBusScreenPage() {
 
         <div className={clsx('rounded-xl shadow-card border p-6 transition-colors', step === 0 && reviewed.has(0) ? 'bg-green-50/40 border-green-200' : 'bg-white border-slate-100')}>
           {step === 0 && reviewed.has(0) && <div className="flex items-center gap-1.5 mb-4 text-green-600"><Check size={14} /><span className="text-xs font-semibold">Reviewed</span></div>}
-          {step === 0 && <BusDetailsStep form={form} setForm={setForm} groups={groups} reviewed={reviewed.has(0)} />}
+          {step === 0 && <BusDetailsStep form={form} setForm={setForm} groups={groups} allRoutes={allRoutes} reviewed={reviewed.has(0)} />}
           {step === 1 && <BusScheduleStep schedulesList={schedulesList} setSchedulesList={setSchedulesList} reviewed={reviewed.has(1)} />}
-          {step === 2 && <PreviewStep form={form} groups={groups} schedulesList={schedulesList} isEditMode={isEditMode} />}
+          {step === 2 && <PreviewStep form={form} groups={groups} schedulesList={schedulesList} allRoutes={allRoutes} isEditMode={isEditMode} />}
         </div>
 
         <div className="flex items-center justify-between mt-6 pt-5 border-t border-slate-200">
