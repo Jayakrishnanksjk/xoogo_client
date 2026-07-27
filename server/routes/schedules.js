@@ -100,14 +100,14 @@ router.delete('/:id', async (req, res) => {
   }
 })
 
-// POST /api/schedules/:id/routes - Add a route to a schedule
+// POST /api/schedules/:id/routes - Add/replace a route on a schedule
 router.post('/:id/routes', async (req, res) => {
   try {
     const schedule = await Schedule.findByPk(req.params.id)
     if (!schedule) {
       return res.status(404).json({ message: 'Schedule not found.' })
     }
-    const { routeId } = req.body
+    const { routeId, replace } = req.body
     if (!routeId) {
       return res.status(400).json({ message: 'routeId is required.' })
     }
@@ -115,19 +115,18 @@ router.post('/:id/routes', async (req, res) => {
     if (!route) {
       return res.status(404).json({ message: 'Route not found.' })
     }
-    const existing = await ScheduleRoute.findOne({ where: { scheduleId: schedule.id, routeId } })
-    if (existing) {
-      return res.status(400).json({ message: 'Route is already in this schedule.' })
+    if (replace) {
+      await ScheduleRoute.destroy({ where: { scheduleId: schedule.id } })
+    } else {
+      const existing = await ScheduleRoute.findOne({ where: { scheduleId: schedule.id, routeId } })
+      if (existing) {
+        return res.status(400).json({ message: 'Route is already in this schedule.' })
+      }
     }
-    const lastRoute = await ScheduleRoute.findOne({
-      where: { scheduleId: schedule.id },
-      order: [['sequence_order', 'DESC']]
-    })
-    const nextOrder = lastRoute ? lastRoute.sequenceOrder + 1 : 1
     const scheduleRoute = await ScheduleRoute.create({
       scheduleId: schedule.id,
       routeId,
-      sequenceOrder: nextOrder
+      sequenceOrder: 1,
     })
     const full = await ScheduleRoute.findByPk(scheduleRoute.id, {
       include: [{ model: Route, as: 'route', attributes: ['id', 'name', 'code'] }]

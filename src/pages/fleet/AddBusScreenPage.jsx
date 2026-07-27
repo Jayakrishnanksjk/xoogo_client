@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '@/components/layout/AppLayout'
 import { Stepper, Input, Select, Button, Badge, Modal } from '@/components/ui'
 import clsx from 'clsx'
-import { ArrowRight, Check, User, Info, Plus, X, Calendar, Edit2, Trash2 } from 'lucide-react'
+import { ArrowRight, Check, User, Info, Plus, Calendar, Edit2, Trash2 } from 'lucide-react'
 import { groupsApi, busesApi, schedulesApi, routesApi } from '@/api'
 import { toast } from 'sonner'
 
@@ -267,13 +267,8 @@ function BusDetailsStep({ form, setForm, groups = [], reviewed }) {
 }
 
 function BusScheduleStep({ schedulesList, setSchedulesList, reviewed }) {
-  const [editingIndex, setEditingIndex] = useState(null) // null = showing list, number = modal editing index
-  const [addRouteOpen, setAddRouteOpen] = useState(false)
-  const [availableRoutes, setAvailableRoutes] = useState([])
-  const [selectedRouteId, setSelectedRouteId] = useState('')
-  const [copyFromScheduleId, setCopyFromScheduleId] = useState('')
-  const [allSchedules, setAllSchedules] = useState([])
-  const [copying, setCopying] = useState(false)
+  const [editingIndex, setEditingIndex] = useState(null)
+  const [allRoutes, setAllRoutes] = useState([])
 
   // Existing schedule picker modal state
   const [assignScheduleModalOpen, setAssignScheduleModalOpen] = useState(false)
@@ -286,6 +281,10 @@ function BusScheduleStep({ schedulesList, setSchedulesList, reviewed }) {
     if (editingIndex === null) return
     setSchedulesList(prev => prev.map((sch, i) => i === editingIndex ? (typeof updater === 'function' ? updater(sch) : { ...sch, ...updater }) : sch))
   }
+
+  useEffect(() => {
+    routesApi.list().then(res => setAllRoutes(res.data)).catch(() => {})
+  }, [])
 
   const sel = 'text-xs bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand hover:border-slate-300 transition-all duration-150 appearance-none cursor-pointer'
   const arrow = `bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2210%22%20height%3D%226%22%20fill%3D%22%23949ba3%22%3E%3Cpath%20d%3D%22M0%200l5%206%205-6z%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[right_6px_center] bg-[length_10px_6px]`
@@ -301,7 +300,8 @@ function BusScheduleStep({ schedulesList, setSchedulesList, reviewed }) {
       endHour: '',
       endMinute: '',
       endAmPm: 'AM',
-      routes: [],
+      routeId: '',
+      route: null,
     }
     const cleanList = schedulesList.filter(s => s.name.trim() || s._scheduleId)
     setSchedulesList([...cleanList, newSch])
@@ -343,13 +343,8 @@ function BusScheduleStep({ schedulesList, setSchedulesList, reviewed }) {
         endHour: eh,
         endMinute: em,
         endAmPm: ea,
-        routes: (s.scheduleRoutes || [])
-          .sort((a, b) => a.sequenceOrder - b.sequenceOrder)
-          .map(sr => ({
-            routeId: sr.routeId,
-            route: sr.route,
-            sequenceOrder: sr.sequenceOrder,
-          })),
+        routeId: s.scheduleRoutes?.[0]?.routeId || '',
+        route: s.scheduleRoutes?.[0]?.route || null,
       }
       const cleanList = schedulesList.filter(sch => sch.name.trim() || sch._scheduleId)
       setSchedulesList([...cleanList, formatted])
@@ -373,7 +368,8 @@ function BusScheduleStep({ schedulesList, setSchedulesList, reviewed }) {
       endHour: '',
       endMinute: '',
       endAmPm: 'AM',
-      routes: [],
+      routeId: '',
+      route: null,
     }] : updated)
     if (editingIndex === index) {
       setEditingIndex(null)
@@ -383,91 +379,7 @@ function BusScheduleStep({ schedulesList, setSchedulesList, reviewed }) {
     toast.success('Schedule removed')
   }
 
-  const openAddRoute = async () => {
-    if (!activeSchedule) return
-    try {
-      const [routesRes, schedulesRes] = await Promise.all([
-        routesApi.list(),
-        schedulesApi.list()
-      ])
-      const scheduleRouteIds = new Set((activeSchedule.routes || []).map(r => r.routeId))
-      setAvailableRoutes(routesRes.data.filter(r => !scheduleRouteIds.has(r.id)))
-      setAllSchedules(schedulesRes.data.filter(s => s.id !== activeSchedule._scheduleId))
-      setSelectedRouteId('')
-      setCopyFromScheduleId('')
-      setAddRouteOpen(true)
-    } catch (err) {
-      toast.error('Failed to load routes')
-    }
-  }
-
-  const handleAddRoute = () => {
-    if (!selectedRouteId || !activeSchedule) {
-      toast.error('Please select a route')
-      return
-    }
-    const route = availableRoutes.find(r => r.id === selectedRouteId)
-    if (!route) return
-    const nextOrder = (activeSchedule.routes?.length || 0) + 1
-    updateActiveSchedule(f => ({
-      ...f,
-      routes: [...(f.routes || []), { routeId: selectedRouteId, route, sequenceOrder: nextOrder }]
-    }))
-    setAvailableRoutes(prev => prev.filter(r => r.id !== selectedRouteId))
-    setSelectedRouteId('')
-    setAddRouteOpen(false)
-    toast.success('Route added')
-  }
-
-  const handleCopyRoutes = async () => {
-    if (!copyFromScheduleId || !activeSchedule) {
-      toast.error('Please select a schedule to copy from')
-      return
-    }
-    try {
-      setCopying(true)
-      const res = await schedulesApi.get(copyFromScheduleId)
-      const sourceRoutes = res.data.scheduleRoutes || []
-      const existingIds = new Set((activeSchedule.routes || []).map(r => r.routeId))
-      let nextOrder = (activeSchedule.routes?.length || 0) + 1
-      const newRoutes = []
-      for (const sr of sourceRoutes.sort((a, b) => a.sequenceOrder - b.sequenceOrder)) {
-        if (!existingIds.has(sr.routeId)) {
-          newRoutes.push({ routeId: sr.routeId, route: sr.route, sequenceOrder: nextOrder++ })
-        }
-      }
-      if (newRoutes.length === 0) {
-        toast.error('All routes from that schedule are already added')
-        setCopying(false)
-        return
-      }
-      updateActiveSchedule(f => ({ ...f, routes: [...(f.routes || []), ...newRoutes] }))
-      setAddRouteOpen(false)
-      toast.success(`${newRoutes.length} routes copied`)
-    } catch (err) {
-      toast.error('Failed to copy routes')
-    } finally {
-      setCopying(false)
-    }
-  }
-
-  const handleRemoveRoute = (routeId) => {
-    if (!activeSchedule) return
-    updateActiveSchedule(f => ({
-      ...f,
-      routes: f.routes
-        .filter(r => r.routeId !== routeId)
-        .map((r, i) => ({ ...r, sequenceOrder: i + 1 }))
-    }))
-    setAvailableRoutes(prev => {
-      const removed = activeSchedule.routes.find(r => r.routeId === routeId)
-      if (removed) return [...prev, removed.route]
-      return prev
-    })
-    toast.success('Route removed')
-  }
-
-  const validSchedules = schedulesList.filter(s => s.name.trim() || s._scheduleId)
+const validSchedules = schedulesList.filter(s => s.name.trim() || s._scheduleId)
 
   return (
     <div>
@@ -510,7 +422,7 @@ function BusScheduleStep({ schedulesList, setSchedulesList, reviewed }) {
                   <span>
                     Time: {sch.startHour && sch.startMinute ? `${sch.startHour}:${sch.startMinute} ${sch.startAmPm}` : '--:--'} - {sch.endHour && sch.endMinute ? `${sch.endHour}:${sch.endMinute} ${sch.endAmPm}` : '--:--'}
                   </span>
-                  <span>Routes: {sch.routes?.length || 0}</span>
+                  <span>Route: {sch.route?.name || sch.routeId || 'None'}</span>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -617,50 +529,22 @@ function BusScheduleStep({ schedulesList, setSchedulesList, reviewed }) {
             </div>
 
             <div className="border-t border-slate-100 pt-4">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-xs font-semibold text-slate-700">Routes ({activeSchedule.routes?.length || 0})</p>
-                <Button size="sm" variant="outline" onClick={openAddRoute}>
-                  <Plus className="mr-1 h-3 w-3" />
-                  Add Route
-                </Button>
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-slate-600">Route</p>
+                <Select
+                  value={activeSchedule.routeId || ''}
+                  onChange={e => {
+                    const route = allRoutes.find(r => r.id === e.target.value)
+                    updateActiveSchedule({ routeId: e.target.value, route: route || null })
+                  }}
+                >
+                  <option value="">No route selected</option>
+                  {allRoutes.map(r => (
+                    <option key={r.id} value={r.id}>{r.name} ({r.code})</option>
+                  ))}
+                </Select>
+                <p className="text-[11px] text-slate-400">Select the route for this schedule</p>
               </div>
-
-              {(activeSchedule.routes || []).length === 0 ? (
-                <div className="text-center py-6 text-slate-400 text-xs bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                  No routes added yet.
-                </div>
-              ) : (
-                <div className="border border-slate-100 rounded-xl overflow-hidden bg-white">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="bg-slate-50 border-b border-slate-100">
-                        <th className="p-2.5 text-[11px] font-semibold text-slate-500 uppercase w-10">#</th>
-                        <th className="p-2.5 text-[11px] font-semibold text-slate-500 uppercase">Route Name</th>
-                        <th className="p-2.5 text-[11px] font-semibold text-slate-500 uppercase">Code</th>
-                        <th className="p-2.5 text-[11px] font-semibold text-slate-500 uppercase w-12"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {activeSchedule.routes.map((r) => (
-                        <tr key={r.routeId} className="border-b border-slate-50 hover:bg-slate-50/50">
-                          <td className="p-2.5 text-xs font-medium text-slate-500">{r.sequenceOrder}</td>
-                          <td className="p-2.5 text-xs text-slate-800 font-medium">{r.route?.name || 'Unknown'}</td>
-                          <td className="p-2.5 text-xs text-slate-400 font-mono">{r.route?.code || '—'}</td>
-                          <td className="p-2.5">
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveRoute(r.routeId)}
-                              className="p-1 hover:bg-red-50 rounded text-slate-400 hover:text-red-500 transition-colors"
-                            >
-                              <X size={14} />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
             </div>
 
             <div className="flex justify-end pt-3">
@@ -668,61 +552,6 @@ function BusScheduleStep({ schedulesList, setSchedulesList, reviewed }) {
             </div>
           </div>
         )}
-      </Modal>
-
-      {/* Modal to add route */}
-      <Modal open={addRouteOpen} onClose={() => setAddRouteOpen(false)} title="Add Routes to Schedule" width="max-w-md">
-        <div className="space-y-5">
-          <div>
-            <p className="text-xs font-semibold text-slate-700 mb-2">Add a single route</p>
-            {availableRoutes.length === 0 ? (
-              <p className="text-sm text-slate-500">All available routes are already in this schedule.</p>
-            ) : (
-              <Select
-                label="Select Route"
-                value={selectedRouteId}
-                onChange={e => setSelectedRouteId(e.target.value)}
-              >
-                <option value="">-- Choose a route --</option>
-                {availableRoutes.map(r => (
-                  <option key={r.id} value={r.id}>{r.name} ({r.code})</option>
-                ))}
-              </Select>
-            )}
-            <div className="flex justify-end mt-2">
-              <Button onClick={handleAddRoute} disabled={!selectedRouteId} size="sm">Add Route</Button>
-            </div>
-          </div>
-
-          <div className="border-t border-slate-100" />
-
-          <div>
-            <p className="text-xs font-semibold text-slate-700 mb-2">Copy routes from another schedule</p>
-            {allSchedules.length === 0 ? (
-              <p className="text-sm text-slate-500">No other schedules available.</p>
-            ) : (
-              <Select
-                label="Source Schedule"
-                value={copyFromScheduleId}
-                onChange={e => setCopyFromScheduleId(e.target.value)}
-              >
-                <option value="">-- Choose a schedule --</option>
-                {allSchedules.map(s => (
-                  <option key={s.id} value={s.id}>{s.name} ({(s.scheduleRoutes || []).length} routes)</option>
-                ))}
-              </Select>
-            )}
-            <div className="flex justify-end mt-2">
-              <Button onClick={handleCopyRoutes} disabled={!copyFromScheduleId || copying} size="sm">
-                {copying ? 'Copying...' : 'Copy All Routes'}
-              </Button>
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-2 pt-1">
-            <Button variant="outline" onClick={() => setAddRouteOpen(false)}>Cancel</Button>
-          </div>
-        </div>
       </Modal>
 
       {/* Modal to assign existing schedule */}
@@ -797,7 +626,7 @@ function PreviewStep({ form, groups = [], schedulesList = [], isEditMode = false
                 ['Description', sch.description || '–'],
                 ['Start Time', sch.startHour && sch.startMinute ? `${sch.startHour}:${sch.startMinute} ${sch.startAmPm}` : '–'],
                 ['End Time', sch.endHour && sch.endMinute ? `${sch.endHour}:${sch.endMinute} ${sch.endAmPm}` : '–'],
-                ['Routes', sch.routes?.length ? sch.routes.map(r => r.route?.name || `Route #${r.routeId}`).join(', ') : 'None'],
+                ['Route', sch.route?.name || sch.routeId || 'None'],
               ].map(([label, value]) => (
                 <div key={label} className="flex items-center justify-between text-xs">
                   <span className="text-slate-500">{label}</span>
@@ -843,7 +672,8 @@ export default function AddBusScreenPage() {
       endHour: '',
       endMinute: '',
       endAmPm: 'AM',
-      routes: [],
+      routeId: '',
+      route: null,
     }
   ])
   const [originalScheduleIds, setOriginalScheduleIds] = useState(new Set())
@@ -892,13 +722,8 @@ export default function AddBusScreenPage() {
                   endHour: eh,
                   endMinute: em,
                   endAmPm: ea,
-                  routes: (s.scheduleRoutes || [])
-                    .sort((a, b) => a.sequenceOrder - b.sequenceOrder)
-                    .map(sr => ({
-                      routeId: sr.routeId,
-                      route: sr.route,
-                      sequenceOrder: sr.sequenceOrder,
-                    })),
+                  routeId: s.scheduleRoutes?.[0]?.routeId || '',
+                  route: s.scheduleRoutes?.[0]?.route || null,
                 })
               } catch {
                 // ignore failed schedule fetch
@@ -985,18 +810,13 @@ export default function AddBusScreenPage() {
             startTime: to24h(sch.startHour, sch.startMinute, sch.startAmPm) || undefined,
             endTime: to24h(sch.endHour, sch.endMinute, sch.endAmPm) || undefined,
           })
-          const existingRes = await schedulesApi.get(targetScheduleId)
-          const existingRouteIds = new Set((existingRes.data.scheduleRoutes || []).map(sr => sr.routeId))
-          const newRouteIds = new Set((sch.routes || []).map(r => r.routeId))
-
-          for (const sr of existingRes.data.scheduleRoutes || []) {
-            if (!newRouteIds.has(sr.routeId)) {
+          // Replace route on existing schedule (single route)
+          if (sch.routeId) {
+            await schedulesApi.addRoute(targetScheduleId, { routeId: sch.routeId, replace: true })
+          } else {
+            const existingRes = await schedulesApi.get(targetScheduleId)
+            for (const sr of existingRes.data.scheduleRoutes || []) {
               await schedulesApi.removeRoute(targetScheduleId, sr.routeId)
-            }
-          }
-          for (const r of sch.routes || []) {
-            if (!existingRouteIds.has(r.routeId)) {
-              await schedulesApi.addRoute(targetScheduleId, { routeId: r.routeId })
             }
           }
           // Ensure bus is assigned to this schedule
@@ -1015,8 +835,8 @@ export default function AddBusScreenPage() {
           })
           targetScheduleId = scheduleRes.data.id
 
-          for (const r of sch.routes || []) {
-            await schedulesApi.addRoute(targetScheduleId, { routeId: r.routeId })
+          if (sch.routeId) {
+            await schedulesApi.addRoute(targetScheduleId, { routeId: sch.routeId })
           }
           await schedulesApi.assignBus(targetScheduleId, { busId })
         }
