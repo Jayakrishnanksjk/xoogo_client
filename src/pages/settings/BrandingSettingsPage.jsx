@@ -60,8 +60,8 @@ function LivePreview({ colors, logoPreview }) {
           className="w-[140px] shrink-0 p-3 flex flex-col gap-2"
           style={{ backgroundColor: colors.sidebar_bg }}
         >
-          <div className="flex items-center gap-1.5 mb-3" style={{ color: colors.brand_light }}>
-            <img src={logoPreview || '/logo.svg'} alt="logo" className="max-h-12 w-auto max-w-full object-contain border-0 bg-transparent" />
+          <div className="flex items-center justify-start h-16 w-full mb-3" style={{ color: colors.brand_light }}>
+            <img src={logoPreview || '/logo.svg'} alt="logo" className="h-full w-auto max-w-full object-contain object-left border-0 bg-transparent" />
           </div>
           <div
             className="px-2 py-1.5 rounded-lg text-xs font-medium"
@@ -218,7 +218,7 @@ export default function BrandingSettingsPage() {
                 onClick={() => fileInputRef.current?.click()}
               >
                 {displayLogo ? (
-                  <img src={displayLogo} alt="Logo preview" className="max-w-full max-h-full object-contain p-2" />
+                  <img src={displayLogo} alt="Logo preview" className="w-full h-full object-contain" />
                 ) : (
                   <div className="flex flex-col items-center gap-1 text-slate-400">
                     <Upload size={16} />

@@ -44,12 +44,12 @@ export default function Sidebar() {
 
   return (
     <aside className="fixed top-0 left-0 h-screen bg-sidebar-bg text-white flex flex-col z-30 w-[220px] border-r border-white/5 shadow-2xl">
-      <div className="px-6 py-6 border-b border-white/5">
-        <div className="flex items-center">
+      <div className="px-6 py-4 border-b border-white/5">
+        <div className="flex items-center justify-start h-20 w-full overflow-visible">
           <img
             src={branding?.logo_url || '/logo.svg'}
             alt="Logo"
-            className="max-h-12 w-auto max-w-full object-contain border-0 bg-transparent"
+            className="h-full w-auto max-w-full object-contain object-left border-0 bg-transparent scale-110 origin-left"
             style={{ background: 'transparent', border: 'none' }}
           />
         </div>

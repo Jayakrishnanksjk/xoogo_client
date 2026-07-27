@@ -117,12 +117,12 @@ export default function LoginPage() {
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
-                className="flex items-center gap-2 relative z-10"
+                className="flex items-center justify-start h-24 w-full relative z-10 overflow-visible"
               >
                 <img
                   src={branding?.logo_url || '/logo.svg'}
                   alt="Logo"
-                  className="max-h-16 w-auto max-w-[220px] object-contain border-0"
+                  className="h-full w-auto max-w-[260px] object-contain object-left border-0 scale-110 origin-left"
                   style={{ background: 'transparent', border: 'none', boxShadow: 'none' }}
                 />
               </motion.div>
@@ -175,11 +175,11 @@ export default function LoginPage() {
                 className="w-full max-w-md bg-white border border-slate-100 rounded-2xl p-8 shadow-sm"
               >
                 {/* Mobile branding */}
-                <motion.div variants={itemVariants} className="lg:hidden mb-8">
+                <motion.div variants={itemVariants} className="lg:hidden mb-8 flex justify-center h-16">
                   <img
                     src={branding?.logo_url || '/logo.svg'}
                     alt="Logo"
-                    className="max-h-14 w-auto max-w-full object-contain border-0"
+                    className="h-full w-auto max-w-full object-contain border-0"
                     style={{ background: 'transparent', border: 'none', boxShadow: 'none' }}
                   />
                 </motion.div>
