@@ -55,7 +55,12 @@ const Bus = sequelize.define('Bus', {
     type: DataTypes.UUID,
     allowNull: true,
     field: 'route_id',
-  }
+  },
+  busId: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    field: 'bus_id',
+  },
 }, {
   timestamps: true,
   underscored: true,

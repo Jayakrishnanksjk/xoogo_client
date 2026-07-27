@@ -46,7 +46,7 @@ function timePartsFrom24(time24) {
   return { hour: String(hour12).padStart(2, '0'), minute: m || '00', ampm }
 }
 
-function BusDetailsStep({ form, setForm, groups = [], allRoutes = [], reviewed }) {
+function BusDetailsStep({ form, setForm, groups = [], reviewed }) {
   const tick = reviewed ? <Check size={14} className="text-green-500" /> : undefined
   const selectedGroup = groups.find(g => String(g.id) === String(form.groupId))
   const groupOwner = selectedGroup?.owner
@@ -231,7 +231,17 @@ function BusDetailsStep({ form, setForm, groups = [], allRoutes = [], reviewed }
 
         <div className="pt-2">
           <p className="text-xs font-medium text-slate-600 mb-3">Additional Information <span className="text-slate-400 font-normal">(Optional)</span></p>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <Input
+                label="Bus ID"
+                placeholder="NW48432"
+                value={form.busId}
+                onChange={e => setForm(f => ({ ...f, busId: e.target.value }))}
+                suffix={tick}
+              />
+              <p className="text-[11px] text-slate-400 mt-1">Unique bus identifier code</p>
+            </div>
             <div>
               <Input
                 label="Chassis Number"
@@ -252,19 +262,6 @@ function BusDetailsStep({ form, setForm, groups = [], allRoutes = [], reviewed }
               />
               <p className="text-[11px] text-slate-400 mt-1">Enter bus model</p>
             </div>
-          </div>
-          <div className="mt-4">
-            <Select
-              label="Route"
-              value={form.routeId || ''}
-              onChange={e => setForm(f => ({ ...f, routeId: e.target.value }))}
-            >
-              <option value="">No route assigned</option>
-              {allRoutes.map(r => (
-                <option key={r.id} value={r.id}>{r.name} ({r.code})</option>
-              ))}
-            </Select>
-            <p className="text-[11px] text-slate-400 mt-1">Assign this bus screen to a route (optional)</p>
           </div>
         </div>
 
@@ -596,9 +593,8 @@ const validSchedules = schedulesList.filter(s => s.name.trim() || s._scheduleId)
   )
 }
 
-function PreviewStep({ form, groups = [], schedulesList = [], allRoutes = [], isEditMode = false }) {
+function PreviewStep({ form, groups = [], schedulesList = [], isEditMode = false }) {
   const selectedGroup = groups.find(g => String(g.id) === String(form.groupId))
-  const selectedRoute = allRoutes.find(r => r.id === form.routeId)
 
   return (
     <div>
@@ -614,12 +610,12 @@ function PreviewStep({ form, groups = [], schedulesList = [], allRoutes = [], is
       <div className="space-y-2.5 mb-5">
         <p className="text-xs font-semibold text-slate-700 uppercase tracking-wider">Bus Details</p>
         {[
+          ['Bus ID', form.busId || '–'],
           ['Bus Group', selectedGroup?.name || '–'],
           ['Bus Type', form.busType || '–'],
           ['SIM Number', form.simNumber || '–'],
           ['Contact Person', form.contactName || '–'],
           ['Contact Number', form.contactNumber ? `+91 ${form.contactNumber}` : '–'],
-          ['Route', form.routeId ? (selectedRoute?.name || form.routeId) : 'None'],
         ].map(([label, value]) => (
           <div key={label} className="flex items-center justify-between py-1.5 border-b border-slate-100">
             <span className="text-xs text-slate-500">{label}</span>
@@ -676,6 +672,7 @@ export default function AddBusScreenPage() {
     chassisNumber: '',
     model: '',
     routeId: '',
+    busId: '',
   })
   const [allRoutes, setAllRoutes] = useState([])
   const [schedulesList, setSchedulesList] = useState([
@@ -719,6 +716,7 @@ export default function AddBusScreenPage() {
             chassisNumber: busData.chassisNumber || '',
             model: busData.model || '',
             routeId: busData.routeId || '',
+            busId: busData.busId || '',
           })
 
           const assignedSchedules = busData.schedules || []
@@ -791,6 +789,7 @@ export default function AddBusScreenPage() {
         chassisNumber: form.chassisNumber.trim() || null,
         model: form.model || null,
         routeId: form.routeId || null,
+        busId: form.busId.trim() || null,
       }
 
       let busId = id
@@ -896,7 +895,7 @@ export default function AddBusScreenPage() {
 
         <div className={clsx('rounded-xl shadow-card border p-6 transition-colors', step === 0 && reviewed.has(0) ? 'bg-green-50/40 border-green-200' : 'bg-white border-slate-100')}>
           {step === 0 && reviewed.has(0) && <div className="flex items-center gap-1.5 mb-4 text-green-600"><Check size={14} /><span className="text-xs font-semibold">Reviewed</span></div>}
-          {step === 0 && <BusDetailsStep form={form} setForm={setForm} groups={groups} allRoutes={allRoutes} reviewed={reviewed.has(0)} />}
+          {step === 0 && <BusDetailsStep form={form} setForm={setForm} groups={groups} reviewed={reviewed.has(0)} />}
           {step === 1 && <BusScheduleStep schedulesList={schedulesList} setSchedulesList={setSchedulesList} reviewed={reviewed.has(1)} />}
           {step === 2 && <PreviewStep form={form} groups={groups} schedulesList={schedulesList} allRoutes={allRoutes} isEditMode={isEditMode} />}
         </div>

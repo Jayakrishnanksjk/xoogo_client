@@ -46,6 +46,7 @@ router.post('/', async (req, res) => {
       chassisNumber,
       model,
       routeId,
+      busId,
     } = req.body
 
     if (!regNumber || !groupId || !simNumber || !busType || !contactName || !contactNumber) {
@@ -79,6 +80,7 @@ router.post('/', async (req, res) => {
       chassisNumber: chassisNumber || null,
       model: model || null,
       routeId: routeId || null,
+      busId: busId || null,
       status: 'offline',
     })
 
@@ -135,7 +137,8 @@ router.patch('/:id', async (req, res) => {
       chassisNumber,
       model,
       routeId,
-      status
+      status,
+      busId,
     } = req.body
 
     if (regNumber && regNumber !== bus.regNumber) {
@@ -171,6 +174,7 @@ router.patch('/:id', async (req, res) => {
     if (chassisNumber !== undefined) bus.chassisNumber = chassisNumber
     if (model !== undefined) bus.model = model
     if (status) bus.status = status
+    if (busId !== undefined) bus.busId = busId
 
     await bus.save()
 
