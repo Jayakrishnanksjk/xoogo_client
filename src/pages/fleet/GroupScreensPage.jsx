@@ -443,7 +443,7 @@ export default function GroupScreensPage() {
                     <th className="px-5 py-3">Registration No.</th>
                     <th className="px-5 py-3">SIM Number</th>
                     <th className="px-5 py-3">Bus Type</th>
-                    <th className="px-5 py-3">Assigned Route</th>
+                    <th className="px-5 py-3">Bus ID</th>
                     <th className="px-5 py-3">Contact Person</th>
                     <th className="px-5 py-3">Status</th>
                     <th className="px-5 py-3 text-right">Actions</th>
@@ -455,13 +455,7 @@ export default function GroupScreensPage() {
                       <td className="px-5 py-4 font-semibold text-slate-900">{screen.regNumber}</td>
                       <td className="px-5 py-4 font-mono text-slate-500">{screen.simNumber}</td>
                       <td className="px-5 py-4 capitalize">{screen.busType}</td>
-                      <td className="px-5 py-4 text-slate-600">
-                        {screen.route?.name ? (
-                          <span className="font-medium text-slate-800">{screen.route.name}</span>
-                        ) : (
-                          <span className="text-slate-400">No route assigned</span>
-                        )}
-                      </td>
+                      <td className="px-5 py-4 font-mono text-slate-600 font-medium">{screen.id}</td>
                       <td className="px-5 py-4">
                         <p className="font-medium text-slate-800">{screen.contactName}</p>
                         <p className="text-[10px] text-slate-400 font-mono">{screen.contactNumber}</p>
