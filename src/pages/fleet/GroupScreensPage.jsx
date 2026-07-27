@@ -455,7 +455,9 @@ export default function GroupScreensPage() {
                       <td className="px-5 py-4 font-semibold text-slate-900">{screen.regNumber}</td>
                       <td className="px-5 py-4 font-mono text-slate-500">{screen.simNumber}</td>
                       <td className="px-5 py-4 capitalize">{screen.busType}</td>
-                      <td className="px-5 py-4 font-mono text-slate-600 font-medium">{screen.id}</td>
+                      <td className="px-5 py-4 font-mono text-slate-700 font-semibold uppercase tracking-wider">
+                        {screen.id ? screen.id.slice(0, 6).toUpperCase() : '—'}
+                      </td>
                       <td className="px-5 py-4">
                         <p className="font-medium text-slate-800">{screen.contactName}</p>
                         <p className="text-[10px] text-slate-400 font-mono">{screen.contactNumber}</p>
