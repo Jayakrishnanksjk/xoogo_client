@@ -11,6 +11,7 @@ import BusSchedule from './BusSchedule.js'
 import HistoricalEta from './HistoricalEta.js'
 import EventLog from './EventLog.js'
 import BrandSetting from './BrandSetting.js'
+import BusApiKey from './BusApiKey.js'
 
 // Setup associations
 Group.hasMany(User, {
@@ -81,6 +82,9 @@ ScheduleRoute.belongsTo(Route, { foreignKey: 'route_id', as: 'route' })
 Bus.belongsToMany(Schedule, { through: BusSchedule, foreignKey: 'bus_id', otherKey: 'schedule_id', as: 'schedules' })
 Schedule.belongsToMany(Bus, { through: BusSchedule, foreignKey: 'schedule_id', otherKey: 'bus_id', as: 'buses' })
 
+Bus.hasMany(BusApiKey, { foreignKey: 'bus_id', as: 'apiKeys', onDelete: 'CASCADE' })
+BusApiKey.belongsTo(Bus, { foreignKey: 'bus_id', as: 'bus' })
+
 export {
   sequelize,
   User,
@@ -95,4 +99,5 @@ export {
   ScheduleRoute,
   BusSchedule,
   BrandSetting,
+  BusApiKey,
 }

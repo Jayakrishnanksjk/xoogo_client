@@ -3,7 +3,7 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   LayoutDashboard, Bus, Library, ListMusic,
-  MapPin, Users, LogOut, ChevronDown, Palette
+  MapPin, Users, LogOut, ChevronDown, Palette, Key
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useBranding } from '@/context/ThemeContext'
@@ -17,6 +17,7 @@ const NAV_SUPERADMIN = [
   { to: '/playlists', icon: ListMusic, label: 'Playlists' },
   { to: '/users', icon: Users, label: 'Users' },
   { to: '/settings/branding', icon: Palette, label: 'Branding' },
+  { to: '/settings/integrations', icon: Key, label: 'Integrations' },
 ]
 
 const NAV_PARTNER = [

@@ -16,6 +16,7 @@ import BusesPage from '@/pages/fleet/BusesPage'
 import MediaLibraryPage from '@/pages/media/MediaLibraryPage'
 import PlaylistsPage from '@/pages/playlists/PlaylistsPage'
 import BrandingSettingsPage from '@/pages/settings/BrandingSettingsPage'
+import IntegrationsPage from '@/pages/settings/IntegrationsPage'
 
 export default function App() {
 
@@ -48,6 +49,7 @@ export default function App() {
               <Route path="/routes/edit/:id" element={<AddRoutePage />} />
               <Route path="/users" element={<UsersPage />} />
               <Route path="/settings/branding" element={<BrandingSettingsPage />} />
+              <Route path="/settings/integrations" element={<IntegrationsPage />} />
             </Route>
           </Route>
 

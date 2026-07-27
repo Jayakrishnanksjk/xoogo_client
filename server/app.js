@@ -12,6 +12,8 @@ import busRoutes from './routes/buses.js'
 import transitRoutes from './routes/transit.js'
 import scheduleRoutes from './routes/schedules.js'
 import settingsRoutes from './routes/settings.js'
+import apiKeyRoutes from './routes/api-keys.js'
+import publicRoutes from './routes/public.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -54,6 +56,8 @@ app.use('/api/buses', busRoutes)
 app.use('/api/schedules', scheduleRoutes)
 app.use('/api/settings', settingsRoutes)
 app.use('/api', transitRoutes)
+app.use('/api/api-keys', apiKeyRoutes)
+app.use('/api/public', publicRoutes)
 
 // Health Check Endpoint
 app.get('/api/health', (req, res) => {
