@@ -20,6 +20,16 @@ const BUS_TYPE_COLORS = {
 const HOURS = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0'))
 const MINUTES = Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, '0'))
 
+function generateBusId() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  const len = 5 + Math.floor(Math.random() * 2)
+  let result = ''
+  for (let i = 0; i < len; i++) {
+    result += chars[Math.floor(Math.random() * chars.length)]
+  }
+  return result
+}
+
 function to24h(hour12, minute, ampm) {
   if (!hour12 || !minute) return null
   let hour = parseInt(hour12, 10)
@@ -672,7 +682,7 @@ export default function AddBusScreenPage() {
     chassisNumber: '',
     model: '',
     routeId: '',
-    busId: '',
+    busId: generateBusId(),
   })
   const [allRoutes, setAllRoutes] = useState([])
   const [schedulesList, setSchedulesList] = useState([
