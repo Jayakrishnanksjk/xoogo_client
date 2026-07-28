@@ -65,12 +65,30 @@ router.post('/bus-routes', authenticateApiKey, async (req, res) => {
     }
     const bus = await Bus.findOne({
       where: { busId },
-      include: [{ model: Route, as: 'route', include: [{ model: Stop, as: 'stops' }] }]
+      include: [
+        { model: Route, as: 'route', include: [{ model: Stop, as: 'stops' }] },
+        {
+          model: Schedule, as: 'schedules',
+          include: [{
+            model: ScheduleRoute, as: 'scheduleRoutes',
+            include: [{ model: Route, as: 'route', include: [{ model: Stop, as: 'stops' }] }]
+          }],
+          through: { attributes: [] }
+        },
+      ]
     })
     if (!bus) {
       return res.status(404).json({ message: 'Bus not found.' })
     }
-    const route = bus.route
+
+    let route = bus.route
+    if (!route) {
+      const scheduleRoute = bus.schedules?.[0]?.scheduleRoutes?.[0]
+      if (scheduleRoute?.route) {
+        route = scheduleRoute.route
+      }
+    }
+
     if (!route) {
       return res.json({ route: null, message: 'No route assigned to this bus.' })
     }
