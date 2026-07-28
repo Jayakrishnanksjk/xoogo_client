@@ -57,4 +57,18 @@ router.delete('/:id', async (req, res) => {
   }
 })
 
+router.delete('/:id/permanent', async (req, res) => {
+  try {
+    const apiKey = await BusApiKey.findByPk(req.params.id)
+    if (!apiKey) {
+      return res.status(404).json({ message: 'API key not found.' })
+    }
+    await apiKey.destroy()
+    res.json({ message: 'API key permanently deleted.' })
+  } catch (error) {
+    console.error('Delete API key error:', error)
+    res.status(500).json({ message: 'Internal server error.' })
+  }
+})
+
 export default router

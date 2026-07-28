@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import AppLayout from '@/components/layout/AppLayout'
 import { Button, Select, Input, Badge, Modal } from '@/components/ui'
-import { Key, Copy, Check, Trash2, Bus, ExternalLink } from 'lucide-react'
+import { Key, Copy, Check, Trash2, AlertTriangle } from 'lucide-react'
 import { busesApi } from '@/api'
 import api from '@/api/client'
 import { toast } from 'sonner'
@@ -16,6 +16,7 @@ export default function IntegrationsPage() {
   const [showKeyModal, setShowKeyModal] = useState(false)
   const [newKey, setNewKey] = useState(null)
   const [baseUrl, setBaseUrl] = useState('')
+  const [deleteConfirm, setDeleteConfirm] = useState(null)
 
   useEffect(() => {
     setBaseUrl(window.location.origin)
@@ -63,6 +64,17 @@ export default function IntegrationsPage() {
       loadData()
     } catch (err) {
       toast.error('Failed to revoke API key')
+    }
+  }
+
+  const handleDelete = async (keyId) => {
+    try {
+      await api.delete(`/api-keys/${keyId}/permanent`)
+      toast.success('API key permanently deleted')
+      setDeleteConfirm(null)
+      loadData()
+    } catch (err) {
+      toast.error('Failed to delete API key')
     }
   }
 
@@ -154,11 +166,19 @@ export default function IntegrationsPage() {
                     >
                       {copiedId === k.id ? <Check size={15} className="text-green-500" /> : <Copy size={15} />}
                     </button>
-                    {k.status === 'active' && (
+                    {k.status === 'active' ? (
                       <button
                         onClick={() => handleRevoke(k.id)}
                         className="p-2 hover:bg-red-50 rounded-lg text-slate-400 hover:text-red-500 transition-colors"
                         title="Revoke API key"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => setDeleteConfirm(k)}
+                        className="p-2 hover:bg-red-50 rounded-lg text-slate-400 hover:text-red-500 transition-colors"
+                        title="Delete API key permanently"
                       >
                         <Trash2 size={15} />
                       </button>
@@ -242,6 +262,28 @@ export default function IntegrationsPage() {
           )}
           <div className="flex justify-end pt-2">
             <Button onClick={() => setShowKeyModal(false)}>Done</Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} title="Delete API Key" width="max-w-sm">
+        <div className="space-y-4">
+          <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <AlertTriangle size={18} className="text-red-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-red-800">Are you sure?</p>
+              <p className="text-xs text-red-600 mt-1">
+                This will permanently delete the API key for <strong>{deleteConfirm?.bus?.busId || deleteConfirm?.bus?.regNumber || 'Unknown Bus'}</strong>. This action cannot be undone.
+              </p>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+            <Button onClick={() => handleDelete(deleteConfirm.id)}>
+              <Trash2 size={14} className="mr-1.5" />
+              Delete Forever
+            </Button>
           </div>
         </div>
       </Modal>
