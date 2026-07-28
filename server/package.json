@@ -8,6 +8,7 @@
     "start": "node index.js",
     "dev": "nodemon index.js",
     "db:seed": "node seeders/superadmin.js",
+    "db:migrate-bus-ids": "node scripts/migrateBusIds.js",
     "test": "vitest run",
     "test:watch": "vitest"
   },

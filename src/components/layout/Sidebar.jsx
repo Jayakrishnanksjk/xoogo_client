@@ -3,7 +3,7 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   LayoutDashboard, Bus, Library, ListMusic,
-  MapPin, Users, LogOut, ChevronDown, Palette, Key
+  MapPin, Users, LogOut, ChevronDown, Palette, Key, Settings
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useBranding } from '@/context/ThemeContext'
@@ -16,8 +16,14 @@ const NAV_SUPERADMIN = [
   { to: '/media', icon: Library, label: 'Media Library' },
   { to: '/playlists', icon: ListMusic, label: 'Playlists' },
   { to: '/users', icon: Users, label: 'Users' },
-  { to: '/settings/branding', icon: Palette, label: 'Branding' },
-  { to: '/settings/integrations', icon: Key, label: 'Integrations' },
+  {
+    label: 'Settings',
+    icon: Settings,
+    children: [
+      { to: '/settings/branding', icon: Palette, label: 'Branding' },
+      { to: '/settings/integrations', icon: Key, label: 'Integrations' },
+    ]
+  },
 ]
 
 const NAV_PARTNER = [
@@ -34,6 +40,13 @@ export default function Sidebar() {
   const location = useLocation()
   const [hoveredPath, setHoveredPath] = useState(null)
   const [showProfileMenu, setShowProfileMenu] = useState(false)
+  const [expandedGroups, setExpandedGroups] = useState(() => ({
+    settings: location.pathname.startsWith('/settings')
+  }))
+
+  const toggleGroup = (key) => {
+    setExpandedGroups(prev => ({ ...prev, [key]: !prev[key] }))
+  }
 
   const navItems = isSuperadmin ? NAV_SUPERADMIN : NAV_PARTNER
 
@@ -60,7 +73,79 @@ export default function Sidebar() {
         className="flex-1 py-6 space-y-1 overflow-y-auto"
         onMouseLeave={() => setHoveredPath(null)}
       >
-        {navItems.map(({ to, icon: Icon, label }, idx) => {
+        {navItems.map((item) => {
+          if (item.children) {
+            const groupKey = item.label.toLowerCase()
+            const hasActiveChild = item.children.some(child => location.pathname.startsWith(child.to))
+            const isExpanded = expandedGroups[groupKey] || hasActiveChild
+
+            return (
+              <div key={item.label} className="mx-3 select-none">
+                <div
+                  onClick={() => toggleGroup(groupKey)}
+                  onMouseEnter={() => setHoveredPath(item.label)}
+                  className={clsx(
+                    'relative flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors duration-200 cursor-pointer',
+                    hasActiveChild ? 'text-white' : 'text-slate-400 hover:text-white'
+                  )}
+                >
+                  <item.icon size={16} strokeWidth={hasActiveChild ? 2.5 : 2} />
+                  <span className="flex-1">{item.label}</span>
+                  <motion.div
+                    animate={{ rotate: isExpanded ? 180 : 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <ChevronDown size={13} className="text-slate-400" />
+                  </motion.div>
+                </div>
+
+                <AnimatePresence>
+                  {isExpanded && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="pl-3 mt-0.5 space-y-0.5 border-l border-white/5 ml-5">
+                        {item.children.map(child => {
+                          const isChildActive = location.pathname.startsWith(child.to)
+                          return (
+                            <NavLink
+                              key={child.to}
+                              to={child.to}
+                              onMouseEnter={() => setHoveredPath(child.to)}
+                              className="relative block select-none"
+                            >
+                              <div
+                                className={clsx(
+                                  'relative flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 cursor-pointer',
+                                  isChildActive ? 'text-white' : 'text-slate-400 hover:text-white'
+                                )}
+                              >
+                                {isChildActive && (
+                                  <motion.div
+                                    layoutId="activeSubNavIndicator"
+                                    className="absolute inset-0 bg-brand/20 rounded-lg -z-10"
+                                    transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                                  />
+                                )}
+                                <child.icon size={16} strokeWidth={isChildActive ? 2.5 : 2} />
+                                <span>{child.label}</span>
+                              </div>
+                            </NavLink>
+                          )
+                        })}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )
+          }
+
+          const { to, icon: Icon, label } = item
           const isActive = location.pathname.startsWith(to)
           return (
             <NavLink

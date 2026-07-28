@@ -3,6 +3,16 @@ import { Op } from 'sequelize'
 import { Bus, Group, Route, Schedule, BusSchedule } from '../models/index.js'
 import { authenticate } from '../middleware/auth.js'
 
+function generateBusId(regNumber) {
+  let hash = 5381
+  const str = `${regNumber}-${Date.now()}`
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) + hash) + str.charCodeAt(i)
+    hash |= 0
+  }
+  return (hash >>> 0).toString(36).toUpperCase().padStart(6, '0').slice(0, 6)
+}
+
 const router = express.Router()
 
 router.use(authenticate)
@@ -80,7 +90,7 @@ router.post('/', async (req, res) => {
       chassisNumber: chassisNumber || null,
       model: model || null,
       routeId: routeId || null,
-      busId: busId || null,
+      busId: busId || generateBusId(regNumber),
       status: 'offline',
     })
 

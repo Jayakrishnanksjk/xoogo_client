@@ -1,9 +1,9 @@
-import pg from 'pg'
 import dotenv from 'dotenv'
+dotenv.config()
+
+import pg from 'pg'
 import app from './app.js'
 import sequelize from './config/database.js'
-
-dotenv.config()
 
 const port = process.env.PORT || 5000
 

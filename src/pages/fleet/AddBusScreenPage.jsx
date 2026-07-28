@@ -20,14 +20,14 @@ const BUS_TYPE_COLORS = {
 const HOURS = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0'))
 const MINUTES = Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, '0'))
 
-function generateBusId() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-  const len = 5 + Math.floor(Math.random() * 2)
-  let result = ''
-  for (let i = 0; i < len; i++) {
-    result += chars[Math.floor(Math.random() * chars.length)]
+function generateBusId(regNumber = '') {
+  let hash = 5381
+  const str = `${regNumber}-${Date.now()}`
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) + hash) + str.charCodeAt(i)
+    hash |= 0
   }
-  return result
+  return (hash >>> 0).toString(36).toUpperCase().padStart(6, '0').slice(0, 6)
 }
 
 function to24h(hour12, minute, ampm) {
@@ -245,12 +245,13 @@ function BusDetailsStep({ form, setForm, groups = [], reviewed }) {
             <div>
               <Input
                 label="Bus ID"
-                placeholder="NW48432"
+                placeholder="Unique bus identifier code"
                 value={form.busId}
-                onChange={e => setForm(f => ({ ...f, busId: e.target.value }))}
+                disabled
+                className="bg-slate-50 cursor-not-allowed text-slate-500 font-mono font-semibold"
                 suffix={tick}
               />
-              <p className="text-[11px] text-slate-400 mt-1">Unique bus identifier code</p>
+              <p className="text-[11px] text-slate-400 mt-1">Permanent unique bus identifier code</p>
             </div>
             <div>
               <Input
@@ -703,6 +704,12 @@ export default function AddBusScreenPage() {
   const [originalScheduleIds, setOriginalScheduleIds] = useState(new Set())
 
   useEffect(() => {
+    if (!isEditMode && form.regNumber.trim()) {
+      setForm(prev => ({ ...prev, busId: generateBusId(prev.regNumber) }))
+    }
+  }, [form.regNumber, isEditMode])
+
+  useEffect(() => {
     async function loadData() {
       try {
         setLoading(true)
@@ -726,7 +733,7 @@ export default function AddBusScreenPage() {
             chassisNumber: busData.chassisNumber || '',
             model: busData.model || '',
             routeId: busData.routeId || '',
-            busId: busData.busId || '',
+            busId: busData.busId || (busData.id ? busData.id.slice(0, 6).toUpperCase() : ''),
           })
 
           const assignedSchedules = busData.schedules || []
