@@ -1,11 +1,22 @@
 import express from 'express'
 import apiKeyAuth from '../middleware/apiKeyAuth.js'
-import { Bus, Route, Stop, BusAssignment, HistoricalEta, EventLog } from '../models/index.js'
+import { Bus, Route, Stop, BusAssignment, HistoricalEta, EventLog, Schedule, BusSchedule, ScheduleRoute } from '../models/index.js'
 import { Op } from 'sequelize'
 
 const router = express.Router()
 
-// GET /api/sync?bus_id=<uuid>
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+// Find a bus by its UUID id OR its 6-char busId
+async function resolveBus(busIdOrUuid) {
+  if (UUID_RE.test(busIdOrUuid)) {
+    const bus = await Bus.findByPk(busIdOrUuid)
+    if (bus) return bus
+  }
+  return Bus.findOne({ where: { busId: busIdOrUuid } })
+}
+
+// GET /api/sync?bus_id=<uuid | busId>
 router.get('/sync', apiKeyAuth, async (req, res) => {
   try {
     const { bus_id } = req.query
@@ -14,10 +25,12 @@ router.get('/sync', apiKeyAuth, async (req, res) => {
       return res.status(400).json({ message: 'Missing bus_id query parameter' })
     }
 
-    const bus = await Bus.findByPk(bus_id)
+    const bus = await resolveBus(bus_id)
     if (!bus) {
       return res.status(404).json({ message: 'Bus not found' })
     }
+
+    const busUuid = bus.id
 
     const route = await Route.findByPk(bus.routeId)
     if (!route) {
@@ -26,7 +39,7 @@ router.get('/sync', apiKeyAuth, async (req, res) => {
 
     // Get assignments ordered sequentially
     const assignments = await BusAssignment.findAll({
-      where: { busId: bus_id },
+      where: { busId: busUuid },
       order: [['sequenceOrder', 'ASC']],
       include: [{
         model: Stop,
@@ -66,7 +79,7 @@ router.get('/sync', apiKeyAuth, async (req, res) => {
     }
 
     res.json({
-      bus_id,
+      bus_id: busUuid,
       route: {
         id: route.id,
         name: route.name,
@@ -78,6 +91,98 @@ router.get('/sync', apiKeyAuth, async (req, res) => {
 
   } catch (error) {
     console.error('Error during sync:', error)
+    res.status(500).json({ message: 'Internal server error' })
+  }
+})
+
+// GET /api/sync/full-timetable?bus_id=<uuid | busId>
+// Single purpose-built call for on-bus devices: complete bus + schedule + route (with full stops) data.
+router.get('/sync/full-timetable', apiKeyAuth, async (req, res) => {
+  try {
+    const { bus_id } = req.query
+
+    if (!bus_id) {
+      return res.status(400).json({ message: 'Missing bus_id query parameter' })
+    }
+
+    const bus = await resolveBus(bus_id)
+    if (!bus) {
+      return res.status(404).json({ message: 'Bus not found' })
+    }
+
+    const busUuid = bus.id
+
+    const schedules = await Schedule.findAll({
+      where: { status: 'active' },
+      include: [
+        {
+          model: Bus,
+          as: 'buses',
+          where: { id: busUuid },
+          through: { attributes: [] },
+          attributes: [],
+        },
+        {
+          model: ScheduleRoute,
+          as: 'scheduleRoutes',
+          required: true,
+          include: [{
+            model: Route,
+            as: 'route',
+            required: true,
+            include: [{
+              model: Stop,
+              as: 'stops',
+              attributes: ['id', 'name', 'latitude', 'longitude'],
+              order: [['created_at', 'ASC']],
+            }],
+          }],
+        },
+      ],
+      order: [['startTime', 'ASC']],
+    })
+
+    res.json({
+      bus_id: busUuid,
+      bus: {
+        id: busUuid,
+        busId: bus.busId,
+        regNumber: bus.regNumber,
+        busType: bus.busType,
+        status: bus.status,
+        contactName: bus.contactName,
+        contactNumber: bus.contactNumber,
+      },
+      schedules: schedules.map(s => ({
+        id: s.id,
+        name: s.name,
+        description: s.description,
+        status: s.status,
+        startTime: s.startTime,
+        endTime: s.endTime,
+        routes: (s.scheduleRoutes || [])
+          .sort((a, b) => a.sequenceOrder - b.sequenceOrder)
+          .map(sr => {
+            const r = sr.route
+            return {
+              id: r.id,
+              name: r.name,
+              code: r.code,
+              routeType: r.routeType,
+              polyline: r.polyline,
+              stops: (r.stops || []).map(st => ({
+                id: st.id,
+                name: st.name,
+                latitude: st.latitude,
+                longitude: st.longitude,
+              })),
+            }
+          }),
+      })),
+    })
+
+  } catch (error) {
+    console.error('Error during full timetable sync:', error)
     res.status(500).json({ message: 'Internal server error' })
   }
 })
@@ -100,13 +205,18 @@ router.post('/events', apiKeyAuth, async (req, res) => {
       return res.status(400).json({ message: 'Missing required fields: bus_id, event, and timestamp are required' })
     }
 
+    const bus = await resolveBus(bus_id)
+    if (!bus) {
+      return res.status(404).json({ message: 'Bus not found' })
+    }
+
     const allowedEvents = ['TRIP_STARTED', 'ARRIVED', 'DETOUR_STARTED', 'SKIPPED', 'TRIP_COMPLETED']
     if (!allowedEvents.includes(event)) {
       return res.status(400).json({ message: 'Invalid event type' })
     }
 
     const eventLog = await EventLog.create({
-      busId: bus_id,
+      busId: bus.id,
       event,
       stopId: stop_id || null,
       missedStopId: missed_stop_id || null,

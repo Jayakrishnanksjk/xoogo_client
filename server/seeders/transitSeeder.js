@@ -1,4 +1,4 @@
-import { sequelize, Route, Bus, Stop, BusAssignment, HistoricalEta } from '../models/index.js'
+import { sequelize, Route, Bus, Stop, BusAssignment, HistoricalEta, Schedule, ScheduleRoute, BusSchedule } from '../models/index.js'
 
 async function runSeeder() {
   try {
@@ -118,6 +118,32 @@ async function runSeeder() {
     }
     await HistoricalEta.bulkCreate(etas)
     console.log('Historical ETAs seeded.')
+
+    // 6. Create a schedule + schedule route + bus assignment for full-timetable sync
+    console.log('Seeding schedule for full-timetable sync...')
+    let schedule = await Schedule.findOne({ where: { name: 'Morning Trip' } })
+    if (!schedule) {
+      schedule = await Schedule.create({
+        name: 'Morning Trip',
+        description: 'Morning transit service',
+        status: 'active',
+        startTime: '09:00:00',
+        endTime: '12:00:00',
+      })
+      console.log('Created "Morning Trip" schedule.')
+    }
+
+    const existingScheduleRoute = await ScheduleRoute.findOne({ where: { scheduleId: schedule.id, routeId: route.id } })
+    if (!existingScheduleRoute) {
+      await ScheduleRoute.create({ scheduleId: schedule.id, routeId: route.id, sequenceOrder: 1 })
+      console.log('Linked route to "Morning Trip" schedule.')
+    }
+
+    const existingBusSchedule = await BusSchedule.findOne({ where: { busId: bus1.id, scheduleId: schedule.id } })
+    if (!existingBusSchedule) {
+      await BusSchedule.create({ busId: bus1.id, scheduleId: schedule.id })
+      console.log('Assigned "Morning Trip" schedule to Bus 1.')
+    }
 
     console.log('🌱 Transit seeding finished successfully!')
     process.exit(0)

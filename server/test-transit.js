@@ -199,6 +199,34 @@ async function runTests() {
     process.exit(1)
   }
 
+  // Test 11: GET /api/sync/full-timetable with no key
+  try {
+    const res = await fetch(`${BASE_URL}/sync/full-timetable?bus_id=${bus1.id}`)
+    if (res.status !== 401) throw new Error(`Test 11 Failed: Expected 401, got ${res.status}`)
+    console.log('✅ Test 11: GET /sync/full-timetable with no API key rejected with 401')
+  } catch (err) {
+    console.error(err.message)
+    process.exit(1)
+  }
+
+  // Test 12: GET /api/sync/full-timetable valid (bus + schedules + routes + full stops in one call)
+  try {
+    const res = await fetch(`${BASE_URL}/sync/full-timetable?bus_id=${bus1.id}`, {
+      headers: { 'X-API-Key': API_KEY }
+    })
+    if (res.status !== 200) throw new Error(`Test 12 Failed: Expected 200, got ${res.status}`)
+    const data = await res.json()
+    if (!data.bus_id || !data.bus) throw new Error('Test 12 Failed: Missing bus_id or bus details')
+    if (!Array.isArray(data.schedules) || data.schedules.length < 1) throw new Error('Test 12 Failed: No schedules returned')
+    const sched = data.schedules[0]
+    if (!Array.isArray(sched.routes) || sched.routes.length < 1) throw new Error('Test 12 Failed: Schedule has no routes')
+    if (!Array.isArray(sched.routes[0].stops) || sched.routes[0].stops.length < 1) throw new Error('Test 12 Failed: Route has no stops')
+    console.log(`✅ Test 12: GET /sync/full-timetable returned bus + ${data.schedules.length} schedule(s) with full stops in one call`)
+  } catch (err) {
+    console.error(err.message)
+    process.exit(1)
+  }
+
   console.log('🎉 All Tests Passed Successfully!')
   process.exit(0)
 }
