@@ -173,13 +173,16 @@ include: [{
                   code: r.code,
                   routeType: r.routeType,
                   polyline: r.polyline,
-                  stops: (r.stops || []).map(st => ({
-                    id: st.id,
-                    name: st.name,
-                    sequenceOrder: st.sequenceOrder,
-                    latitude: st.latitude,
-                    longitude: st.longitude,
-                  })),
+                  stops: (r.stops || [])
+                    .slice()
+                    .sort((a, b) => (a.sequenceOrder ?? 0) - (b.sequenceOrder ?? 0))
+                    .map(st => ({
+                      id: st.id,
+                      name: st.name,
+                      sequenceOrder: st.sequenceOrder,
+                      latitude: st.latitude,
+                      longitude: st.longitude,
+                    })),
                 },
               ]
             }),
