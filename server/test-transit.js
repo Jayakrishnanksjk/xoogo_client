@@ -219,9 +219,8 @@ async function runTests() {
     if (!data.bus_id || !data.bus) throw new Error('Test 12 Failed: Missing bus_id or bus details')
     if (!Array.isArray(data.schedules) || data.schedules.length < 1) throw new Error('Test 12 Failed: No schedules returned')
     const sched = data.schedules[0]
-    const routeKeys = Object.keys(sched.route || {})
-    if (routeKeys.length < 1) throw new Error('Test 12 Failed: Schedule has no routes')
-    const firstRoute = sched.route[routeKeys[0]]
+    if (!sched.route) throw new Error('Test 12 Failed: Schedule has no route')
+    const firstRoute = sched.route
     if (!Array.isArray(firstRoute.stops) || firstRoute.stops.length < 1) throw new Error('Test 12 Failed: Route has no stops')
     const firstStop = firstRoute.stops[0]
     if (typeof firstStop.sequenceOrder !== 'number') throw new Error('Test 12 Failed: Stop missing sequenceOrder')

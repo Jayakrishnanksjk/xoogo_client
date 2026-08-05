@@ -160,33 +160,30 @@ include: [{
         status: s.status,
         startTime: s.startTime,
         endTime: s.endTime,
-        route: Object.fromEntries(
-          (s.scheduleRoutes || [])
-            .sort((a, b) => a.sequenceOrder - b.sequenceOrder)
-            .map(sr => {
-              const r = sr.route
-              return [
-                String(sr.sequenceOrder),
-                {
-                  id: r.id,
-                  name: r.name,
-                  code: r.code,
-                  routeType: r.routeType,
-                  polyline: r.polyline,
-                  stops: (r.stops || [])
-                    .slice()
-                    .sort((a, b) => (a.sequenceOrder ?? 0) - (b.sequenceOrder ?? 0))
-                    .map(st => ({
-                      id: st.id,
-                      name: st.name,
-                      sequenceOrder: st.sequenceOrder,
-                      latitude: st.latitude,
-                      longitude: st.longitude,
-                    })),
-                },
-              ]
-            }),
-        ),
+        route: (() => {
+          const sr = (s.scheduleRoutes || [])
+            .slice()
+            .sort((a, b) => a.sequenceOrder - b.sequenceOrder)[0]
+          if (!sr || !sr.route) return null
+          const r = sr.route
+          return {
+            id: r.id,
+            name: r.name,
+            code: r.code,
+            routeType: r.routeType,
+            polyline: r.polyline,
+            stops: (r.stops || [])
+              .slice()
+              .sort((a, b) => (a.sequenceOrder ?? 0) - (b.sequenceOrder ?? 0))
+              .map(st => ({
+                id: st.id,
+                name: st.name,
+                sequenceOrder: st.sequenceOrder,
+                latitude: st.latitude,
+                longitude: st.longitude,
+              })),
+          }
+        })(),
       })),
     })
 

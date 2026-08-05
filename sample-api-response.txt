@@ -1,0 +1,234 @@
+================================================================================
+XOOGO - Sample API Response
+================================================================================
+
+Endpoint : GET /api/sync/full-timetable?bus_id=<uuid | busId>
+Auth      : X-API-Key header (per-bus key, e.g. default_bus_key)
+Result    : HTTP 200 OK
+
+Example call:
+  curl -H 'x-api-key: default_bus_key' \
+       'https://<server>/api/sync/full-timetable?bus_id=1FH7QZ'
+
+Note:
+  - Each schedule's "route" is a single ROUTE OBJECT (no sequenceOrder wrapper; was "routes": [...])
+  - Every stop now includes a "sequenceOrder" integer (driving order, ascending)
+
+--------------------------------------------------------------------------------
+RESPONSE (pretty-printed)
+--------------------------------------------------------------------------------
+{
+    "bus_id": "4167cc91-f4a2-4664-8d57-134fd74b5ec5",
+    "bus": {
+        "id": "4167cc91-f4a2-4664-8d57-134fd74b5ec5",
+        "busId": "1FH7QZ",
+        "regNumber": "khikjbl",
+        "busType": "Limited stop",
+        "status": "offline",
+        "contactName": "Sheethal",
+        "contactNumber": "+91 9197460772"
+    },
+    "schedules": [
+        {
+            "id": "84a5957d-0203-4ca8-89b4-98b614371b70",
+            "name": "Schedule 1",
+            "description": null,
+            "status": "active",
+            "startTime": "07:00:00",
+            "endTime": "09:25:00",
+            "route": {
+                "id": "7b5c140a-dd16-46e6-a1fb-db5ae945813a",
+                "name": "Kannur - Kasaragod",
+                "code": "NW0001",
+                "routeType": "inbound",
+                "polyline": null,
+                "stops": [
+                        {
+                            "id": "15e8614f-57a1-490e-a610-436e172b373a",
+                            "name": "Kannur",
+                            "sequenceOrder": 1,
+                            "latitude": 75.3684203,
+                            "longitude": 12.0284523
+                        },
+                        {
+                            "id": "cb491a09-b6d0-495d-9b2a-99874a177ced",
+                            "name": "Dharmasala",
+                            "sequenceOrder": 2,
+                            "latitude": 75.3684203,
+                            "longitude": 12.0284523
+                        },
+                        {
+                            "id": "7f10d03a-5154-4ac0-9393-abd1a689957a",
+                            "name": "Taliparamba",
+                            "sequenceOrder": 3,
+                            "latitude": 75.3684203,
+                            "longitude": 12.0284523
+                        },
+                        {
+                            "id": "b2c5b272-8465-422d-91c5-e3df33e64dea",
+                            "name": "Pariyaram medical collage",
+                            "sequenceOrder": 4,
+                            "latitude": 75.3684203,
+                            "longitude": 12.0284523
+                        },
+                        {
+                            "id": "4e29ac80-7de2-4674-8fa1-aaa9d92b1aed",
+                            "name": "Pilathara",
+                            "sequenceOrder": 5,
+                            "latitude": 75.3684203,
+                            "longitude": 12.0284523
+                        },
+                        {
+                            "id": "9ff87178-f0e1-45f6-b27f-61eae5808762",
+                            "name": "Payyannur",
+                            "sequenceOrder": 6,
+                            "latitude": 75.3684203,
+                            "longitude": 12.0284523
+                        },
+                        {
+                            "id": "65f6ebd8-5147-4d42-b637-b8466cfaeee8",
+                            "name": "Kothayimukk",
+                            "sequenceOrder": 7,
+                            "latitude": 75.3684203,
+                            "longitude": 12.0284523
+                        },
+                        {
+                            "id": "f304c6e6-1dc9-4b5a-b979-baff032b978b",
+                            "name": "Vellur aal",
+                            "sequenceOrder": 8,
+                            "latitude": 75.3684203,
+                            "longitude": 12.0284523
+                        },
+                        {
+                            "id": "81031b80-5661-4821-b9d6-8258159bd292",
+                            "name": "Onakunnu",
+                            "sequenceOrder": 9,
+                            "latitude": 75.3684203,
+                            "longitude": 12.0284523
+                        },
+                        {
+                            "id": "12d85ff5-5447-4b0d-afd5-cb77df01fb48",
+                            "name": "Karivellur",
+                            "sequenceOrder": 10,
+                            "latitude": 75.3684203,
+                            "longitude": 12.0284523
+                        },
+                        {
+                            "id": "fc9f6e0d-c2ac-4ccf-8465-947641ab4598",
+                            "name": "Kalikkadav",
+                            "sequenceOrder": 11,
+                            "latitude": 75.3684203,
+                            "longitude": 12.0284523
+                        },
+                        {
+                            "id": "e46e7aa5-ecfa-48ee-9a35-00c65e3e3178",
+                            "name": "Cheruvathoor",
+                            "sequenceOrder": 12,
+                            "latitude": 75.3684203,
+                            "longitude": 12.0284523
+                        },
+                        {
+                            "id": "9b49065a-7db5-4c38-9cbc-a5d9e77a92d1",
+                            "name": "Nileshwaram",
+                            "sequenceOrder": 13,
+                            "latitude": 75.3684203,
+                            "longitude": 12.0284523
+                        },
+                        {
+                            "id": "a223c0d3-ec98-4a5a-ac8c-9902d4b7f10b",
+                            "name": "Kanjangad",
+                            "sequenceOrder": 14,
+                            "latitude": 75.3684203,
+                            "longitude": 12.0284523
+                        },
+                        {
+                            "id": "5d7c6136-3c8b-45ec-9b9a-cf2c65527116",
+                            "name": "Mavungal",
+                            "sequenceOrder": 15,
+                            "latitude": 75.3684203,
+                            "longitude": 12.0284523
+                        },
+                        {
+                            "id": "5064cb7b-fc72-4402-9f7a-cc1827a23db3",
+                            "name": "Periyattadukkam",
+                            "sequenceOrder": 16,
+                            "latitude": 75.3684203,
+                            "longitude": 12.0284523
+                        },
+                        {
+                            "id": "c2c95e48-2348-42fa-a4c1-0454744b297e",
+                            "name": "Periya",
+                            "sequenceOrder": 17,
+                            "latitude": 75.3684203,
+                            "longitude": 12.0284523
+                        },
+                        {
+                            "id": "e92a98b3-cbb6-4cc0-aab4-df2a581c7044",
+                            "name": "Poinachi",
+                            "sequenceOrder": 18,
+                            "latitude": 75.3684203,
+                            "longitude": 12.0284523
+                        },
+                        {
+                            "id": "c8125e56-7f1e-4dbd-801e-96701a44b65e",
+                            "name": "Chattanchal",
+                            "sequenceOrder": 19,
+                            "latitude": 75.3684203,
+                            "longitude": 12.0284523
+                        },
+                        {
+                            "id": "5ee5cee6-e21a-41ca-99f7-495cf7ce2bc9",
+                            "name": "Cherkala",
+                            "sequenceOrder": 20,
+                            "latitude": 75.3684203,
+                            "longitude": 12.0284523
+                        },
+                        {
+                            "id": "e813d2ed-c24e-4da4-9091-6b2f8d86876d",
+                            "name": "B C road",
+                            "sequenceOrder": 21,
+                            "latitude": 75.3684203,
+                            "longitude": 12.0284523
+                        },
+                        {
+                            "id": "f4035567-076d-49e7-b667-7ba99801ee36",
+                            "name": "Vidhya nagara",
+                            "sequenceOrder": 22,
+                            "latitude": 75.3684203,
+                            "longitude": 12.0284523
+                        },
+                        {
+                            "id": "1d51967e-6cb3-4062-8286-83900a715afa",
+                            "name": "Anangoor",
+                            "sequenceOrder": 23,
+                            "latitude": 75.3684203,
+                            "longitude": 12.0284523
+                        },
+                        {
+                            "id": "5f0199f0-65f9-487f-905b-8d0ce06de269",
+                            "name": "Kasargod",
+                            "sequenceOrder": 24,
+                            "latitude": 75.3684203,
+                            "longitude": 12.0284523
+                        }
+                    ]
+            }
+        },
+        {
+            "id": "15f03c86-64f8-4517-a3ef-60485cf7f82f",
+            "name": "Schedule 2",
+            "description": null,
+            "status": "active",
+            "startTime": "19:35:00",
+            "endTime": "20:35:00",
+            "route": {
+                "id": "db228d24-69f3-4b38-91ab-bad56e0bfe6a",
+                "name": "Taliparamba - dharmashala",
+                "code": "ksjdoijg",
+                "routeType": "inbound",
+                "polyline": null,
+                "stops": []
+            }
+        }
+    ]
+}

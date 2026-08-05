@@ -458,29 +458,27 @@ The response's `bus_id` field always returns the bus's UUID `id`.
       "startTime": "06:00:00",
       "endTime": "10:00:00",
       "route": {
-        "1": {
-          "id": "5f6a7b8c-...",
-          "name": "Downtown Express",
-          "code": "D001",
-          "routeType": "outbound",
-          "polyline": null,
-          "stops": [
-            {
-              "id": "8c9d0e1f-...",
-              "name": "Central Station",
-              "sequenceOrder": 1,
-              "latitude": 10.0123,
-              "longitude": 76.1234
-            },
-            {
-              "id": "1a2b3c4d-...",
-              "name": "Market Square",
-              "sequenceOrder": 2,
-              "latitude": 10.0345,
-              "longitude": 76.1456
-            }
-          ]
-        }
+        "id": "5f6a7b8c-...",
+        "name": "Downtown Express",
+        "code": "D001",
+        "routeType": "outbound",
+        "polyline": null,
+        "stops": [
+          {
+            "id": "8c9d0e1f-...",
+            "name": "Central Station",
+            "sequenceOrder": 1,
+            "latitude": 10.0123,
+            "longitude": 76.1234
+          },
+          {
+            "id": "1a2b3c4d-...",
+            "name": "Market Square",
+            "sequenceOrder": 2,
+            "latitude": 10.0345,
+            "longitude": 76.1456
+          }
+        ]
       }
     }
   ]
@@ -488,7 +486,7 @@ The response's `bus_id` field always returns the bus's UUID `id`.
 ```
 
 - Only `active` schedules are returned, ordered by `startTime` ascending.
-- Each schedule's `route` is an object keyed by `sequenceOrder` (each from `ScheduleRoute`); `stops` is the full ordered stop list for that route.
+- Each schedule's `route` is a single route object (the first `ScheduleRoute` by `sequenceOrder`); `stops` is the full ordered stop list for that route.
 - A bus with no assigned schedules returns an empty `schedules` array.
 
 **Errors:**

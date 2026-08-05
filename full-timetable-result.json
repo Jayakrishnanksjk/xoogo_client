@@ -18,13 +18,12 @@
             "startTime": "09:00:00",
             "endTime": "12:00:00",
             "route": {
-                "1": {
-                    "id": "d4fc7e79-15ff-4efa-8295-44ee58e17e6d",
-                    "name": "paravur to kochi",
-                    "code": "PVR-KCH-001",
-                    "routeType": "inbound",
-                    "polyline": "_p~iF~ps|U_c@_c@g~@_c@g~@_c@_c@",
-                    "stops": [
+                "id": "d4fc7e79-15ff-4efa-8295-44ee58e17e6d",
+                "name": "paravur to kochi",
+                "code": "PVR-KCH-001",
+                "routeType": "inbound",
+                "polyline": "_p~iF~ps|U_c@_c@g~@_c@g~@_c@_c@",
+                "stops": [
                         {
                             "id": "d1a9943b-0f7c-452f-bec3-6082dc56de57",
                             "name": "Stop A",
@@ -194,7 +193,6 @@
                             "sequenceOrder": 24
                         }
                     ]
-                }
             }
         }
     ]
