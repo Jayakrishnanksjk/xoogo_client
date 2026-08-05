@@ -146,6 +146,7 @@ router.post('/import', authenticate, upload.single('file'), async (req, res) => 
             name: s.name,
             latitude: s.latitude,
             longitude: s.longitude,
+            sequenceOrder: s.sequence,
             routeId: route.id,
           })),
           { transaction: t }
@@ -176,7 +177,7 @@ router.get('/', authenticate, async (req, res) => {
   try {
     const routes = await Route.findAll({
       order: [['created_at', 'DESC']],
-      include: [{ model: Stop, as: 'stops', attributes: ['id', 'name', 'latitude', 'longitude'] }]
+      include: [{ model: Stop, as: 'stops', attributes: ['id', 'name', 'latitude', 'longitude', 'sequenceOrder'], order: [['sequenceOrder', 'ASC']] }]
     })
     res.json(routes)
   } catch (error) {
@@ -189,7 +190,7 @@ router.get('/', authenticate, async (req, res) => {
 router.get('/:id', authenticate, async (req, res) => {
   try {
     const route = await Route.findByPk(req.params.id, {
-      include: [{ model: Stop, as: 'stops', attributes: ['id', 'name', 'latitude', 'longitude'] }]
+      include: [{ model: Stop, as: 'stops', attributes: ['id', 'name', 'latitude', 'longitude', 'sequenceOrder'], order: [['sequenceOrder', 'ASC']] }]
     })
     if (!route) {
       return res.status(404).json({ message: 'Route not found.' })

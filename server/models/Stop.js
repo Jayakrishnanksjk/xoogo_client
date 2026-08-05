@@ -19,6 +19,11 @@ const Stop = sequelize.define('Stop', {
     type: DataTypes.DOUBLE,
     allowNull: false,
   },
+  sequenceOrder: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    field: 'sequence_order',
+  },
   routeId: {
     type: DataTypes.UUID,
     allowNull: false,

@@ -130,12 +130,12 @@ router.get('/sync/full-timetable', apiKeyAuth, async (req, res) => {
             model: Route,
             as: 'route',
             required: true,
-            include: [{
-              model: Stop,
-              as: 'stops',
-              attributes: ['id', 'name', 'latitude', 'longitude'],
-              order: [['created_at', 'ASC']],
-            }],
+include: [{
+            model: Stop,
+            as: 'stops',
+            attributes: ['id', 'name', 'latitude', 'longitude', 'sequenceOrder'],
+            order: [['sequenceOrder', 'ASC']],
+          }],
           }],
         },
       ],
@@ -160,24 +160,30 @@ router.get('/sync/full-timetable', apiKeyAuth, async (req, res) => {
         status: s.status,
         startTime: s.startTime,
         endTime: s.endTime,
-        routes: (s.scheduleRoutes || [])
-          .sort((a, b) => a.sequenceOrder - b.sequenceOrder)
-          .map(sr => {
-            const r = sr.route
-            return {
-              id: r.id,
-              name: r.name,
-              code: r.code,
-              routeType: r.routeType,
-              polyline: r.polyline,
-              stops: (r.stops || []).map(st => ({
-                id: st.id,
-                name: st.name,
-                latitude: st.latitude,
-                longitude: st.longitude,
-              })),
-            }
-          }),
+        route: Object.fromEntries(
+          (s.scheduleRoutes || [])
+            .sort((a, b) => a.sequenceOrder - b.sequenceOrder)
+            .map(sr => {
+              const r = sr.route
+              return [
+                String(sr.sequenceOrder),
+                {
+                  id: r.id,
+                  name: r.name,
+                  code: r.code,
+                  routeType: r.routeType,
+                  polyline: r.polyline,
+                  stops: (r.stops || []).map(st => ({
+                    id: st.id,
+                    name: st.name,
+                    sequenceOrder: st.sequenceOrder,
+                    latitude: st.latitude,
+                    longitude: st.longitude,
+                  })),
+                },
+              ]
+            }),
+        ),
       })),
     })
 

@@ -1,0 +1,201 @@
+﻿{
+    "bus_id": "739fe81d-e85d-4dad-835d-6e2ca70c11bf",
+    "bus": {
+        "id": "739fe81d-e85d-4dad-835d-6e2ca70c11bf",
+        "busId": "M78QPT",
+        "regNumber": "KL-42-2424",
+        "busType": "ordinary",
+        "status": "offline",
+        "contactName": "jk",
+        "contactNumber": "+91 9195674640"
+    },
+    "schedules": [
+        {
+            "id": "f74ff591-8ab3-4749-bd7c-52cd7e526296",
+            "name": "Morning Trip",
+            "description": "Morning transit service",
+            "status": "active",
+            "startTime": "09:00:00",
+            "endTime": "12:00:00",
+            "route": {
+                "1": {
+                    "id": "d4fc7e79-15ff-4efa-8295-44ee58e17e6d",
+                    "name": "paravur to kochi",
+                    "code": "PVR-KCH-001",
+                    "routeType": "inbound",
+                    "polyline": "_p~iF~ps|U_c@_c@g~@_c@g~@_c@_c@",
+                    "stops": [
+                        {
+                            "id": "d1a9943b-0f7c-452f-bec3-6082dc56de57",
+                            "name": "Stop A",
+                            "latitude": 10,
+                            "longitude": 76,
+                            "sequenceOrder": 1
+                        },
+                        {
+                            "id": "40b87f63-85a9-453b-a045-659cb4356e8a",
+                            "name": "Stop B",
+                            "latitude": 10.01,
+                            "longitude": 76.01,
+                            "sequenceOrder": 2
+                        },
+                        {
+                            "id": "fe7c43c0-99c9-4256-b8cd-7190002bf1e9",
+                            "name": "Stop C",
+                            "latitude": 10.02,
+                            "longitude": 76.02,
+                            "sequenceOrder": 3
+                        },
+                        {
+                            "id": "039fc8fd-5eb5-4f17-a31e-d7c828e14cd9",
+                            "name": "Stop D",
+                            "latitude": 10.03,
+                            "longitude": 76.03,
+                            "sequenceOrder": 4
+                        },
+                        {
+                            "id": "1147b79e-14ca-4630-8a3f-b75df8c55b29",
+                            "name": "Stop E",
+                            "latitude": 10.04,
+                            "longitude": 76.04,
+                            "sequenceOrder": 5
+                        },
+                        {
+                            "id": "c64eb941-8da2-4500-9d6d-2af84697966d",
+                            "name": "Stop F",
+                            "latitude": 10.05,
+                            "longitude": 76.05,
+                            "sequenceOrder": 6
+                        },
+                        {
+                            "id": "2cc4bf60-e5a7-4cf0-a9bd-ad27476819bd",
+                            "name": "Stop G",
+                            "latitude": 10.06,
+                            "longitude": 76.06,
+                            "sequenceOrder": 7
+                        },
+                        {
+                            "id": "0e861181-d38c-4cc9-b702-587aee0118ae",
+                            "name": "Stop H",
+                            "latitude": 10.07,
+                            "longitude": 76.07,
+                            "sequenceOrder": 8
+                        },
+                        {
+                            "id": "99e3ee84-e22e-45f7-b75f-5663442c556a",
+                            "name": "Stop I",
+                            "latitude": 10.08,
+                            "longitude": 76.08,
+                            "sequenceOrder": 9
+                        },
+                        {
+                            "id": "e2c66345-1ab9-48a8-8291-201f279dd78f",
+                            "name": "Stop J",
+                            "latitude": 10.09,
+                            "longitude": 76.09,
+                            "sequenceOrder": 10
+                        },
+                        {
+                            "id": "a7a9019c-34cb-44a4-9849-9470e22ddb58",
+                            "name": "Stop K",
+                            "latitude": 10.1,
+                            "longitude": 76.1,
+                            "sequenceOrder": 11
+                        },
+                        {
+                            "id": "b584d9ae-0d49-494d-bb26-32c5106bf6f3",
+                            "name": "Stop L",
+                            "latitude": 10.11,
+                            "longitude": 76.11,
+                            "sequenceOrder": 12
+                        },
+                        {
+                            "id": "218fd299-2be3-40f7-ba3f-7efc07d4400e",
+                            "name": "Stop M",
+                            "latitude": 10.12,
+                            "longitude": 76.12,
+                            "sequenceOrder": 13
+                        },
+                        {
+                            "id": "8903ae37-0e29-41cd-8322-74f6423d524d",
+                            "name": "Stop N",
+                            "latitude": 10.13,
+                            "longitude": 76.13,
+                            "sequenceOrder": 14
+                        },
+                        {
+                            "id": "c9503716-34ab-4908-a810-18a5cd079218",
+                            "name": "Stop O",
+                            "latitude": 10.14,
+                            "longitude": 76.14,
+                            "sequenceOrder": 15
+                        },
+                        {
+                            "id": "e8609a5f-18ad-402f-ab2c-a810da5db26e",
+                            "name": "Stop P",
+                            "latitude": 10.15,
+                            "longitude": 76.15,
+                            "sequenceOrder": 16
+                        },
+                        {
+                            "id": "c3168b39-884a-46b0-90cd-20cdae0d0542",
+                            "name": "Stop Q",
+                            "latitude": 10.16,
+                            "longitude": 76.16,
+                            "sequenceOrder": 17
+                        },
+                        {
+                            "id": "f3f95a05-c3b0-4739-af10-64c7967896c4",
+                            "name": "Stop R",
+                            "latitude": 10.17,
+                            "longitude": 76.17,
+                            "sequenceOrder": 18
+                        },
+                        {
+                            "id": "62ef80ca-e5f1-4baa-ad99-e9e050a7d724",
+                            "name": "Stop S",
+                            "latitude": 10.18,
+                            "longitude": 76.18,
+                            "sequenceOrder": 19
+                        },
+                        {
+                            "id": "6e95dce9-7fc5-4eed-90fb-306f0b233080",
+                            "name": "Stop T",
+                            "latitude": 10.19,
+                            "longitude": 76.19,
+                            "sequenceOrder": 20
+                        },
+                        {
+                            "id": "4cacfa10-d405-4ba3-b9c3-9209be39835c",
+                            "name": "Stop U",
+                            "latitude": 10.2,
+                            "longitude": 76.2,
+                            "sequenceOrder": 21
+                        },
+                        {
+                            "id": "b78c1b45-2e81-4892-9efd-05e788d9ca57",
+                            "name": "Stop V",
+                            "latitude": 10.21,
+                            "longitude": 76.21,
+                            "sequenceOrder": 22
+                        },
+                        {
+                            "id": "ec884abc-74ce-49be-b0a0-9de576cb3e99",
+                            "name": "Stop W",
+                            "latitude": 10.22,
+                            "longitude": 76.22,
+                            "sequenceOrder": 23
+                        },
+                        {
+                            "id": "99d7f194-2d91-4c6f-b92f-57c23a3b6434",
+                            "name": "Stop X",
+                            "latitude": 10.23,
+                            "longitude": 76.23,
+                            "sequenceOrder": 24
+                        }
+                    ]
+                }
+            }
+        }
+    ]
+}

@@ -219,8 +219,14 @@ async function runTests() {
     if (!data.bus_id || !data.bus) throw new Error('Test 12 Failed: Missing bus_id or bus details')
     if (!Array.isArray(data.schedules) || data.schedules.length < 1) throw new Error('Test 12 Failed: No schedules returned')
     const sched = data.schedules[0]
-    if (!Array.isArray(sched.routes) || sched.routes.length < 1) throw new Error('Test 12 Failed: Schedule has no routes')
-    if (!Array.isArray(sched.routes[0].stops) || sched.routes[0].stops.length < 1) throw new Error('Test 12 Failed: Route has no stops')
+    const routeKeys = Object.keys(sched.route || {})
+    if (routeKeys.length < 1) throw new Error('Test 12 Failed: Schedule has no routes')
+    const firstRoute = sched.route[routeKeys[0]]
+    if (!Array.isArray(firstRoute.stops) || firstRoute.stops.length < 1) throw new Error('Test 12 Failed: Route has no stops')
+    const firstStop = firstRoute.stops[0]
+    if (typeof firstStop.sequenceOrder !== 'number') throw new Error('Test 12 Failed: Stop missing sequenceOrder')
+    const seqs = firstRoute.stops.map(s => s.sequenceOrder)
+    if (seqs.join(',') !== seqs.slice().sort((a, b) => a - b).join(',')) throw new Error('Test 12 Failed: Stops not sorted by sequenceOrder')
     console.log(`✅ Test 12: GET /sync/full-timetable returned bus + ${data.schedules.length} schedule(s) with full stops in one call`)
   } catch (err) {
     console.error(err.message)

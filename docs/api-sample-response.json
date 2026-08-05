@@ -1,0 +1,76 @@
+{
+  "description": "Example API responses for a single bus (busId: X1A2B3). All values are sample data for integration testing. Pair each payload with the request body { \"busId\": \"X1A2B3\" } and the Authorization: Bearer <bus_api_key> header.",
+  "endpoints": {
+    "POST /api/public/bus": {
+      "regNumber": "KL-07-AB-4521",
+      "busId": "X1A2B3",
+      "busType": "AC Low Floor",
+      "status": "online",
+      "contactName": "Ramesh Kumar",
+      "contactNumber": "+91 98765 43210",
+      "group": {
+        "id": "a1b2c3d4-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
+        "name": "Kochi Metro Fleet"
+      },
+      "route": {
+        "id": "5f6a7b8c-9d0e-1a2b-3c4d-5e6f7a8b9c0d",
+        "name": "Downtown Express",
+        "code": "D001"
+      }
+    },
+    "POST /api/public/bus-routes": {
+      "route": {
+        "id": "5f6a7b8c-9d0e-1a2b-3c4d-5e6f7a8b9c0d",
+        "name": "Downtown Express",
+        "code": "D001",
+        "stops": [
+          {
+            "id": "8c9d0e1f-2a3b-4c5d-6e7f-8091a2b3c4d5",
+            "name": "Central Station",
+            "latitude": 10.0123,
+            "longitude": 76.1234
+          },
+          {
+            "id": "1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
+            "name": "Market Square",
+            "latitude": 10.0345,
+            "longitude": 76.1456
+          },
+          {
+            "id": "2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e",
+            "name": "University Gate",
+            "latitude": 10.0567,
+            "longitude": 76.1678
+          },
+          {
+            "id": "3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f",
+            "name": "City Hospital",
+            "latitude": 10.0789,
+            "longitude": 76.189
+          }
+        ]
+      }
+    },
+    "POST /api/public/bus-schedule": {
+      "group": {
+        "id": "a1b2c3d4-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
+        "name": "Kochi Metro Fleet"
+      },
+      "schedules": [
+        {
+          "id": "4d5e6f70-8a9b-0c1d-2e3f-4a5b6c7d8e9f",
+          "name": "Weekday Morning",
+          "description": "Morning rush service",
+          "status": "active",
+          "startTime": "06:00:00",
+          "endTime": "10:00:00",
+          "route": {
+            "id": "5f6a7b8c-9d0e-1a2b-3c4d-5e6f7a8b9c0d",
+            "name": "Downtown Express",
+            "code": "D001"
+          }
+        }
+      ]
+    }
+  }
+}

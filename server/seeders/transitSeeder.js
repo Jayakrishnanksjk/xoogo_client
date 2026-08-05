@@ -30,6 +30,7 @@ async function runSeeder() {
       name: `Stop ${String.fromCharCode(65 + (i % 26))}${i >= 26 ? Math.floor(i/26) : ''}`,
       latitude: 10.0 + i * 0.01,
       longitude: 76.0 + i * 0.01,
+      sequenceOrder: i + 1,
       routeId: route.id
     }))
     const stops = await Stop.bulkCreate(stopsData, { returning: true })
