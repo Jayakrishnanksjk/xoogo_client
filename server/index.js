@@ -1,9 +1,15 @@
 import dotenv from 'dotenv'
 dotenv.config()
 
+import fs from 'fs'
+import path from 'path'
+import { fileURLToPath } from 'url'
 import pg from 'pg'
 import app from './app.js'
 import sequelize from './config/database.js'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const pkg = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../package.json'), 'utf8'))
 
 const port = process.env.PORT || 5000
 
@@ -75,7 +81,7 @@ async function startServer() {
 
     // 3. Start Express server
     app.listen(port, () => {
-      console.log(`🚀 Server is running on port ${port}`)
+      console.log(`🚌 Xoogo v${pkg.version} — server is running on port ${port}`)
       console.log(`Health check: http://localhost:${port}/api/health`)
     })
   } catch (error) {

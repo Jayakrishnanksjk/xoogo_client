@@ -1,0 +1,11 @@
+route_name,route_code,estimated_duration,distance,route_type,status,stop_name,latitude,longitude,stop_sequence
+Kaloor - Fort Kochi,KFC-01,60 mins,14.2,outbound,active,Kaloor Bus Stand,9.9984,76.2850,1
+Kaloor - Fort Kochi,KFC-01,60 mins,14.2,outbound,active,Kathrikadavu,9.9838,76.2800,2
+Kaloor - Fort Kochi,KFC-01,60 mins,14.2,outbound,active,Kacheripady,9.9750,76.2820,3
+Kaloor - Fort Kochi,KFC-01,60 mins,14.2,outbound,active,Kunnumpuram Junction,9.9740,76.2860,4
+Kaloor - Fort Kochi,KFC-01,60 mins,14.2,outbound,active,MG Road,9.9727,76.2854,5
+Kaloor - Fort Kochi,KFC-01,60 mins,14.2,outbound,active,Jos Junction,9.9672,76.2835,6
+Kaloor - Fort Kochi,KFC-01,60 mins,14.2,outbound,active,Marine Drive,9.9690,76.2740,7
+Kaloor - Fort Kochi,KFC-01,60 mins,14.2,outbound,active,High Court Junction,9.9772,76.2710,8
+Kaloor - Fort Kochi,KFC-01,60 mins,14.2,outbound,active,Mattancherry,9.9580,76.2568,9
+Kaloor - Fort Kochi,KFC-01,60 mins,14.2,outbound,active,Fort Kochi,9.9658,76.2419,10

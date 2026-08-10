@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useBranding } from '@/context/ThemeContext'
+import { APP_VERSION } from '@/lib/version'
 import clsx from 'clsx'
 
 const NAV_SUPERADMIN = [
@@ -215,6 +216,10 @@ export default function Sidebar() {
                 <div className="px-2 py-1.5 border-b border-white/5 mb-1 text-left">
                   <p className="text-xs font-semibold text-white truncate">{user?.full_name}</p>
                   <p className="text-[10px] text-slate-400 truncate">{user?.email}</p>
+                </div>
+                <div className="px-2.5 py-1.5 flex items-center justify-between text-[10px] text-slate-500">
+                  <span>Version</span>
+                  <span className="font-mono text-slate-400">v{APP_VERSION}</span>
                 </div>
                 <button
                   onClick={handleLogout}

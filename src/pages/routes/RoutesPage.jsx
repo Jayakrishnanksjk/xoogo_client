@@ -4,7 +4,7 @@ import { MapContainer, TileLayer, Marker, Polyline, useMap } from 'react-leaflet
 import L from 'leaflet'
 import AppLayout from '@/components/layout/AppLayout'
 import { Badge, EmptyState, Button, Tabs, ConfirmDialog, Modal, SearchInput } from '@/components/ui'
-import { MapPin, Plus, ChevronRight, MoreVertical, Trash2, Upload } from 'lucide-react'
+import { MapPin, Plus, ChevronRight, MoreVertical, Trash2, Upload, GripVertical } from 'lucide-react'
 import { routesApi } from '@/api'
 import { toast } from 'sonner'
 
@@ -46,6 +46,7 @@ export default function RoutesPage() {
   const [importModalOpen, setImportModalOpen] = useState(false)
   const [importFile, setImportFile] = useState(null)
   const [importing, setImporting] = useState(false)
+  const [draggedStopIdx, setDraggedStopIdx] = useState(null)
 
   const fetchRoutes = async () => {
     try {
@@ -53,11 +54,15 @@ export default function RoutesPage() {
       const res = await routesApi.list()
       const normalized = res.data.map(r => ({
         ...r,
-        stops: (r.stops || []).map(s => ({
-          ...s,
-          lat: s.lat ?? s.latitude,
-          lng: s.lng ?? s.longitude,
-        })),
+        stops: (r.stops || [])
+          .slice()
+          .sort((a, b) => (a.sequenceOrder ?? 0) - (b.sequenceOrder ?? 0))
+          .map((s, idx) => ({
+            ...s,
+            lat: s.lat ?? s.latitude,
+            lng: s.lng ?? s.longitude,
+            sequenceOrder: s.sequenceOrder ?? (idx + 1),
+          })),
       }))
       setRoutes(normalized)
       if (normalized.length > 0) {
@@ -155,6 +160,36 @@ export default function RoutesPage() {
     } catch (err) {
       console.error(err)
       toast.error(err.response?.data?.message || 'Failed to delete route')
+    }
+  }
+
+  const handleStopDragStart = (idx) => {
+    setDraggedStopIdx(idx)
+  }
+
+  const handleStopDragOver = (e, targetIdx) => {
+    e.preventDefault()
+    if (draggedStopIdx === null || draggedStopIdx === targetIdx || !selected) return
+    const newStops = [...selected.stops]
+    const [moved] = newStops.splice(draggedStopIdx, 1)
+    newStops.splice(targetIdx, 0, moved)
+    const reorderedStops = newStops.map((s, i) => ({ ...s, sequenceOrder: i + 1 }))
+
+    setSelected((prev) => ({ ...prev, stops: reorderedStops }))
+    setRoutes((prev) => prev.map((r) => (r.id === selected.id ? { ...r, stops: reorderedStops } : r)))
+    setDraggedStopIdx(targetIdx)
+  }
+
+  const handleStopDragEnd = async () => {
+    setDraggedStopIdx(null)
+    if (!selected) return
+    try {
+      const orderedIds = selected.stops.map(s => s.id).filter(Boolean)
+      await routesApi.reorderStops(selected.id, orderedIds, selected.stops)
+      toast.success('Stops reordered successfully')
+    } catch (err) {
+      console.error(err)
+      toast.error('Failed to save stop order')
     }
   }
 
@@ -299,16 +334,18 @@ export default function RoutesPage() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between mb-3">
                     <p className="text-xs font-semibold text-slate-700">Route Stops ({selected.stops?.length || 0})</p>
+                    <p className="text-[11px] text-slate-400">Drag stops by the handle to reorder</p>
                   </div>
                   {(!selected.stops || selected.stops.length === 0) ? (
                     <div className="text-center py-10 text-slate-400 text-sm bg-slate-50 rounded-xl border border-dashed border-slate-200">
                       No stops defined for this route.
                     </div>
                   ) : (
-                    <div className="border border-slate-100 rounded-xl overflow-hidden bg-white max-h-[300px] overflow-y-auto">
+                    <div className="border border-slate-100 rounded-xl overflow-hidden bg-white max-h-[350px] overflow-y-auto">
                       <table className="w-full text-left border-collapse">
                         <thead>
                           <tr className="bg-slate-50 border-b border-slate-100">
+                            <th className="p-3 w-10"></th>
                             <th className="p-3 text-xs font-semibold text-slate-500 uppercase">Seq</th>
                             <th className="p-3 text-xs font-semibold text-slate-500 uppercase">Stop Name</th>
                             <th className="p-3 text-xs font-semibold text-slate-500 uppercase">Coordinates</th>
@@ -316,8 +353,20 @@ export default function RoutesPage() {
                         </thead>
                         <tbody>
                           {selected.stops.map((stop, idx) => (
-                            <tr key={stop.id || idx} className="border-b border-slate-50 hover:bg-slate-50/50">
-                              <td className="p-3 text-xs font-medium text-slate-500">{idx + 1}</td>
+                            <tr
+                              key={stop.id || idx}
+                              draggable
+                              onDragStart={() => handleStopDragStart(idx)}
+                              onDragOver={(e) => handleStopDragOver(e, idx)}
+                              onDragEnd={handleStopDragEnd}
+                              className={`border-b border-slate-50 transition-colors select-none ${
+                                draggedStopIdx === idx ? 'bg-blue-50/80 border-blue-200' : 'hover:bg-slate-50/50'
+                              }`}
+                            >
+                              <td className="p-3 w-10 text-slate-400 cursor-grab active:cursor-grabbing">
+                                <GripVertical size={15} className="text-slate-400 hover:text-slate-600 transition-colors" />
+                              </td>
+                              <td className="p-3 text-xs font-bold text-brand">{idx + 1}</td>
                               <td className="p-3 text-xs font-medium text-slate-800">{stop.name || '—'}</td>
                               <td className="p-3 text-xs text-slate-400 font-mono">
                                 {stop.lat?.toFixed(5)}, {stop.lng?.toFixed(5)}

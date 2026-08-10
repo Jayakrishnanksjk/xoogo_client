@@ -94,11 +94,13 @@ router.post('/import', authenticate, upload.single('file'), async (req, res) => 
 
         const routeData = routeMap.get(code)
         if (row.stop_name?.trim() && row.latitude && row.longitude) {
+          const rawSeq = row.stop_sequence ? parseInt(row.stop_sequence, 10) : null
           routeData.stops.push({
             name: row.stop_name.trim(),
             latitude: parseFloat(row.latitude),
             longitude: parseFloat(row.longitude),
-            sequence: row.stop_sequence ? parseInt(row.stop_sequence, 10) : routeData.stops.length + 1,
+            sequence: rawSeq,
+            csvIndex: routeData.stops.length + 1,
           })
         }
       }
@@ -139,18 +141,24 @@ router.post('/import', authenticate, upload.single('file'), async (req, res) => 
           status: data.status,
         }, { transaction: t })
 
-        data.stops.sort((a, b) => a.sequence - b.sequence)
+        // Sort stops by explicit stop_sequence if provided and valid, otherwise preserve CSV line order
+        data.stops.sort((a, b) => {
+          if (a.sequence != null && b.sequence != null && !isNaN(a.sequence) && !isNaN(b.sequence)) {
+            return a.sequence - b.sequence
+          }
+          return a.csvIndex - b.csvIndex
+        })
 
-        await Stop.bulkCreate(
-          data.stops.map(s => ({
-            name: s.name,
-            latitude: s.latitude,
-            longitude: s.longitude,
-            sequenceOrder: s.sequence,
-            routeId: route.id,
-          })),
-          { transaction: t }
-        )
+        // Renumber sequenceOrder sequentially (1, 2, 3...)
+        const stopRecords = data.stops.map((s, idx) => ({
+          name: s.name,
+          latitude: s.latitude,
+          longitude: s.longitude,
+          sequenceOrder: idx + 1,
+          routeId: route.id,
+        }))
+
+        await Stop.bulkCreate(stopRecords, { transaction: t })
 
         await t.commit()
         created.push({ code, name: data.name, stops: data.stops.length })
@@ -176,10 +184,20 @@ router.post('/import', authenticate, upload.single('file'), async (req, res) => 
 router.get('/', authenticate, async (req, res) => {
   try {
     const routes = await Route.findAll({
-      order: [['created_at', 'DESC']],
-      include: [{ model: Stop, as: 'stops', attributes: ['id', 'name', 'latitude', 'longitude', 'sequenceOrder'], order: [['sequenceOrder', 'ASC']] }]
+      order: [
+        ['created_at', 'DESC'],
+        [{ model: Stop, as: 'stops' }, 'sequenceOrder', 'ASC']
+      ],
+      include: [{ model: Stop, as: 'stops', attributes: ['id', 'name', 'latitude', 'longitude', 'sequenceOrder'] }]
     })
-    res.json(routes)
+    const jsonRoutes = routes.map(r => {
+      const plain = r.toJSON()
+      if (plain.stops && Array.isArray(plain.stops)) {
+        plain.stops.sort((a, b) => (a.sequenceOrder ?? 0) - (b.sequenceOrder ?? 0))
+      }
+      return plain
+    })
+    res.json(jsonRoutes)
   } catch (error) {
     console.error('List routes error:', error)
     res.status(500).json({ message: 'Internal server error.' })
@@ -190,12 +208,17 @@ router.get('/', authenticate, async (req, res) => {
 router.get('/:id', authenticate, async (req, res) => {
   try {
     const route = await Route.findByPk(req.params.id, {
-      include: [{ model: Stop, as: 'stops', attributes: ['id', 'name', 'latitude', 'longitude', 'sequenceOrder'], order: [['sequenceOrder', 'ASC']] }]
+      order: [[{ model: Stop, as: 'stops' }, 'sequenceOrder', 'ASC']],
+      include: [{ model: Stop, as: 'stops', attributes: ['id', 'name', 'latitude', 'longitude', 'sequenceOrder'] }]
     })
     if (!route) {
       return res.status(404).json({ message: 'Route not found.' })
     }
-    res.json(route)
+    const plain = route.toJSON()
+    if (plain.stops && Array.isArray(plain.stops)) {
+      plain.stops.sort((a, b) => (a.sequenceOrder ?? 0) - (b.sequenceOrder ?? 0))
+    }
+    res.json(plain)
   } catch (error) {
     console.error('Get route error:', error)
     res.status(500).json({ message: 'Internal server error.' })
@@ -205,7 +228,7 @@ router.get('/:id', authenticate, async (req, res) => {
 // POST /api/routes - Create route
 router.post('/', authenticate, async (req, res) => {
   try {
-    const { name, code, estimatedDuration, distance, routeType, status } = req.body
+    const { name, code, estimatedDuration, distance, routeType, status, stops } = req.body
 
     // Check unique code
     const existing = await Route.findOne({ where: { code } })
@@ -213,25 +236,51 @@ router.post('/', authenticate, async (req, res) => {
       return res.status(400).json({ message: 'Route code must be unique.' })
     }
 
-    const route = await Route.create({
-      name,
-      code,
-      estimatedDuration,
-      distance,
-      routeType,
-      status: status || 'active'
-    })
-    res.status(201).json(route)
+    const t = await sequelize.transaction()
+    try {
+      const route = await Route.create({
+        name,
+        code,
+        estimatedDuration,
+        distance,
+        routeType,
+        status: status || 'active'
+      }, { transaction: t })
+
+      if (stops && Array.isArray(stops) && stops.length > 0) {
+        await Stop.bulkCreate(
+          stops.map((s, idx) => ({
+            name: s.name || '',
+            latitude: s.lat ?? s.latitude,
+            longitude: s.lng ?? s.longitude,
+            sequenceOrder: idx + 1,
+            routeId: route.id,
+          })),
+          { transaction: t }
+        )
+      }
+
+      await t.commit()
+      const createdRoute = await Route.findByPk(route.id, {
+        include: [{ model: Stop, as: 'stops', attributes: ['id', 'name', 'latitude', 'longitude', 'sequenceOrder'] }]
+      })
+      const plain = createdRoute.toJSON()
+      if (plain.stops) plain.stops.sort((a, b) => (a.sequenceOrder ?? 0) - (b.sequenceOrder ?? 0))
+      res.status(201).json(plain)
+    } catch (err) {
+      await t.rollback()
+      throw err
+    }
   } catch (error) {
     console.error('Create route error:', error)
     res.status(500).json({ message: 'Internal server error.' })
   }
 })
 
-// PATCH /api/routes/:id - Update route
+// PATCH /api/routes/:id - Update route and stops
 router.patch('/:id', authenticate, async (req, res) => {
   try {
-    const { name, code, estimatedDuration, distance, routeType, status } = req.body
+    const { name, code, estimatedDuration, distance, routeType, status, stops } = req.body
     const route = await Route.findByPk(req.params.id)
     if (!route) {
       return res.status(404).json({ message: 'Route not found.' })
@@ -244,17 +293,95 @@ router.patch('/:id', authenticate, async (req, res) => {
       }
     }
 
-    await route.update({
-      name,
-      code,
-      estimatedDuration,
-      distance,
-      routeType,
-      status
-    })
-    res.json(route)
+    const t = await sequelize.transaction()
+    try {
+      await route.update({
+        name,
+        code,
+        estimatedDuration,
+        distance,
+        routeType,
+        status
+      }, { transaction: t })
+
+      if (stops && Array.isArray(stops)) {
+        await Stop.destroy({ where: { routeId: route.id }, transaction: t })
+        if (stops.length > 0) {
+          await Stop.bulkCreate(
+            stops.map((s, idx) => ({
+              name: s.name || '',
+              latitude: s.lat ?? s.latitude,
+              longitude: s.lng ?? s.longitude,
+              sequenceOrder: idx + 1,
+              routeId: route.id,
+            })),
+            { transaction: t }
+          )
+        }
+      }
+
+      await t.commit()
+      const updatedRoute = await Route.findByPk(route.id, {
+        include: [{ model: Stop, as: 'stops', attributes: ['id', 'name', 'latitude', 'longitude', 'sequenceOrder'] }]
+      })
+      const plain = updatedRoute.toJSON()
+      if (plain.stops) plain.stops.sort((a, b) => (a.sequenceOrder ?? 0) - (b.sequenceOrder ?? 0))
+      res.json(plain)
+    } catch (err) {
+      await t.rollback()
+      throw err
+    }
   } catch (error) {
     console.error('Update route error:', error)
+    res.status(500).json({ message: 'Internal server error.' })
+  }
+})
+
+// PUT /api/routes/:id/stops/reorder - Reorder stops for a route
+router.put('/:id/stops/reorder', authenticate, async (req, res) => {
+  try {
+    const { orderedIds, stops } = req.body
+    const route = await Route.findByPk(req.params.id, {
+      include: [{ model: Stop, as: 'stops' }]
+    })
+    if (!route) {
+      return res.status(404).json({ message: 'Route not found.' })
+    }
+
+    const t = await sequelize.transaction()
+    try {
+      if (Array.isArray(orderedIds) && orderedIds.length > 0) {
+        for (let i = 0; i < orderedIds.length; i++) {
+          const stopId = orderedIds[i]
+          await Stop.update({ sequenceOrder: i + 1 }, { where: { id: stopId, routeId: route.id }, transaction: t })
+        }
+      } else if (Array.isArray(stops) && stops.length > 0) {
+        await Stop.destroy({ where: { routeId: route.id }, transaction: t })
+        await Stop.bulkCreate(
+          stops.map((s, idx) => ({
+            name: s.name || '',
+            latitude: s.lat ?? s.latitude,
+            longitude: s.lng ?? s.longitude,
+            sequenceOrder: idx + 1,
+            routeId: route.id,
+          })),
+          { transaction: t }
+        )
+      }
+
+      await t.commit()
+      const updatedRoute = await Route.findByPk(route.id, {
+        include: [{ model: Stop, as: 'stops', attributes: ['id', 'name', 'latitude', 'longitude', 'sequenceOrder'] }]
+      })
+      const plain = updatedRoute.toJSON()
+      if (plain.stops) plain.stops.sort((a, b) => (a.sequenceOrder ?? 0) - (b.sequenceOrder ?? 0))
+      res.json(plain)
+    } catch (err) {
+      await t.rollback()
+      throw err
+    }
+  } catch (error) {
+    console.error('Reorder stops error:', error)
     res.status(500).json({ message: 'Internal server error.' })
   }
 })
