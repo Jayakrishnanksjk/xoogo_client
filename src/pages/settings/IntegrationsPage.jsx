@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import AppLayout from '@/components/layout/AppLayout'
 import { Button, Select, Input, Badge, Modal } from '@/components/ui'
-import { Key, Copy, Check, Trash2, AlertTriangle } from 'lucide-react'
+import { Key, Copy, Check, Trash2, AlertTriangle, Download } from 'lucide-react'
 import { busesApi } from '@/api'
 import api from '@/api/client'
 import { toast } from 'sonner'
@@ -76,6 +76,24 @@ export default function IntegrationsPage() {
     } catch (err) {
       toast.error('Failed to delete API key')
     }
+  }
+
+  const handleDownloadKey = (busId, apiKey) => {
+    const busIdValue = busId || 'UNKNOWN'
+    const timestamp = Math.floor(Date.now() / 1000)
+    const fileName = `nool-web-bus_${timestamp}.key`
+    const content = `BUS ID = ${busIdValue}\nKEY=${apiKey}`
+
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = fileName
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+    toast.success(`Downloaded ${fileName}`)
   }
 
   const copyToClipboard = (text, id) => {
@@ -159,6 +177,13 @@ export default function IntegrationsPage() {
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleDownloadKey(k.bus?.busId || k.bus?.regNumber, k.key)}
+                      className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-brand transition-colors"
+                      title="Download key file"
+                    >
+                      <Download size={15} />
+                    </button>
                     <button
                       onClick={() => copyToClipboard(k.key, k.id)}
                       className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-slate-700 transition-colors"
@@ -254,8 +279,17 @@ export default function IntegrationsPage() {
               <p className="text-xs font-medium text-slate-600 mb-1.5">API Key</p>
               <div className="flex items-center gap-2">
                 <Input value={newKey.key} readOnly className="font-mono text-xs" />
-                <Button size="sm" onClick={() => copyToClipboard(newKey.key, 'new-key')}>
+                <Button size="sm" onClick={() => copyToClipboard(newKey.key, 'new-key')} title="Copy key">
                   {copiedId === 'new-key' ? <Check size={14} /> : <Copy size={14} />}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleDownloadKey(newKey.bus?.busId || newKey.bus?.regNumber || selectedBus?.busId || selectedBus?.regNumber, newKey.key)}
+                  title="Download key file"
+                >
+                  <Download size={14} className="mr-1" />
+                  Download
                 </Button>
               </div>
             </div>

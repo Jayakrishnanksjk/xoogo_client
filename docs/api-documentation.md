@@ -40,7 +40,7 @@ Authorization: Bearer <JWT_TOKEN>
 
 - Token expiry: `7 days` by default (configurable via `JWT_EXPIRES_IN`).
 - On expiry the API returns `401` with `message: "Token expired. Please login again."`
-- Roles: `superadmin` (full access), `admin`, `partner` (limited access).
+- Roles: `superadmin` (full access), `admin`, `partner`, `operator`. Access is enforced per endpoint — e.g. user management requires `superadmin` or `admin`; API-key and branding management require `superadmin`; bus/route/schedule/group management accepts any authenticated user.
 
 ### 2. Per-Bus API Key (Public Bus APIs)
 
@@ -618,14 +618,16 @@ All endpoints under `GET /`, `POST /`, `GET /:id`, `PATCH /:id`, `DELETE /:id`.
 
 #### Routes — `/api/routes`
 
-| Method | Path | Description | Role |
-| --- | --- | --- | --- |
-| `GET` | `/api/routes` | List routes with stops | superadmin |
-| `GET` | `/api/routes/:id` | Get one route with stops | superadmin |
-| `POST` | `/api/routes` | Create a route | superadmin |
-| `PATCH` | `/api/routes/:id` | Update a route | superadmin |
-| `DELETE` | `/api/routes/:id` | Delete a route | superadmin |
-| `POST` | `/api/routes/import` | Import routes from CSV/text (`multipart/form-data`, field `file`) | superadmin |
+| Method | Path | Description |
+| --- | --- | --- |
+| `GET` | `/api/routes` | List routes with stops |
+| `GET` | `/api/routes/:id` | Get one route with stops |
+| `POST` | `/api/routes` | Create a route |
+| `PATCH` | `/api/routes/:id` | Update a route |
+| `DELETE` | `/api/routes/:id` | Delete a route |
+| `POST` | `/api/routes/import` | Import routes from CSV/text (`multipart/form-data`, field `file`) |
+
+> All `/api/routes` endpoints require a JWT (any role).
 
 **`POST /api/routes` request body:**
 
@@ -663,18 +665,20 @@ All endpoints under `GET /`, `POST /`, `GET /:id`, `PATCH /:id`, `DELETE /:id`.
 
 #### Schedules — `/api/schedules`
 
-| Method | Path | Description | Role |
-| --- | --- | --- | --- |
-| `GET` | `/api/schedules` | List schedules | superadmin |
-| `POST` | `/api/schedules` | Create a schedule | superadmin |
-| `GET` | `/api/schedules/:id` | Get one schedule | superadmin |
-| `PATCH` | `/api/schedules/:id` | Update a schedule | superadmin |
-| `DELETE` | `/api/schedules/:id` | Delete a schedule | superadmin |
-| `POST` | `/api/schedules/:id/routes` | Add a route to a schedule (`routeId`, optional `replace`) | superadmin |
-| `POST` | `/api/schedules/:id/copy-routes` | Copy routes from another schedule (`sourceScheduleId`) | superadmin |
-| `DELETE` | `/api/schedules/:id/routes/:routeId` | Remove a route from a schedule | superadmin |
-| `POST` | `/api/schedules/:id/assign` | Assign schedule to a bus (`busId`) | superadmin |
-| `DELETE` | `/api/schedules/:id/assign/:busId` | Unassign a bus from a schedule | superadmin |
+| Method | Path | Description |
+| --- | --- | --- |
+| `GET` | `/api/schedules` | List schedules |
+| `POST` | `/api/schedules` | Create a schedule |
+| `GET` | `/api/schedules/:id` | Get one schedule |
+| `PATCH` | `/api/schedules/:id` | Update a schedule |
+| `DELETE` | `/api/schedules/:id` | Delete a schedule |
+| `POST` | `/api/schedules/:id/routes` | Add a route to a schedule (`routeId`, optional `replace`) |
+| `POST` | `/api/schedules/:id/copy-routes` | Copy routes from another schedule (`sourceScheduleId`) |
+| `DELETE` | `/api/schedules/:id/routes/:routeId` | Remove a route from a schedule |
+| `POST` | `/api/schedules/:id/assign` | Assign schedule to a bus (`busId`) |
+| `DELETE` | `/api/schedules/:id/assign/:busId` | Unassign a bus from a schedule |
+
+> All `/api/schedules` endpoints require a JWT (any role).
 
 **`POST /api/schedules` request body:**
 
@@ -726,7 +730,7 @@ Roles: `superadmin` or `admin` only.
 | `email` | string | yes | Must be unique |
 | `password` | string | yes | |
 | `phone` | string | no | |
-| `role` | string | no | `superadmin` \| `admin` \| `partner` (default `partner`) |
+| `role` | string | no | `superadmin` \| `admin` \| `partner` \| `operator` (default `partner`) |
 | `status` | string | no | `active` \| `inactive` |
 | `group_id` | string (UUID) | no | |
 
