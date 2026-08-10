@@ -217,14 +217,26 @@ export default function IntegrationsPage() {
 
         {/* API Usage Guide */}
         <div className="bg-white rounded-xl shadow-card border border-slate-100 p-6">
-          <h3 className="text-sm font-semibold text-slate-900 mb-1">API Usage</h3>
-          <p className="text-xs text-slate-500 mb-5">Use these endpoints to fetch bus data with your API key.</p>
+          <div className="flex items-center justify-between mb-1">
+            <h3 className="text-sm font-semibold text-slate-900">API Usage Guide</h3>
+            <span className="text-xs font-medium text-slate-500">Header: <code className="text-brand font-mono bg-brand/5 px-2 py-0.5 rounded">Authorization: Bearer &lt;your_api_key&gt;</code></span>
+          </div>
+          <p className="text-xs text-slate-500 mb-5">Use these endpoints to integrate on-bus display devices or fetch bus data.</p>
 
           <div className="space-y-4">
             {[
               {
+                endpoint: '/api/sync/full-timetable',
+                method: 'GET',
+                recommended: true,
+                desc: 'Single unified endpoint for on-bus devices. Returns complete bus info, active schedules, and routes with ordered stops in a single call.',
+                example: `curl -X GET "${baseUrl}/api/sync/full-timetable?bus_id=${selectedBus?.busId || 'NW48432'}" \\
+  -H "Authorization: Bearer <your_api_key>"`
+              },
+              {
                 endpoint: '/api/public/bus',
-                desc: 'Get bus details (regNumber, busType, status, group, route)',
+                method: 'POST',
+                desc: 'Get bus details (registration number, bus type, status, group, and route).',
                 example: `curl -X POST ${baseUrl}/api/public/bus \\
   -H "Authorization: Bearer <your_api_key>" \\
   -H "Content-Type: application/json" \\
@@ -232,7 +244,8 @@ export default function IntegrationsPage() {
               },
               {
                 endpoint: '/api/public/bus-routes',
-                desc: 'Get route with stops (includes lat/lng coordinates)',
+                method: 'POST',
+                desc: 'Get route with stops (includes latitude/longitude coordinates).',
                 example: `curl -X POST ${baseUrl}/api/public/bus-routes \\
   -H "Authorization: Bearer <your_api_key>" \\
   -H "Content-Type: application/json" \\
@@ -240,18 +253,26 @@ export default function IntegrationsPage() {
               },
               {
                 endpoint: '/api/public/bus-schedule',
-                desc: 'Get schedule and group info',
+                method: 'POST',
+                desc: 'Get schedule and group info.',
                 example: `curl -X POST ${baseUrl}/api/public/bus-schedule \\
   -H "Authorization: Bearer <your_api_key>" \\
   -H "Content-Type: application/json" \\
   -d '{"busId":"${selectedBus?.busId || 'NW48432'}"}'`
               },
-            ].map(({ endpoint, desc, example }) => (
-              <div key={endpoint} className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+            ].map(({ endpoint, method, recommended, desc, example }) => (
+              <div key={endpoint} className={`p-4 rounded-xl border ${recommended ? 'bg-amber-50/40 border-amber-200' : 'bg-slate-50 border-slate-200'}`}>
                 <div className="flex items-center justify-between mb-2">
-                  <div>
-                    <code className="text-xs font-semibold text-brand">{endpoint}</code>
-                    <p className="text-[11px] text-slate-500 mt-0.5">{desc}</p>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${method === 'GET' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>
+                      {method}
+                    </span>
+                    <code className="text-xs font-semibold text-slate-900">{endpoint}</code>
+                    {recommended && (
+                      <span className="text-[10px] font-semibold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
+                        ★ Single-call Sync (Recommended)
+                      </span>
+                    )}
                   </div>
                   <button
                     onClick={() => copyToClipboard(example, endpoint)}
@@ -261,7 +282,8 @@ export default function IntegrationsPage() {
                     {copiedId === endpoint ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
                   </button>
                 </div>
-                <pre className="text-[11px] font-mono text-slate-700 bg-white p-3 rounded-lg border border-slate-100 overflow-x-auto whitespace-pre-wrap">{example}</pre>
+                <p className="text-[11px] text-slate-600 mb-2.5">{desc}</p>
+                <pre className="text-[11px] font-mono text-slate-700 bg-white p-3 rounded-lg border border-slate-200/80 overflow-x-auto whitespace-pre-wrap">{example}</pre>
               </div>
             ))}
           </div>
