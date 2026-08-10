@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import AppLayout from '@/components/layout/AppLayout'
 import { Button, Select, Input, Badge, Modal } from '@/components/ui'
-import { Key, Copy, Check, Trash2, AlertTriangle, Download } from 'lucide-react'
+import { Key, Copy, Check, Trash2, AlertTriangle, Download, Play, Plus, ChevronDown } from 'lucide-react'
 import { busesApi } from '@/api'
 import api from '@/api/client'
 import { toast } from 'sonner'
@@ -18,10 +18,78 @@ export default function IntegrationsPage() {
   const [baseUrl, setBaseUrl] = useState('')
   const [deleteConfirm, setDeleteConfirm] = useState(null)
 
+  // API Tester State
+  const [testerEndpoint, setTesterEndpoint] = useState('/api/sync/full-timetable')
+  const [testerApiKey, setTesterApiKey] = useState('')
+  const [testerBusId, setTesterBusId] = useState('')
+  const [queryParams, setQueryParams] = useState([{ key: 'bus_id', value: '' }])
+  const [bodyParams, setBodyParams] = useState({ busId: '' })
+  const [sending, setSending] = useState(false)
+  const [responseState, setResponseState] = useState(null)
+  const [activeResTab, setActiveResTab] = useState('json')
+  const [showHeaders, setShowHeaders] = useState(true)
+
+  const endpointsList = [
+    {
+      path: '/api/sync/full-timetable',
+      method: 'GET',
+      status: 'Active',
+      description: 'Get complete bus, schedule, and route data with ordered stops in a single call.',
+      defaultParams: [{ key: 'bus_id', value: '' }]
+    },
+    {
+      path: '/api/public/bus',
+      method: 'POST',
+      status: 'Active',
+      description: 'Get bus details (regNumber, busType, status, group, route).',
+      defaultBody: { busId: '' }
+    },
+    {
+      path: '/api/public/bus-routes',
+      method: 'POST',
+      status: 'Active',
+      description: 'Get route with stops (includes lat/lng coordinates).',
+      defaultBody: { busId: '' }
+    },
+    {
+      path: '/api/public/bus-schedule',
+      method: 'POST',
+      status: 'Active',
+      description: 'Get schedule and group info.',
+      defaultBody: { busId: '' }
+    }
+  ]
+
+  const currentEndpoint = endpointsList.find(e => e.path === testerEndpoint) || endpointsList[0]
+
   useEffect(() => {
     setBaseUrl(window.location.origin)
     loadData()
   }, [])
+
+  useEffect(() => {
+    if (apiKeys.length > 0 && !testerApiKey) {
+      const activeKey = apiKeys.find(k => k.status === 'active') || apiKeys[0]
+      if (activeKey) {
+        setTesterApiKey(activeKey.key)
+        const busIdentifier = activeKey.bus?.busId || activeKey.bus?.regNumber || ''
+        setTesterBusId(busIdentifier)
+        setQueryParams([{ key: 'bus_id', value: busIdentifier }])
+        setBodyParams({ busId: busIdentifier })
+      }
+    }
+  }, [apiKeys])
+
+  const handleEndpointSelect = (path) => {
+    setTesterEndpoint(path)
+    setResponseState(null)
+    const ep = endpointsList.find(e => e.path === path)
+    if (ep?.method === 'GET') {
+      setQueryParams([{ key: 'bus_id', value: testerBusId }])
+    } else {
+      setBodyParams({ busId: testerBusId })
+    }
+  }
 
   const loadData = async () => {
     try {
@@ -101,6 +169,110 @@ export default function IntegrationsPage() {
     setCopiedId(id)
     setTimeout(() => setCopiedId(null), 2000)
     toast.success('Copied to clipboard')
+  }
+
+  const handleAddQueryParam = () => {
+    setQueryParams([...queryParams, { key: '', value: '' }])
+  }
+
+  const handleRemoveQueryParam = (index) => {
+    setQueryParams(queryParams.filter((_, i) => i !== index))
+  }
+
+  const handleQueryParamChange = (index, field, value) => {
+    const updated = [...queryParams]
+    updated[index][field] = value
+    setQueryParams(updated)
+  }
+
+  const handleSendRequest = async () => {
+    if (!testerApiKey) {
+      toast.error('Please select or enter an API key')
+      return
+    }
+
+    setSending(true)
+    const startTime = performance.now()
+
+    try {
+      let url = `${baseUrl}${currentEndpoint.path}`
+      let options = {
+        method: currentEndpoint.method,
+        headers: {
+          'Authorization': `Bearer ${testerApiKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+
+      if (currentEndpoint.method === 'GET') {
+        const queryObj = {}
+        queryParams.forEach(p => {
+          if (p.key.trim()) queryObj[p.key.trim()] = p.value
+        })
+        const searchParams = new URLSearchParams(queryObj).toString()
+        if (searchParams) url += `?${searchParams}`
+      } else {
+        options.body = JSON.stringify(bodyParams)
+      }
+
+      const res = await fetch(url, options)
+      const endTime = performance.now()
+      const duration = Math.round(endTime - startTime)
+
+      const text = await res.text()
+      let data
+      try {
+        data = JSON.parse(text)
+      } catch {
+        data = text
+      }
+
+      const headersObj = {}
+      res.headers.forEach((val, key) => { headersObj[key] = val })
+
+      const approxSize = (new Blob([text]).size / 1024).toFixed(1)
+
+      setResponseState({
+        status: res.status,
+        statusText: res.statusText || (res.ok ? 'OK' : 'Error'),
+        ok: res.ok,
+        duration,
+        size: `${approxSize} KB`,
+        data,
+        headers: headersObj,
+        requestUrl: url,
+        requestMethod: currentEndpoint.method,
+        requestBody: options.body
+      })
+    } catch (err) {
+      const endTime = performance.now()
+      setResponseState({
+        status: 500,
+        statusText: 'Network Error',
+        ok: false,
+        duration: Math.round(endTime - startTime),
+        size: '0 KB',
+        data: { error: err.message || 'Failed to fetch' },
+        headers: {}
+      })
+    } finally {
+      setSending(false)
+    }
+  }
+
+  const getCurlSnippet = () => {
+    let url = `${baseUrl}${currentEndpoint.path}`
+    if (currentEndpoint.method === 'GET') {
+      const queryObj = {}
+      queryParams.forEach(p => {
+        if (p.key.trim()) queryObj[p.key.trim()] = p.value
+      })
+      const searchParams = new URLSearchParams(queryObj).toString()
+      if (searchParams) url += `?${searchParams}`
+      return `curl -X GET "${url}" \\\n  -H "Authorization: Bearer ${testerApiKey || '<your_api_key>'}"`
+    } else {
+      return `curl -X POST "${url}" \\\n  -H "Authorization: Bearer ${testerApiKey || '<your_api_key>'}" \\\n  -H "Content-Type: application/json" \\\n  -d '${JSON.stringify(bodyParams)}'`
+    }
   }
 
   const getBusLabel = (bus) => {
@@ -213,6 +385,235 @@ export default function IntegrationsPage() {
               ))}
             </div>
           )}
+        </div>
+
+        {/* Interactive Realtime API Tester */}
+        <div className="bg-white rounded-2xl shadow-card border border-slate-200 overflow-hidden">
+          {/* Header Bar */}
+          <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <span className={`px-2.5 py-1 text-xs font-bold rounded-lg ${currentEndpoint.method === 'GET' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>
+                {currentEndpoint.method}
+              </span>
+              <div className="relative">
+                <select
+                  value={testerEndpoint}
+                  onChange={e => handleEndpointSelect(e.target.value)}
+                  className="appearance-none font-mono text-sm font-semibold text-slate-900 bg-white border border-slate-200 rounded-lg pl-3 pr-8 py-1.5 focus:outline-none focus:border-brand cursor-pointer shadow-sm"
+                >
+                  {endpointsList.map(ep => (
+                    <option key={ep.path} value={ep.path}>
+                      {ep.path} ({ep.method})
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full">
+                {currentEndpoint.status}
+              </span>
+            </div>
+          </div>
+
+          <p className="px-6 pt-3 text-xs text-slate-500">{currentEndpoint.description}</p>
+
+          <div className="p-6 space-y-6">
+            {/* Request Form */}
+            <div className="space-y-5">
+              <div className="text-xs font-semibold text-slate-800 uppercase tracking-wider">Request</div>
+
+              {/* Base URL & Auth Key Selection */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-medium text-slate-600 mb-1">Base URL</label>
+                  <input
+                    type="text"
+                    value={baseUrl}
+                    onChange={e => setBaseUrl(e.target.value)}
+                    className="w-full text-xs font-mono bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-700 focus:outline-none focus:border-brand"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">Select API Key</label>
+                  <select
+                    value={testerApiKey}
+                    onChange={e => {
+                      const val = e.target.value
+                      setTesterApiKey(val)
+                      const found = apiKeys.find(k => k.key === val)
+                      if (found?.bus) {
+                        const bId = found.bus.busId || found.bus.regNumber || ''
+                        setTesterBusId(bId)
+                        if (currentEndpoint.method === 'GET') {
+                          setQueryParams([{ key: 'bus_id', value: bId }])
+                        } else {
+                          setBodyParams({ busId: bId })
+                        }
+                      }
+                    }}
+                    className="w-full text-xs font-mono bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-700 focus:outline-none focus:border-brand"
+                  >
+                    <option value="">-- Choose Key --</option>
+                    {apiKeys.map(k => (
+                      <option key={k.id} value={k.key}>
+                        {k.bus?.busId || k.bus?.regNumber || 'Bus Key'} ({k.key.substring(0, 12)}...)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Query Parameters (GET) */}
+              {currentEndpoint.method === 'GET' && (
+                <div className="space-y-3 pt-1">
+                  <label className="block text-xs font-medium text-slate-600">Query Parameters</label>
+                  {queryParams.map((param, index) => (
+                    <div key={index} className="flex items-center gap-3">
+                      <input
+                        type="text"
+                        placeholder="Parameter Key (e.g. bus_id)"
+                        value={param.key}
+                        onChange={e => handleQueryParamChange(index, 'key', e.target.value)}
+                        className="flex-1 text-xs font-mono bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:border-brand"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Value (e.g. NW48432)"
+                        value={param.value}
+                        onChange={e => handleQueryParamChange(index, 'value', e.target.value)}
+                        className="flex-1 text-xs font-mono bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:border-brand"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveQueryParam(index)}
+                        className="p-2 text-slate-400 hover:text-red-500 rounded-lg transition-colors"
+                        title="Remove parameter"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={handleAddQueryParam}
+                    className="inline-flex items-center gap-1 text-xs font-medium text-brand hover:text-brand-dark pt-1"
+                  >
+                    <Plus size={14} /> Add Parameter
+                  </button>
+                </div>
+              )}
+
+              {/* Body Parameters (POST) */}
+              {currentEndpoint.method === 'POST' && (
+                <div className="space-y-2 pt-1">
+                  <label className="block text-xs font-medium text-slate-600">Request Body (JSON)</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <span className="text-[11px] text-slate-500 block mb-1 font-mono">busId</span>
+                      <input
+                        type="text"
+                        value={bodyParams.busId || ''}
+                        onChange={e => setBodyParams({ busId: e.target.value })}
+                        placeholder="e.g. NW48432"
+                        className="w-full text-xs font-mono bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:border-brand"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Accordion Header & Send Button */}
+              <div className="flex flex-wrap items-center justify-between gap-4 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowHeaders(!showHeaders)}
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600 hover:text-slate-900"
+                >
+                  <ChevronDown size={14} className={`transition-transform ${showHeaders ? '' : '-rotate-90'}`} />
+                  Headers <span className="text-slate-400">(Authorization: Bearer key)</span>
+                </button>
+
+                <Button
+                  onClick={handleSendRequest}
+                  loading={sending}
+                  className="bg-brand hover:bg-brand-dark text-white px-5 py-2 rounded-xl shadow-md shadow-brand/20 transition-all font-medium text-xs flex items-center gap-2"
+                >
+                  <Play size={13} className="fill-current" />
+                  Send Request
+                </Button>
+              </div>
+
+              {/* Headers Drawer */}
+              {showHeaders && (
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs font-mono space-y-1 text-slate-600">
+                  <div><strong className="text-slate-800">Authorization:</strong> Bearer {testerApiKey || '<your_api_key>'}</div>
+                  <div><strong className="text-slate-800">Content-Type:</strong> application/json</div>
+                </div>
+              )}
+            </div>
+
+            {/* Response Section */}
+            {responseState && (
+              <div className="space-y-3 pt-4 border-t border-slate-200">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-semibold text-slate-900">Response</span>
+                    <span className={`px-2.5 py-0.5 text-xs font-bold rounded-md ${responseState.ok ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                      • {responseState.status} {responseState.statusText}
+                    </span>
+                    <span className="text-xs text-slate-500 font-mono">{responseState.duration} ms</span>
+                    <span className="text-xs text-slate-500 font-mono">{responseState.size}</span>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => copyToClipboard(JSON.stringify(responseState.data, null, 2), 'response-raw')}
+                      className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-800 transition-colors"
+                    >
+                      {copiedId === 'response-raw' ? <Check size={13} className="text-green-500" /> : <Copy size={13} />}
+                      <span>{copiedId === 'response-raw' ? 'Copied' : 'View Raw'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Response Tabs (JSON / Headers / Curl) */}
+                <div className="flex items-center gap-4 border-b border-slate-200 text-xs font-medium">
+                  {['json', 'headers', 'curl'].map(tab => (
+                    <button
+                      key={tab}
+                      onClick={() => setActiveResTab(tab)}
+                      className={`pb-2 border-b-2 uppercase tracking-wider font-semibold transition-colors ${activeResTab === tab ? 'border-brand text-brand' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                    >
+                      {tab}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Response Output Box */}
+                <div className="bg-[#0f172a] text-slate-200 rounded-xl p-4 font-mono text-xs overflow-x-auto max-h-96 shadow-inner relative group">
+                  {activeResTab === 'json' && (
+                    <pre className="text-emerald-400 whitespace-pre-wrap">
+                      {typeof responseState.data === 'object' ? JSON.stringify(responseState.data, null, 2) : responseState.data}
+                    </pre>
+                  )}
+
+                  {activeResTab === 'headers' && (
+                    <pre className="text-sky-300 whitespace-pre-wrap">
+                      {JSON.stringify(responseState.headers, null, 2)}
+                    </pre>
+                  )}
+
+                  {activeResTab === 'curl' && (
+                    <pre className="text-amber-300 whitespace-pre-wrap">
+                      {getCurlSnippet()}
+                    </pre>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* API Usage Guide */}
