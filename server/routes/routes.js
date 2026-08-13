@@ -21,10 +21,11 @@ function parseTextFormat(text) {
 
     const stops = []
     for (let i = 1; i < lines.length; i++) {
-      const match = lines[i].match(/^\s*\d+[\.)]\s*(.+?)\s*[-–]\s*([\d.]+)\s*,\s*([\d.]+)/)
+      const match = lines[i].match(/^\s*\d+[\.)]\s*(.+?)\s*[-–]\s*([\d.]+)\s*,\s*([\d.]+)(?:\s*\|\s*(.*))?\s*$/)
       if (match) {
         stops.push({
           name: match[1].trim(),
+          name_ml: match[4]?.trim() || null,
           latitude: parseFloat(match[2]),
           longitude: parseFloat(match[3]),
           sequence: stops.length + 1,
@@ -97,6 +98,7 @@ router.post('/import', authenticate, upload.single('file'), async (req, res) => 
           const rawSeq = row.stop_sequence ? parseInt(row.stop_sequence, 10) : null
           routeData.stops.push({
             name: row.stop_name.trim(),
+            name_ml: row.stop_name_ml?.trim() || null,
             latitude: parseFloat(row.latitude),
             longitude: parseFloat(row.longitude),
             sequence: rawSeq,
@@ -152,6 +154,7 @@ router.post('/import', authenticate, upload.single('file'), async (req, res) => 
         // Renumber sequenceOrder sequentially (1, 2, 3...)
         const stopRecords = data.stops.map((s, idx) => ({
           name: s.name,
+          name_ml: s.name_ml || null,
           latitude: s.latitude,
           longitude: s.longitude,
           sequenceOrder: idx + 1,
@@ -188,7 +191,7 @@ router.get('/', authenticate, async (req, res) => {
         ['created_at', 'DESC'],
         [{ model: Stop, as: 'stops' }, 'sequenceOrder', 'ASC']
       ],
-      include: [{ model: Stop, as: 'stops', attributes: ['id', 'name', 'latitude', 'longitude', 'sequenceOrder'] }]
+      include: [{ model: Stop, as: 'stops', attributes: ['id', 'name', 'name_ml', 'latitude', 'longitude', 'sequenceOrder'] }]
     })
     const jsonRoutes = routes.map(r => {
       const plain = r.toJSON()
@@ -209,7 +212,7 @@ router.get('/:id', authenticate, async (req, res) => {
   try {
     const route = await Route.findByPk(req.params.id, {
       order: [[{ model: Stop, as: 'stops' }, 'sequenceOrder', 'ASC']],
-      include: [{ model: Stop, as: 'stops', attributes: ['id', 'name', 'latitude', 'longitude', 'sequenceOrder'] }]
+      include: [{ model: Stop, as: 'stops', attributes: ['id', 'name', 'name_ml', 'latitude', 'longitude', 'sequenceOrder'] }]
     })
     if (!route) {
       return res.status(404).json({ message: 'Route not found.' })
@@ -251,6 +254,7 @@ router.post('/', authenticate, async (req, res) => {
         await Stop.bulkCreate(
           stops.map((s, idx) => ({
             name: s.name || '',
+            name_ml: s.name_ml ?? s.nameMl ?? null,
             latitude: s.lat ?? s.latitude,
             longitude: s.lng ?? s.longitude,
             sequenceOrder: idx + 1,
@@ -262,7 +266,7 @@ router.post('/', authenticate, async (req, res) => {
 
       await t.commit()
       const createdRoute = await Route.findByPk(route.id, {
-        include: [{ model: Stop, as: 'stops', attributes: ['id', 'name', 'latitude', 'longitude', 'sequenceOrder'] }]
+        include: [{ model: Stop, as: 'stops', attributes: ['id', 'name', 'name_ml', 'latitude', 'longitude', 'sequenceOrder'] }]
       })
       const plain = createdRoute.toJSON()
       if (plain.stops) plain.stops.sort((a, b) => (a.sequenceOrder ?? 0) - (b.sequenceOrder ?? 0))
@@ -310,6 +314,7 @@ router.patch('/:id', authenticate, async (req, res) => {
           await Stop.bulkCreate(
             stops.map((s, idx) => ({
               name: s.name || '',
+              name_ml: s.name_ml ?? s.nameMl ?? null,
               latitude: s.lat ?? s.latitude,
               longitude: s.lng ?? s.longitude,
               sequenceOrder: idx + 1,
@@ -322,7 +327,7 @@ router.patch('/:id', authenticate, async (req, res) => {
 
       await t.commit()
       const updatedRoute = await Route.findByPk(route.id, {
-        include: [{ model: Stop, as: 'stops', attributes: ['id', 'name', 'latitude', 'longitude', 'sequenceOrder'] }]
+        include: [{ model: Stop, as: 'stops', attributes: ['id', 'name', 'name_ml', 'latitude', 'longitude', 'sequenceOrder'] }]
       })
       const plain = updatedRoute.toJSON()
       if (plain.stops) plain.stops.sort((a, b) => (a.sequenceOrder ?? 0) - (b.sequenceOrder ?? 0))
@@ -333,6 +338,77 @@ router.patch('/:id', authenticate, async (req, res) => {
     }
   } catch (error) {
     console.error('Update route error:', error)
+    res.status(500).json({ message: 'Internal server error.' })
+  }
+})
+
+// PATCH /api/routes/:routeId/stops/:stopId - Update a single stop
+router.patch('/:routeId/stops/:stopId', authenticate, async (req, res) => {
+  try {
+    const { name, name_ml, nameMl, latitude, longitude, lat, lng } = req.body
+    const stop = await Stop.findOne({ where: { id: req.params.stopId, routeId: req.params.routeId } })
+    if (!stop) {
+      return res.status(404).json({ message: 'Stop not found.' })
+    }
+
+    const updatedName = name !== undefined ? name : stop.name
+    const updatedNameMl = name_ml !== undefined ? name_ml : (nameMl !== undefined ? nameMl : stop.nameMl)
+    const updatedLat = lat ?? latitude ?? stop.latitude
+    const updatedLng = lng ?? longitude ?? stop.longitude
+
+    await stop.update({
+      name: updatedName,
+      nameMl: updatedNameMl,
+      latitude: updatedLat,
+      longitude: updatedLng,
+    })
+
+    res.json(stop)
+  } catch (error) {
+    console.error('Update stop error:', error)
+    res.status(500).json({ message: 'Internal server error.' })
+  }
+})
+
+// POST /api/routes/:routeId/stops - Add a stop to a route
+router.post('/:routeId/stops', authenticate, async (req, res) => {
+  try {
+    const { name, name_ml, nameMl, latitude, longitude, lat, lng } = req.body
+    const route = await Route.findByPk(req.params.routeId, {
+      include: [{ model: Stop, as: 'stops' }]
+    })
+    if (!route) {
+      return res.status(404).json({ message: 'Route not found.' })
+    }
+
+    const nextSeq = (route.stops?.length || 0) + 1
+    const newStop = await Stop.create({
+      name: name || '',
+      nameMl: name_ml ?? nameMl ?? null,
+      latitude: lat ?? latitude ?? 0,
+      longitude: lng ?? longitude ?? 0,
+      sequenceOrder: nextSeq,
+      routeId: route.id,
+    })
+
+    res.status(201).json(newStop)
+  } catch (error) {
+    console.error('Add stop error:', error)
+    res.status(500).json({ message: 'Internal server error.' })
+  }
+})
+
+// DELETE /api/routes/:routeId/stops/:stopId - Delete a single stop
+router.delete('/:routeId/stops/:stopId', authenticate, async (req, res) => {
+  try {
+    const stop = await Stop.findOne({ where: { id: req.params.stopId, routeId: req.params.routeId } })
+    if (!stop) {
+      return res.status(404).json({ message: 'Stop not found.' })
+    }
+    await stop.destroy()
+    res.json({ message: 'Stop deleted successfully.' })
+  } catch (error) {
+    console.error('Delete stop error:', error)
     res.status(500).json({ message: 'Internal server error.' })
   }
 })
@@ -360,6 +436,7 @@ router.put('/:id/stops/reorder', authenticate, async (req, res) => {
         await Stop.bulkCreate(
           stops.map((s, idx) => ({
             name: s.name || '',
+            name_ml: s.name_ml ?? s.nameMl ?? null,
             latitude: s.lat ?? s.latitude,
             longitude: s.lng ?? s.longitude,
             sequenceOrder: idx + 1,
@@ -371,7 +448,7 @@ router.put('/:id/stops/reorder', authenticate, async (req, res) => {
 
       await t.commit()
       const updatedRoute = await Route.findByPk(route.id, {
-        include: [{ model: Stop, as: 'stops', attributes: ['id', 'name', 'latitude', 'longitude', 'sequenceOrder'] }]
+        include: [{ model: Stop, as: 'stops', attributes: ['id', 'name', 'name_ml', 'latitude', 'longitude', 'sequenceOrder'] }]
       })
       const plain = updatedRoute.toJSON()
       if (plain.stops) plain.stops.sort((a, b) => (a.sequenceOrder ?? 0) - (b.sequenceOrder ?? 0))

@@ -50,6 +50,7 @@ router.get('/sync', apiKeyAuth, async (req, res) => {
     const stops = assignments.map(a => ({
       id: a.stop.id,
       name: a.stop.name,
+      name_ml: a.stop.name_ml ?? a.stop.nameMl,
       latitude: a.stop.latitude,
       longitude: a.stop.longitude,
       sequenceOrder: a.sequenceOrder
@@ -133,7 +134,7 @@ router.get('/sync/full-timetable', apiKeyAuth, async (req, res) => {
 include: [{
             model: Stop,
             as: 'stops',
-            attributes: ['id', 'name', 'latitude', 'longitude', 'sequenceOrder'],
+            attributes: ['id', 'name', 'nameMl', 'latitude', 'longitude', 'sequenceOrder'],
             order: [['sequenceOrder', 'ASC']],
           }],
           }],
@@ -178,6 +179,7 @@ include: [{
               .map(st => ({
                 id: st.id,
                 name: st.name,
+                name_ml: st.name_ml ?? st.nameMl,
                 sequenceOrder: st.sequenceOrder,
                 latitude: st.latitude,
                 longitude: st.longitude,

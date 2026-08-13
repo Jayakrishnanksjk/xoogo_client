@@ -11,6 +11,11 @@ const Stop = sequelize.define('Stop', {
     type: DataTypes.STRING,
     allowNull: false,
   },
+  nameMl: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    field: 'name_ml',
+  },
   latitude: {
     type: DataTypes.DOUBLE,
     allowNull: false,

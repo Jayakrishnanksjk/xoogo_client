@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { MapContainer, TileLayer, Marker, Polyline, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import AppLayout from '@/components/layout/AppLayout'
-import { Badge, EmptyState, Button, Tabs, ConfirmDialog, Modal, SearchInput } from '@/components/ui'
-import { MapPin, Plus, ChevronRight, MoreVertical, Trash2, Upload, GripVertical } from 'lucide-react'
+import { Badge, EmptyState, Button, Tabs, ConfirmDialog, Modal, SearchInput, Input } from '@/components/ui'
+import { MapPin, Plus, ChevronRight, MoreVertical, Trash2, Upload, GripVertical, Pencil } from 'lucide-react'
 import { routesApi } from '@/api'
 import { toast } from 'sonner'
 
@@ -47,6 +47,47 @@ export default function RoutesPage() {
   const [importFile, setImportFile] = useState(null)
   const [importing, setImporting] = useState(false)
   const [draggedStopIdx, setDraggedStopIdx] = useState(null)
+  const [editStopModalOpen, setEditStopModalOpen] = useState(false)
+  const [editingStop, setEditingStop] = useState(null)
+  const [stopForm, setStopForm] = useState({ name: '', name_ml: '', lat: '', lng: '' })
+  const [savingStop, setSavingStop] = useState(false)
+
+  const handleOpenEditStop = (stop) => {
+    setEditingStop(stop)
+    setStopForm({
+      name: stop.name || '',
+      name_ml: stop.name_ml || '',
+      lat: stop.lat != null ? String(stop.lat) : (stop.latitude != null ? String(stop.latitude) : ''),
+      lng: stop.lng != null ? String(stop.lng) : (stop.longitude != null ? String(stop.longitude) : ''),
+    })
+    setEditStopModalOpen(true)
+  }
+
+  const handleSaveStop = async () => {
+    if (!selected || !editingStop) return
+    try {
+      setSavingStop(true)
+      const latVal = parseFloat(stopForm.lat)
+      const lngVal = parseFloat(stopForm.lng)
+      const payload = {
+        name: stopForm.name.trim(),
+        name_ml: stopForm.name_ml.trim(),
+        lat: isNaN(latVal) ? editingStop.lat : latVal,
+        lng: isNaN(lngVal) ? editingStop.lng : lngVal,
+      }
+
+      await routesApi.updateStop(selected.id, editingStop.id, payload)
+      toast.success('Stop updated successfully')
+      setEditStopModalOpen(false)
+      setEditingStop(null)
+      fetchRoutes()
+    } catch (err) {
+      console.error(err)
+      toast.error(err.response?.data?.message || 'Failed to update stop')
+    } finally {
+      setSavingStop(false)
+    }
+  }
 
   const fetchRoutes = async () => {
     try {
@@ -348,7 +389,9 @@ export default function RoutesPage() {
                             <th className="p-3 w-10"></th>
                             <th className="p-3 text-xs font-semibold text-slate-500 uppercase">Seq</th>
                             <th className="p-3 text-xs font-semibold text-slate-500 uppercase">Stop Name</th>
+                            <th className="p-3 text-xs font-semibold text-slate-500 uppercase">Malayalam</th>
                             <th className="p-3 text-xs font-semibold text-slate-500 uppercase">Coordinates</th>
+                            <th className="p-3 text-xs font-semibold text-slate-500 uppercase text-right">Actions</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -368,8 +411,20 @@ export default function RoutesPage() {
                               </td>
                               <td className="p-3 text-xs font-bold text-brand">{idx + 1}</td>
                               <td className="p-3 text-xs font-medium text-slate-800">{stop.name || '—'}</td>
+                              <td className="p-3 text-xs text-slate-500 font-medium">{stop.name_ml || '—'}</td>
                               <td className="p-3 text-xs text-slate-400 font-mono">
                                 {stop.lat?.toFixed(5)}, {stop.lng?.toFixed(5)}
+                              </td>
+                              <td className="p-3 text-right">
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenEditStop(stop)}
+                                  title="Edit stop and Malayalam translation"
+                                  className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-brand hover:text-white rounded-md transition-colors"
+                                >
+                                  <Pencil size={12} />
+                                  Edit
+                                </button>
                               </td>
                             </tr>
                           ))}
@@ -504,15 +559,15 @@ export default function RoutesPage() {
             <p className="font-medium text-slate-700">Expected format:</p>
             <pre className="text-[10px] text-slate-400 leading-relaxed whitespace-pre-wrap">
 {`Route 1
-1. Taliparamba - 12.0367, 75.3595
-2. Trichambaram - 12.0278, 75.3655
+1. Taliparamba - 12.0367, 75.3595 | തളിപ്പറമ്പ്
+2. Trichambaram - 12.0278, 75.3655 | തൃച്ചംബരം
 3. 7th mile - 12.0220, 75.3676
 
 Route 2
 1. Kolmotta - 11.9935, 75.3949
 2. Kannupara - 11.9965, 75.3933`}
             </pre>
-            <p className="mt-1">Route headers and stops are separated by blank lines.</p>
+            <p className="mt-1">Route headers and stops are separated by blank lines. Malayalam translation (optional) goes after <code>|</code>.</p>
             <button
               type="button"
               className="text-brand hover:underline mt-1"
@@ -602,6 +657,69 @@ Route 3
         confirmLabel="Delete"
         danger
       />
+
+      <Modal
+        open={editStopModalOpen}
+        onClose={() => {
+          if (!savingStop) {
+            setEditStopModalOpen(false)
+            setEditingStop(null)
+          }
+        }}
+        title="Edit Stop & Malayalam Translation"
+        subtitle={editingStop ? `Updating stop details for route "${selected?.name}"` : ''}
+      >
+        <div className="space-y-4 py-2">
+          <Input
+            label="Stop Name (English) *"
+            placeholder="e.g. Kolmotta"
+            value={stopForm.name}
+            onChange={(e) => setStopForm((f) => ({ ...f, name: e.target.value }))}
+          />
+
+          <Input
+            label="Stop Name (Malayalam / മലയാളം)"
+            placeholder="e.g. കൊൽമൊട്ട"
+            value={stopForm.name_ml}
+            onChange={(e) => setStopForm((f) => ({ ...f, name_ml: e.target.value }))}
+          />
+
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label="Latitude"
+              placeholder="e.g. 11.99359"
+              value={stopForm.lat}
+              onChange={(e) => setStopForm((f) => ({ ...f, lat: e.target.value }))}
+            />
+            <Input
+              label="Longitude"
+              placeholder="e.g. 75.39493"
+              value={stopForm.lng}
+              onChange={(e) => setStopForm((f) => ({ ...f, lng: e.target.value }))}
+            />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setEditStopModalOpen(false)
+                setEditingStop(null)
+              }}
+              disabled={savingStop}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveStop}
+              loading={savingStop}
+              disabled={savingStop || !stopForm.name.trim()}
+            >
+              Save Changes
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </AppLayout>
   )
 }

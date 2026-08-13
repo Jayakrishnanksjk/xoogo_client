@@ -100,6 +100,7 @@ router.post('/bus-routes', authenticateApiKey, async (req, res) => {
         stops: (route.stops || []).map(s => ({
           id: s.id,
           name: s.name,
+          name_ml: s.nameMl,
           latitude: s.latitude,
           longitude: s.longitude,
         })),

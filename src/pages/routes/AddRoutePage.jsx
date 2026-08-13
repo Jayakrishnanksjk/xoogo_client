@@ -153,6 +153,7 @@ export default function AddRoutePage() {
           const fetchedStops = (route.stops || []).map((s) => ({
             id: s.id,
             name: s.name,
+            name_ml: s.name_ml ?? s.nameMl ?? '',
             lat: s.latitude !== undefined ? s.latitude : s.lat,
             lng: s.longitude !== undefined ? s.longitude : s.lng,
           }))
@@ -185,7 +186,7 @@ export default function AddRoutePage() {
   // Modal state
   const [showAddModal, setShowAddModal] = useState(false)
   const [editingStop, setEditingStop] = useState(null)
-  const [stopForm, setStopForm] = useState({ name: '', lat: '', lng: '' })
+  const [stopForm, setStopForm] = useState({ name: '', name_ml: '', lat: '', lng: '' })
   const [modalError, setModalError] = useState('')
 
   // Sync start/end coords from first/last stop
@@ -278,14 +279,14 @@ export default function AddRoutePage() {
 
   // ── Handlers ────────────────────────────────────────────
   const handleOpenAddModal = () => {
-    setStopForm({ name: '', lat: '', lng: '' })
+    setStopForm({ name: '', name_ml: '', lat: '', lng: '' })
     setEditingStop(null)
     setModalError('')
     setShowAddModal(true)
   }
 
   const handleOpenEditModal = (stop) => {
-    setStopForm({ name: stop.name || '', lat: String(stop.lat), lng: String(stop.lng) })
+    setStopForm({ name: stop.name || '', name_ml: stop.name_ml || '', lat: String(stop.lat), lng: String(stop.lng) })
     setEditingStop(stop.id)
     setModalError('')
     setShowAddModal(true)
@@ -307,11 +308,12 @@ export default function AddRoutePage() {
     setModalError('')
 
     const name = stopForm.name.trim()
+    const nameMl = stopForm.name_ml?.trim() || ''
 
     if (editingStop) {
       setStops((prev) =>
         prev.map((s) =>
-          s.id === editingStop ? { ...s, name: name || s.name, lat, lng } : s
+          s.id === editingStop ? { ...s, name: name || s.name, name_ml: nameMl, lat, lng } : s
         )
       )
     } else {
@@ -319,6 +321,7 @@ export default function AddRoutePage() {
         const newStop = {
           id: genId(),
           name: name || '',
+          name_ml: nameMl,
           lat,
           lng,
         }
@@ -345,6 +348,7 @@ export default function AddRoutePage() {
         const newStop = {
           id: genId(),
           name: '',
+          name_ml: '',
           lat: latlng.lat,
           lng: latlng.lng,
         }
@@ -411,6 +415,7 @@ export default function AddRoutePage() {
         stops: stops.map((s, idx) => ({
           id: s.id,
           name: s.name || '',
+          name_ml: s.name_ml || '',
           lat: s.lat,
           lng: s.lng,
           _isStart: idx === 0,
@@ -447,6 +452,7 @@ export default function AddRoutePage() {
         stops: stops.map((s, idx) => ({
           id: s.id,
           name: s.name || '',
+          name_ml: s.name_ml || '',
           lat: s.lat,
           lng: s.lng,
           _isStart: idx === 0,
@@ -829,6 +835,9 @@ export default function AddRoutePage() {
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-medium text-slate-800 truncate">{stop.name || coordStr(stop.lat, stop.lng)}</p>
                           <p className="text-[10px] text-slate-400 font-mono truncate">{stop.name ? coordStr(stop.lat, stop.lng) : ''}</p>
+                          {stop.name_ml && (
+                            <p className="text-[10px] text-slate-500 truncate">{stop.name_ml}</p>
+                          )}
                           <div className="flex items-center gap-1.5 mt-0.5">
                             {isFirst && (
                               <span className="text-[9px] font-semibold text-green-600 bg-green-50 px-1.5 py-0.5 rounded">
@@ -890,6 +899,7 @@ export default function AddRoutePage() {
                           )}
                         />
                         <span className="text-[11px] text-slate-600 truncate">{stop.name || coordStr(stop.lat, stop.lng)}</span>
+                        {stop.name_ml && <span className="text-[10px] text-slate-400 truncate">{stop.name_ml}</span>}
                       </div>
                     ))}
                   </div>
@@ -935,6 +945,12 @@ export default function AddRoutePage() {
             placeholder="e.g. Central Station"
             value={stopForm.name}
             onChange={(e) => setStopForm((f) => ({ ...f, name: e.target.value }))}
+          />
+          <Input
+            label="Stop Name (Malayalam)"
+            placeholder="e.g. സെൻട്രൽ സ്റ്റേഷൻ"
+            value={stopForm.name_ml}
+            onChange={(e) => setStopForm((f) => ({ ...f, name_ml: e.target.value }))}
           />
           <div className="grid grid-cols-2 gap-3">
             <Input
