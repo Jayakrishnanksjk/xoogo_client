@@ -154,7 +154,7 @@ router.post('/import', authenticate, upload.single('file'), async (req, res) => 
         // Renumber sequenceOrder sequentially (1, 2, 3...)
         const stopRecords = data.stops.map((s, idx) => ({
           name: s.name,
-          name_ml: s.name_ml || null,
+          nameMl: s.name_ml || null,
           latitude: s.latitude,
           longitude: s.longitude,
           sequenceOrder: idx + 1,
@@ -254,7 +254,7 @@ router.post('/', authenticate, async (req, res) => {
         await Stop.bulkCreate(
           stops.map((s, idx) => ({
             name: s.name || '',
-            name_ml: s.name_ml ?? s.nameMl ?? null,
+            nameMl: s.name_ml ?? s.nameMl ?? null,
             latitude: s.lat ?? s.latitude,
             longitude: s.lng ?? s.longitude,
             sequenceOrder: idx + 1,
@@ -314,7 +314,7 @@ router.patch('/:id', authenticate, async (req, res) => {
           await Stop.bulkCreate(
             stops.map((s, idx) => ({
               name: s.name || '',
-              name_ml: s.name_ml ?? s.nameMl ?? null,
+              nameMl: s.name_ml ?? s.nameMl ?? null,
               latitude: s.lat ?? s.latitude,
               longitude: s.lng ?? s.longitude,
               sequenceOrder: idx + 1,
@@ -436,7 +436,7 @@ router.put('/:id/stops/reorder', authenticate, async (req, res) => {
         await Stop.bulkCreate(
           stops.map((s, idx) => ({
             name: s.name || '',
-            name_ml: s.name_ml ?? s.nameMl ?? null,
+            nameMl: s.name_ml ?? s.nameMl ?? null,
             latitude: s.lat ?? s.latitude,
             longitude: s.lng ?? s.longitude,
             sequenceOrder: idx + 1,
