@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { Bus, Group, Route, Stop, Schedule, BusSchedule, ScheduleRoute } from '../models/index.js'
 import BusApiKey from '../models/BusApiKey.js'
+import { Op } from 'sequelize'
 
 const router = Router()
 
@@ -11,7 +12,7 @@ async function resolveBus(busIdOrUuid) {
     const bus = await Bus.findByPk(busIdOrUuid)
     if (bus) return bus
   }
-  return Bus.findOne({ where: { busId: busIdOrUuid } })
+  return Bus.findOne({ where: { busId: { [Op.iLike]: busIdOrUuid } } })
 }
 
 async function authenticateApiKey(req, res, next) {

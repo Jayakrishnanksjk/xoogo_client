@@ -13,7 +13,7 @@ async function resolveBus(busIdOrUuid) {
     const bus = await Bus.findByPk(busIdOrUuid)
     if (bus) return bus
   }
-  return Bus.findOne({ where: { busId: busIdOrUuid } })
+  return Bus.findOne({ where: { busId: { [Op.iLike]: busIdOrUuid } } })
 }
 
 // GET /api/sync?bus_id=<uuid | busId>

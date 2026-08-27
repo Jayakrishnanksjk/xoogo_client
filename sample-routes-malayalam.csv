@@ -1,0 +1,16 @@
+route_name,route_code,estimated_duration,distance,route_type,status,stop_name,stop_name_ml,latitude,longitude,stop_sequence
+Kaloor - Fort Kochi,KFC-01,60 mins,14.2,outbound,active,Kaloor Bus Stand,കലൂർ ബസ് സ്റ്റാൻഡ്,9.9984,76.2850,1
+Kaloor - Fort Kochi,KFC-01,60 mins,14.2,outbound,active,Kathrikadavu,കത്രിക്കടവ്,9.9838,76.2800,2
+Kaloor - Fort Kochi,KFC-01,60 mins,14.2,outbound,active,Kacheripady,കച്ചേരിപ്പടി,9.9750,76.2820,3
+Kaloor - Fort Kochi,KFC-01,60 mins,14.2,outbound,active,Kunnumpuram Junction,കുന്നുംപുറം ജംഗ്ഷൻ,9.9740,76.2860,4
+Kaloor - Fort Kochi,KFC-01,60 mins,14.2,outbound,active,MG Road,എംജി റോഡ്,9.9727,76.2854,5
+Kaloor - Fort Kochi,KFC-01,60 mins,14.2,outbound,active,Jos Junction,ജോസ് ജംഗ്ഷൻ,9.9672,76.2835,6
+Kaloor - Fort Kochi,KFC-01,60 mins,14.2,outbound,active,Marine Drive,മറൈൻ ഡ്രൈവ്,9.9690,76.2740,7
+Kaloor - Fort Kochi,KFC-01,60 mins,14.2,outbound,active,High Court Junction,ഹൈക്കോടതി ജംഗ്ഷൻ,9.9772,76.2710,8
+Kaloor - Fort Kochi,KFC-01,60 mins,14.2,outbound,active,Mattancherry,മട്ടാഞ്ചേരി,9.9580,76.2568,9
+Kaloor - Fort Kochi,KFC-01,60 mins,14.2,outbound,active,Fort Kochi,ഫോർട്ട് കൊച്ചി,9.9658,76.2419,10
+Vyttila - Kakkanad,VK-02,35 mins,9.5,outbound,active,Vyttila Mobility Hub,വൈറ്റില മൊബിലിറ്റി ഹബ്ബ്,9.9696,76.3187,1
+Vyttila - Kakkanad,VK-02,35 mins,9.5,outbound,active,Palarivattom,പാലാരിവട്ടം,9.9944,76.3106,2
+Vyttila - Kakkanad,VK-02,35 mins,9.5,outbound,active,Edapally Toll Junction,ഇടപ്പള്ളി ടോൾ ജംഗ്ഷൻ,10.0106,76.3075,3
+Vyttila - Kakkanad,VK-02,35 mins,9.5,outbound,active,Kakkanad KSEB,കാക്കനാട് കെഎസ്ഇബി,10.0135,76.3440,4
+Vyttila - Kakkanad,VK-02,35 mins,9.5,outbound,active,Infopark,ഇൻഫോപാർക്ക്,10.0122,76.3571,5
