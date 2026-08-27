@@ -131,12 +131,11 @@ router.get('/sync/full-timetable', apiKeyAuth, async (req, res) => {
             model: Route,
             as: 'route',
             required: true,
-include: [{
-            model: Stop,
-            as: 'stops',
-            attributes: ['id', 'name', 'nameMl', 'latitude', 'longitude', 'sequenceOrder'],
-            order: [['sequenceOrder', 'ASC']],
-          }],
+            include: [{
+              model: Stop,
+              as: 'stops',
+              attributes: ['id', 'name', 'nameMl', 'latitude', 'longitude', 'sequenceOrder'],
+            }],
           }],
         },
       ],
