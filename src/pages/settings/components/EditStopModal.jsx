@@ -24,8 +24,8 @@ export function EditStopModal({ open, onClose, stop, masterData, onSave }) {
         nameMl: stop.nameMl || '',
         latitude: stop.latitude || '',
         longitude: stop.longitude || '',
-        state_id: stop.stateMaster?.id || stop.state_id || '',
-        district_id: stop.districtMaster?.id || stop.district_id || '',
+        state_id: stop.stateMaster?.id || stop.state_id || stop.state || '',
+        district_id: stop.districtMaster?.id || stop.district_id || stop.district || '',
         region_id: stop.regionMaster?.id || stop.region_id || '',
         status: stop.status || 'active',
         description: stop.description || ''

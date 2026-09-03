@@ -1,16 +1,35 @@
 import express from 'express'
 import multer from 'multer'
 import { parse } from 'csv-parse/sync'
+import fs from 'fs'
+import path from 'path'
+import { fileURLToPath } from 'url'
 import { State, District, Region, Stop, RouteStop, sequelize } from '../models/index.js'
 import { authenticate } from '../middleware/auth.js'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const indiaDataPath = path.resolve(__dirname, '../../src/india-states-districts.json')
+let indiaData = null
+try {
+  indiaData = JSON.parse(fs.readFileSync(indiaDataPath, 'utf8'))
+} catch (e) {
+  console.error('Could not load india-states-districts.json:', e)
+}
 
 const router = express.Router()
 const upload = multer({ storage: multer.memoryStorage() })
 
-// ── CRUD: States ─────────────────────────
+// ── STATIC: States & Districts (from JSON) ─────────────────────────
 router.get('/states', authenticate, async (req, res) => {
   try {
-    const states = await State.findAll({ order: [['name', 'ASC']] })
+    if (!indiaData) return res.json([])
+    // Format to match what the frontend expects (id and name)
+    // using the string name as the ID so it saves properly in Stop.state if the frontend passes it
+    const states = indiaData.states.map(s => ({
+      id: s.name, // Using name as ID so the frontend passes the string name
+      name: s.name,
+      status: 'active'
+    })).sort((a, b) => a.name.localeCompare(b.name))
     res.json(states)
   } catch (error) {
     res.status(500).json({ message: error.message })
@@ -30,10 +49,20 @@ router.post('/states', authenticate, async (req, res) => {
 // ── CRUD: Districts ─────────────────────────
 router.get('/districts', authenticate, async (req, res) => {
   try {
-    const districts = await District.findAll({
-      include: [{ model: State, as: 'state', attributes: ['name'] }],
-      order: [['name', 'ASC']],
+    if (!indiaData) return res.json([])
+    const districts = []
+    indiaData.states.forEach(s => {
+      s.districts.forEach(d => {
+        districts.push({
+          id: d.name, // Using name as ID so the frontend passes the string name
+          name: d.name,
+          state_id: s.name, // The state's name is its ID now
+          state: { name: s.name },
+          status: 'active'
+        })
+      })
     })
+    districts.sort((a, b) => a.name.localeCompare(b.name))
     res.json(districts)
   } catch (error) {
     res.status(500).json({ message: error.message })
@@ -105,8 +134,10 @@ router.post('/stops', authenticate, async (req, res) => {
       nameMl,
       latitude: parseFloat(latitude) || 0,
       longitude: parseFloat(longitude) || 0,
-      state_id: state_id || null,
-      district_id: district_id || null,
+      state: state_id || null, // save string name to state column
+      district: district_id || null, // save string name to district column
+      state_id: null, // Keep UUID columns null
+      district_id: null,
       region_id: region_id || null,
       status: status || 'active',
       description
@@ -144,8 +175,10 @@ router.put('/stops/:id', authenticate, async (req, res) => {
       nameMl: nameMl !== undefined ? nameMl : stop.nameMl,
       latitude: latitude !== undefined ? latitude : stop.latitude,
       longitude: longitude !== undefined ? longitude : stop.longitude,
-      state_id: state_id !== undefined ? (state_id || null) : stop.state_id,
-      district_id: district_id !== undefined ? (district_id || null) : stop.district_id,
+      state: state_id !== undefined ? (state_id || null) : stop.state,
+      district: district_id !== undefined ? (district_id || null) : stop.district,
+      state_id: null, // Wipe old UUIDs if any
+      district_id: null,
       region_id: region_id !== undefined ? (region_id || null) : stop.region_id,
       status: status || stop.status,
       description: description !== undefined ? description : stop.description,
