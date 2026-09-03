@@ -131,11 +131,10 @@ router.get('/sync/full-timetable', apiKeyAuth, async (req, res) => {
             model: Route,
             as: 'route',
             required: true,
-            include: [{
-              model: Stop,
-              as: 'stops',
-              attributes: ['id', 'name', 'nameMl', 'latitude', 'longitude', 'sequenceOrder'],
-            }],
+            include: [
+              { model: Stop, as: 'stops', attributes: ['id', 'name', 'nameMl', 'latitude', 'longitude'], through: { attributes: ['sequenceOrder'] } },
+              { model: Stop, as: 'legacyStops', attributes: ['id', 'name', 'nameMl', 'latitude', 'longitude', 'sequenceOrder'] },
+            ],
           }],
         },
       ],
@@ -166,23 +165,29 @@ router.get('/sync/full-timetable', apiKeyAuth, async (req, res) => {
             .sort((a, b) => a.sequenceOrder - b.sequenceOrder)[0]
           if (!sr || !sr.route) return null
           const r = sr.route
+          const rp = r.toJSON ? r.toJSON() : r
+          let stopsOut = []
+          if (rp.stops && rp.stops.length > 0) {
+            stopsOut = rp.stops.map(st => ({
+              id: st.id,
+              name: st.name,
+              name_ml: st.name_ml ?? st.nameMl,
+              sequenceOrder: st.RouteStop ? st.RouteStop.sequenceOrder : (st.sequenceOrder ?? 0),
+              latitude: st.latitude,
+              longitude: st.longitude,
+            })).sort((a, b) => (a.sequenceOrder ?? 0) - (b.sequenceOrder ?? 0))
+          } else if (rp.legacyStops && rp.legacyStops.length > 0) {
+            stopsOut = rp.legacyStops.map(st => ({
+              id: st.id, name: st.name, name_ml: st.name_ml ?? st.nameMl, sequenceOrder: st.sequenceOrder ?? 0, latitude: st.latitude, longitude: st.longitude,
+            })).sort((a, b) => (a.sequenceOrder ?? 0) - (b.sequenceOrder ?? 0))
+          }
           return {
             id: r.id,
             name: r.name,
             code: r.code,
             routeType: r.routeType,
             polyline: r.polyline,
-            stops: (r.stops || [])
-              .slice()
-              .sort((a, b) => (a.sequenceOrder ?? 0) - (b.sequenceOrder ?? 0))
-              .map(st => ({
-                id: st.id,
-                name: st.name,
-                name_ml: st.name_ml ?? st.nameMl,
-                sequenceOrder: st.sequenceOrder,
-                latitude: st.latitude,
-                longitude: st.longitude,
-              })),
+            stops: stopsOut,
           }
         })(),
       })),

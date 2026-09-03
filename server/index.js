@@ -79,6 +79,13 @@ async function startServer() {
     await sequelize.sync({ alter: true })
     console.log('All models were synchronized successfully.')
 
+    try {
+      const { deduplicateStops } = await import('./scripts/deduplicateStops.js')
+      await deduplicateStops()
+    } catch (e) {
+      console.error('[migrate] deduplicateStops failed:', e.message)
+    }
+
     // 3. Start Express server
     app.listen(port, () => {
       console.log(`🚌 Xoogo v${pkg.version} — server is running on port ${port}`)

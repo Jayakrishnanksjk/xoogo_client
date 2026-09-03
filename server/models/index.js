@@ -12,6 +12,7 @@ import HistoricalEta from './HistoricalEta.js'
 import EventLog from './EventLog.js'
 import BrandSetting from './BrandSetting.js'
 import BusApiKey from './BusApiKey.js'
+import RouteStop from './RouteStop.js'
 
 // Setup associations
 Group.hasMany(User, {
@@ -54,9 +55,17 @@ Bus.belongsTo(Route, {
   as: 'route',
 })
 
-// Transit specific associations
-Route.hasMany(Stop, { foreignKey: 'route_id', as: 'stops', onDelete: 'CASCADE' })
+// Transit specific associations - legacy one-to-many kept for migration compatibility
+Route.hasMany(Stop, { foreignKey: 'route_id', as: 'legacyStops', onDelete: 'CASCADE' })
 Stop.belongsTo(Route, { foreignKey: 'route_id', as: 'route' })
+
+Route.belongsToMany(Stop, { through: RouteStop, foreignKey: 'route_id', otherKey: 'stop_id', as: 'stops' })
+Stop.belongsToMany(Route, { through: RouteStop, foreignKey: 'stop_id', otherKey: 'route_id', as: 'routes' })
+
+Route.hasMany(RouteStop, { foreignKey: 'route_id', as: 'routeStops', onDelete: 'CASCADE' })
+RouteStop.belongsTo(Route, { foreignKey: 'route_id', as: 'route' })
+Stop.hasMany(RouteStop, { foreignKey: 'stop_id', as: 'routeStops', onDelete: 'CASCADE' })
+RouteStop.belongsTo(Stop, { foreignKey: 'stop_id', as: 'stop' })
 
 Bus.hasMany(BusAssignment, { foreignKey: 'bus_id', as: 'assignments', onDelete: 'CASCADE' })
 BusAssignment.belongsTo(Bus, { foreignKey: 'bus_id', as: 'bus' })
@@ -92,6 +101,7 @@ export {
   Route,
   Bus,
   Stop,
+  RouteStop,
   BusAssignment,
   HistoricalEta,
   EventLog,

@@ -31,7 +31,7 @@ const Stop = sequelize.define('Stop', {
   },
   routeId: {
     type: DataTypes.UUID,
-    allowNull: false,
+    allowNull: true,
     field: 'route_id',
   }
 }, {
