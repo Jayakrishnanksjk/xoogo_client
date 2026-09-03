@@ -37,6 +37,15 @@ export const routesApi = {
     headers: { 'Content-Type': undefined },
   }),
 
+  // Two-step import with conflict detection
+  previewImport: (formData) => api.post('/routes/import/preview', formData, {
+    headers: { 'Content-Type': undefined },
+  }),
+  confirmImport: (payload) => api.post('/routes/import/confirm', payload),
+
+  // Stop search
+  searchStops: (q, limit = 10) => api.get(`/stops/search`, { params: { q, limit } }),
+
   // Stops
   addStop: (routeId, data) => api.post(`/routes/${routeId}/stops`, data),
   updateStop: (routeId, stopId, data) => api.patch(`/routes/${routeId}/stops/${stopId}`, data),

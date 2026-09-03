@@ -4,9 +4,27 @@ import { MapContainer, TileLayer, Marker, Polyline, useMap } from 'react-leaflet
 import L from 'leaflet'
 import AppLayout from '@/components/layout/AppLayout'
 import { Badge, EmptyState, Button, Tabs, ConfirmDialog, Modal, SearchInput, Input } from '@/components/ui'
+import { StopAutocomplete } from '@/components/ui/StopAutocomplete'
+import { ImportConflictsModal } from '@/components/routes/ImportConflictsModal'
 import { MapPin, Plus, ChevronRight, MoreVertical, Trash2, Upload, GripVertical, Pencil } from 'lucide-react'
 import { routesApi } from '@/api'
 import { toast } from 'sonner'
+
+function getTimeAgo(date) {
+  const now = new Date()
+  const seconds = Math.floor((now - date) / 1000)
+  if (seconds < 60) return 'just now'
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) return `${minutes}m ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.floor(hours / 24)
+  if (days === 1) return 'yesterday'
+  if (days < 30) return `${days}d ago`
+  const months = Math.floor(days / 30)
+  if (months < 12) return `${months}mo ago`
+  return `${Math.floor(months / 12)}y ago`
+}
 
 // ── Leaflet Helpers ─────────────────────────────────────
 function createNumberedIcon(number, type = 'intermediate') {
@@ -49,17 +67,26 @@ export default function RoutesPage() {
   const [draggedStopIdx, setDraggedStopIdx] = useState(null)
   const [editStopModalOpen, setEditStopModalOpen] = useState(false)
   const [editingStop, setEditingStop] = useState(null)
-  const [stopForm, setStopForm] = useState({ name: '', name_ml: '', lat: '', lng: '' })
+  const [stopForm, setStopForm] = useState({ name: '', name_ml: '', lat: '', lng: '', district: '', state: '' })
   const [savingStop, setSavingStop] = useState(false)
+  const [selectedExistingId, setSelectedExistingId] = useState(null)
+  const [selectedExistingStop, setSelectedExistingStop] = useState(null)
+  const [previewData, setPreviewData] = useState(null)
+  const [conflictsModalOpen, setConflictsModalOpen] = useState(false)
+  const [confirmingImport, setConfirmingImport] = useState(false)
 
   const handleOpenEditStop = (stop) => {
     setEditingStop(stop)
     setStopForm({
       name: stop.name || '',
       name_ml: stop.name_ml || '',
-      lat: stop.lat != null ? String(stop.lat) : (stop.latitude != null ? String(stop.latitude) : ''),
-      lng: stop.lng != null ? String(stop.lng) : (stop.longitude != null ? String(stop.longitude) : ''),
+      lat: String(stop.latitude || stop.lat || ''),
+      lng: String(stop.longitude || stop.lng || ''),
+      district: stop.district || '',
+      state: stop.state || 'Kerala',
     })
+    setSelectedExistingId(null)
+    setSelectedExistingStop(null)
     setEditStopModalOpen(true)
   }
 
@@ -67,19 +94,21 @@ export default function RoutesPage() {
     if (!selected || !editingStop) return
     try {
       setSavingStop(true)
-      const latVal = parseFloat(stopForm.lat)
-      const lngVal = parseFloat(stopForm.lng)
       const payload = {
         name: stopForm.name.trim(),
         name_ml: stopForm.name_ml.trim(),
-        lat: isNaN(latVal) ? editingStop.lat : latVal,
-        lng: isNaN(lngVal) ? editingStop.lng : lngVal,
+        lat: parseFloat(stopForm.lat),
+        lng: parseFloat(stopForm.lng),
+        district: stopForm.district.trim(),
+        state: stopForm.state.trim() || 'Kerala',
       }
 
       await routesApi.updateStop(selected.id, editingStop.id, payload)
       toast.success('Stop updated successfully')
       setEditStopModalOpen(false)
       setEditingStop(null)
+      setSelectedExistingId(null)
+      setSelectedExistingStop(null)
       fetchRoutes()
     } catch (err) {
       console.error(err)
@@ -164,18 +193,65 @@ export default function RoutesPage() {
     formData.append('file', importFile)
     try {
       setImporting(true)
-      const res = await routesApi.importCsv(formData)
-      toast.success(`${res.data.imported} route(s) imported successfully`)
-      if (res.data.errors?.length > 0) {
-        toast.error(`${res.data.errors.length} route(s) had errors`)
+      // Try preview first
+      try {
+        const previewRes = await routesApi.previewImport(formData)
+        const data = previewRes.data
+        if (data.conflicts && data.conflicts.length > 0) {
+          // Has conflicts — show conflict resolution modal
+          setPreviewData(data)
+          setConflictsModalOpen(true)
+          setImportModalOpen(false)
+          return
+        } else {
+          // No conflicts — confirm directly
+          const confirmRes = await routesApi.confirmImport({ routes: data.routes, resolutions: {} })
+          toast.success(`${confirmRes.data.imported} route(s) imported successfully`)
+          if (confirmRes.data.errors?.length > 0) {
+            toast.error(`${confirmRes.data.errors.length} route(s) had errors`)
+          }
+          setImportModalOpen(false)
+          setImportFile(null)
+          fetchRoutes()
+        }
+      } catch (previewErr) {
+        // If preview endpoint not found (404), fall back to legacy
+        if (previewErr.response?.status === 404) {
+          const res = await routesApi.importCsv(formData)
+          toast.success(`${res.data.imported} route(s) imported successfully`)
+          if (res.data.errors?.length > 0) {
+            toast.error(`${res.data.errors.length} route(s) had errors`)
+          }
+          setImportModalOpen(false)
+          setImportFile(null)
+          fetchRoutes()
+        } else {
+          throw previewErr
+        }
       }
-      setImportModalOpen(false)
-      setImportFile(null)
-      fetchRoutes()
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to import routes')
     } finally {
       setImporting(false)
+    }
+  }
+
+  const handleConfirmImport = async (payload) => {
+    try {
+      setConfirmingImport(true)
+      const res = await routesApi.confirmImport(payload)
+      toast.success(`${res.data.imported} route(s) imported successfully`)
+      if (res.data.errors?.length > 0) {
+        toast.error(`${res.data.errors.length} route(s) had errors`)
+      }
+      setConflictsModalOpen(false)
+      setPreviewData(null)
+      setImportFile(null)
+      fetchRoutes()
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to confirm import')
+    } finally {
+      setConfirmingImport(false)
     }
   }
 
@@ -296,6 +372,8 @@ export default function RoutesPage() {
                 filtered.map(route => {
                   const numStops = route.stops?.length || 0
                   const distStr = route.distance ? `${route.distance.toFixed(1)} km` : '—'
+                  const updatedAt = route.updatedAt || route.updated_at
+                  const timeAgo = updatedAt ? getTimeAgo(new Date(updatedAt)) : null
                   return (
                     <div
                       key={route.id}
@@ -313,7 +391,14 @@ export default function RoutesPage() {
                           </div>
                         </div>
                       </div>
-                      <Badge status={route.status} />
+                      <div className="flex items-center justify-between">
+                        <Badge status={route.status} />
+                        {timeAgo && (
+                          <span className="text-[10px] text-slate-400" title={new Date(updatedAt).toLocaleString()}>
+                            Updated {timeAgo}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   )
                 })
@@ -388,8 +473,11 @@ export default function RoutesPage() {
                           <tr className="bg-slate-50 border-b border-slate-100">
                             <th className="p-3 w-10"></th>
                             <th className="p-3 text-xs font-semibold text-slate-500 uppercase">Seq</th>
+                            <th className="p-3 text-xs font-semibold text-slate-500 uppercase">Stop ID</th>
                             <th className="p-3 text-xs font-semibold text-slate-500 uppercase">Stop Name</th>
                             <th className="p-3 text-xs font-semibold text-slate-500 uppercase">Malayalam</th>
+                            <th className="p-3 text-xs font-semibold text-slate-500 uppercase">District</th>
+                            <th className="p-3 text-xs font-semibold text-slate-500 uppercase">State</th>
                             <th className="p-3 text-xs font-semibold text-slate-500 uppercase">Coordinates</th>
                             <th className="p-3 text-xs font-semibold text-slate-500 uppercase text-right">Actions</th>
                           </tr>
@@ -410,8 +498,19 @@ export default function RoutesPage() {
                                 <GripVertical size={15} className="text-slate-400 hover:text-slate-600 transition-colors" />
                               </td>
                               <td className="p-3 text-xs font-bold text-brand">{idx + 1}</td>
+                              <td className="p-3">
+                                {stop.id ? (
+                                  <span className="font-mono text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded" title={stop.id}>
+                                    {stop.id.substring(0, 8)}
+                                  </span>
+                                ) : (
+                                  <span className="text-slate-300">—</span>
+                                )}
+                              </td>
                               <td className="p-3 text-xs font-medium text-slate-800">{stop.name || '—'}</td>
                               <td className="p-3 text-xs text-slate-500 font-medium">{stop.name_ml || '—'}</td>
+                              <td className="p-3 text-xs text-slate-500">{stop.district || '—'}</td>
+                              <td className="p-3 text-xs text-slate-500">{stop.state || '—'}</td>
                               <td className="p-3 text-xs text-slate-400 font-mono">
                                 {stop.lat?.toFixed(5)}, {stop.lng?.toFixed(5)}
                               </td>
@@ -670,11 +769,29 @@ Route 3
         subtitle={editingStop ? `Updating stop details for route "${selected?.name}"` : ''}
       >
         <div className="space-y-4 py-2">
-          <Input
+          <StopAutocomplete
             label="Stop Name (English) *"
-            placeholder="e.g. Kolmotta"
             value={stopForm.name}
-            onChange={(e) => setStopForm((f) => ({ ...f, name: e.target.value }))}
+            selectedStop={selectedExistingStop}
+            onChangeText={(val) => setStopForm((f) => ({ ...f, name: val }))}
+            onSelect={(stop) => {
+              setStopForm({
+                name: stop.name,
+                name_ml: stop.nameMl || stop.name_ml || '',
+                lat: stop.latitude != null ? String(stop.latitude) : '',
+                lng: stop.longitude != null ? String(stop.longitude) : '',
+                district: stop.district || '',
+                state: stop.state || 'Kerala',
+              })
+              setSelectedExistingId(stop.id)
+              setSelectedExistingStop(stop)
+            }}
+            onClear={() => {
+              setSelectedExistingId(null)
+              setSelectedExistingStop(null)
+              setStopForm((f) => ({ ...f, name: '' }))
+            }}
+            placeholder="Search existing stops or type new name..."
           />
 
           <Input
@@ -682,6 +799,7 @@ Route 3
             placeholder="e.g. കൊൽമൊട്ട"
             value={stopForm.name_ml}
             onChange={(e) => setStopForm((f) => ({ ...f, name_ml: e.target.value }))}
+            disabled={!!selectedExistingId}
           />
 
           <div className="grid grid-cols-2 gap-3">
@@ -690,12 +808,31 @@ Route 3
               placeholder="e.g. 11.99359"
               value={stopForm.lat}
               onChange={(e) => setStopForm((f) => ({ ...f, lat: e.target.value }))}
+              disabled={!!selectedExistingId}
             />
             <Input
               label="Longitude"
               placeholder="e.g. 75.39493"
               value={stopForm.lng}
               onChange={(e) => setStopForm((f) => ({ ...f, lng: e.target.value }))}
+              disabled={!!selectedExistingId}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label="District"
+              placeholder="e.g. Ernakulam"
+              value={stopForm.district}
+              onChange={(e) => setStopForm((f) => ({ ...f, district: e.target.value }))}
+              disabled={!!selectedExistingId}
+            />
+            <Input
+              label="State"
+              placeholder="e.g. Kerala"
+              value={stopForm.state}
+              onChange={(e) => setStopForm((f) => ({ ...f, state: e.target.value }))}
+              disabled={!!selectedExistingId}
             />
           </div>
 
@@ -705,6 +842,8 @@ Route 3
               onClick={() => {
                 setEditStopModalOpen(false)
                 setEditingStop(null)
+                setSelectedExistingId(null)
+                setSelectedExistingStop(null)
               }}
               disabled={savingStop}
             >
@@ -720,6 +859,14 @@ Route 3
           </div>
         </div>
       </Modal>
+
+      <ImportConflictsModal
+        open={conflictsModalOpen}
+        onClose={() => { if (!confirmingImport) { setConflictsModalOpen(false); setPreviewData(null) } }}
+        previewData={previewData}
+        onConfirm={handleConfirmImport}
+        confirming={confirmingImport}
+      />
     </AppLayout>
   )
 }

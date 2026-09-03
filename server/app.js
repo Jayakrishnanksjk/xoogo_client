@@ -14,6 +14,7 @@ import scheduleRoutes from './routes/schedules.js'
 import settingsRoutes from './routes/settings.js'
 import apiKeyRoutes from './routes/api-keys.js'
 import publicRoutes from './routes/public.js'
+import stopRoutes from './routes/stops.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -52,6 +53,7 @@ app.use('/api/auth', authRoutes)
 app.use('/api/users', userRoutes)
 app.use('/api/groups', groupRoutes)
 app.use('/api/routes', routeRoutes)
+app.use('/api/stops', stopRoutes)
 app.use('/api/buses', busRoutes)
 app.use('/api/schedules', scheduleRoutes)
 app.use('/api/settings', settingsRoutes)

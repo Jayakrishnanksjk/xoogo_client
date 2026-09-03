@@ -20,6 +20,7 @@ export { AnalyticsPanel } from './AnalyticsPanel'
 export { AlertsPanel } from './AlertsPanel'
 export { Combobox } from './Combobox'
 export { LocationAutocomplete } from './LocationAutocomplete'
+export { StopAutocomplete } from './StopAutocomplete'
 export { LiveTrackingMap } from './LiveTrackingMap'
 export {
   AppSkeletonTheme,

@@ -12,6 +12,7 @@ import clsx from 'clsx'
 import { routesApi } from '@/api'
 import { formatDate } from '@/lib/utils'
 import { toast } from 'sonner'
+import { StopAutocomplete } from '@/components/ui/StopAutocomplete'
 
 // ── Helpers ─────────────────────────────────────────────
 function createNumberedIcon(number, type = 'intermediate') {
@@ -138,6 +139,7 @@ export default function AddRoutePage() {
   const [routeType, setRouteType] = useState('inbound')
   const [isActive, setIsActive] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [selectedExistingStop, setSelectedExistingStop] = useState(null)
 
   // Fetch route details if in edit mode
   useEffect(() => {
@@ -185,8 +187,8 @@ export default function AddRoutePage() {
 
   // Modal state
   const [showAddModal, setShowAddModal] = useState(false)
+  const [stopForm, setStopForm] = useState({ name: '', name_ml: '', lat: '', lng: '', district: '', state: '' })
   const [editingStop, setEditingStop] = useState(null)
-  const [stopForm, setStopForm] = useState({ name: '', name_ml: '', lat: '', lng: '' })
   const [modalError, setModalError] = useState('')
 
   // Sync start/end coords from first/last stop
@@ -279,14 +281,21 @@ export default function AddRoutePage() {
 
   // ── Handlers ────────────────────────────────────────────
   const handleOpenAddModal = () => {
-    setStopForm({ name: '', name_ml: '', lat: '', lng: '' })
-    setEditingStop(null)
+    setStopForm({ name: '', name_ml: '', lat: '', lng: '', district: '', state: '' })
+    setSelectedExistingStop(null)
     setModalError('')
     setShowAddModal(true)
   }
 
   const handleOpenEditModal = (stop) => {
-    setStopForm({ name: stop.name || '', name_ml: stop.name_ml || '', lat: String(stop.lat), lng: String(stop.lng) })
+    setStopForm({
+      name: stop.name || '',
+      name_ml: stop.name_ml || '',
+      lat: stop.lat || '',
+      lng: stop.lng || '',
+      district: stop.district || '',
+      state: stop.state || 'Kerala',
+    })
     setEditingStop(stop.id)
     setModalError('')
     setShowAddModal(true)
@@ -313,7 +322,7 @@ export default function AddRoutePage() {
     if (editingStop) {
       setStops((prev) =>
         prev.map((s) =>
-          s.id === editingStop ? { ...s, name: name || s.name, name_ml: nameMl, lat, lng } : s
+          s.id === editingStop ? { ...s, name: name || s.name, name_ml: nameMl, lat, lng, district: stopForm.district, state: stopForm.state } : s
         )
       )
     } else {
@@ -324,6 +333,8 @@ export default function AddRoutePage() {
           name_ml: nameMl,
           lat,
           lng,
+          district: stopForm.district,
+          state: stopForm.state || 'Kerala',
         }
         const endIdx = prev.findIndex((s) => s._isEnd)
         if (endIdx !== -1) {
@@ -940,11 +951,27 @@ export default function AddRoutePage() {
               {modalError}
             </div>
           )}
-          <Input
-            label="Stop Name"
-            placeholder="e.g. Central Station"
+          <StopAutocomplete
+            label="Stop Name (English) *"
             value={stopForm.name}
-            onChange={(e) => setStopForm((f) => ({ ...f, name: e.target.value }))}
+            selectedStop={selectedExistingStop}
+            onChangeText={(val) => setStopForm((f) => ({ ...f, name: val }))}
+            onSelect={(stop) => {
+              setStopForm({
+                name: stop.name,
+                name_ml: stop.nameMl || stop.name_ml || '',
+                lat: stop.latitude != null ? String(stop.latitude) : '',
+                lng: stop.longitude != null ? String(stop.longitude) : '',
+                district: stop.district || '',
+                state: stop.state || 'Kerala',
+              })
+              setSelectedExistingStop(stop)
+            }}
+            onClear={() => {
+              setSelectedExistingStop(null)
+              setStopForm((f) => ({ ...f, name: '' }))
+            }}
+            placeholder="Search existing stops or type new name..."
           />
           <Input
             label="Stop Name (Malayalam)"
@@ -958,12 +985,30 @@ export default function AddRoutePage() {
               placeholder="e.g. 11.7413"
               value={stopForm.lat}
               onChange={(e) => setStopForm((f) => ({ ...f, lat: e.target.value }))}
+              disabled={!!selectedExistingStop}
             />
             <Input
               label="Longitude *"
               placeholder="e.g. 75.4907"
               value={stopForm.lng}
               onChange={(e) => setStopForm((f) => ({ ...f, lng: e.target.value }))}
+              disabled={!!selectedExistingStop}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label="District *"
+              placeholder="e.g. Ernakulam"
+              value={stopForm.district}
+              onChange={(e) => setStopForm((f) => ({ ...f, district: e.target.value }))}
+              disabled={!!selectedExistingStop}
+            />
+            <Input
+              label="State *"
+              placeholder="e.g. Kerala"
+              value={stopForm.state}
+              onChange={(e) => setStopForm((f) => ({ ...f, state: e.target.value }))}
+              disabled={!!selectedExistingStop}
             />
           </div>
           <div className="bg-blue-50 rounded-lg p-2.5 flex items-start gap-2">

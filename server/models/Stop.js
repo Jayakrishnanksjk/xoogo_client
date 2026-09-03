@@ -24,6 +24,15 @@ const Stop = sequelize.define('Stop', {
     type: DataTypes.DOUBLE,
     allowNull: false,
   },
+  district: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  state: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    defaultValue: 'Kerala',
+  },
   sequenceOrder: {
     type: DataTypes.INTEGER,
     allowNull: true,
