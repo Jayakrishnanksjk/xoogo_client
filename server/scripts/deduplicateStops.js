@@ -54,7 +54,7 @@ export async function deduplicateStops() {
           console.log(`[migrate] Keeping duplicate ${dup.id} (${dup.name}) still referenced`)
         }
       } catch (e) {
-        console.error(`[migrate] Failed merging ${dup.name} ${dup.id} -> ${canonical.id}:`, e.message)
+        console.error(`[migrate] Failed merging ${dup.name} ${dup.id} -> ${canonical.id}:`, e.message, e.stack?.split('\n')[0], e.errors?.map(er=>er.message).join(', '))
       }
     }
   }
@@ -63,10 +63,20 @@ export async function deduplicateStops() {
   const legacy = await Stop.findAll({ where: { routeId: { [Op.ne]: null } } })
   let backfilled = 0
   for (const s of legacy) {
-    const exists = await RouteStop.findOne({ where: { routeId: s.routeId, stopId: s.id } })
-    if (!exists) {
-      await RouteStop.create({ routeId: s.routeId, stopId: s.id, sequenceOrder: s.sequenceOrder ?? 1 })
-      backfilled++
+    try {
+      const exists = await RouteStop.findOne({ where: { routeId: s.routeId, stopId: s.id } })
+      if (!exists) {
+        let seq = s.sequenceOrder ?? 1
+        const seqExists = await RouteStop.findOne({ where: { routeId: s.routeId, sequenceOrder: seq } })
+        if (seqExists) {
+          const max = await RouteStop.max('sequenceOrder', { where: { routeId: s.routeId } })
+          seq = (max ?? 0) + 1
+        }
+        await RouteStop.create({ routeId: s.routeId, stopId: s.id, sequenceOrder: seq })
+        backfilled++
+      }
+    } catch (e) {
+      console.error(`[migrate] Backfill failed for ${s.name} ${s.id}:`, e.message, e.errors?.map(er=>er.message).join(', '))
     }
   }
   console.log(`[migrate] Backfilled ${backfilled} RouteStop rows from legacy Stop.routeId`)
