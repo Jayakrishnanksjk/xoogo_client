@@ -17,6 +17,7 @@ import MediaLibraryPage from '@/pages/media/MediaLibraryPage'
 import PlaylistsPage from '@/pages/playlists/PlaylistsPage'
 import BrandingSettingsPage from '@/pages/settings/BrandingSettingsPage'
 import IntegrationsPage from '@/pages/settings/IntegrationsPage'
+import MasterDataPage from '@/pages/settings/MasterDataPage'
 
 export default function App() {
 
@@ -50,6 +51,7 @@ export default function App() {
               <Route path="/users" element={<UsersPage />} />
               <Route path="/settings/branding" element={<BrandingSettingsPage />} />
               <Route path="/settings/integrations" element={<IntegrationsPage />} />
+              <Route path="/settings/master-data" element={<MasterDataPage />} />
             </Route>
           </Route>
 

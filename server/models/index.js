@@ -13,6 +13,9 @@ import EventLog from './EventLog.js'
 import BrandSetting from './BrandSetting.js'
 import BusApiKey from './BusApiKey.js'
 import RouteStop from './RouteStop.js'
+import State from './State.js'
+import District from './District.js'
+import Region from './Region.js'
 
 // Setup associations
 Group.hasMany(User, {
@@ -78,6 +81,18 @@ Stop.hasMany(HistoricalEta, { foreignKey: 'to_stop_id', as: 'etasTo', onDelete: 
 HistoricalEta.belongsTo(Stop, { foreignKey: 'from_stop_id', as: 'fromStop' })
 HistoricalEta.belongsTo(Stop, { foreignKey: 'to_stop_id', as: 'toStop' })
 
+// Master Data Associations
+State.hasMany(District, { foreignKey: 'state_id', as: 'districts', onDelete: 'CASCADE' })
+District.belongsTo(State, { foreignKey: 'state_id', as: 'state' })
+
+Stop.belongsTo(State, { foreignKey: 'state_id', as: 'stateMaster' })
+Stop.belongsTo(District, { foreignKey: 'district_id', as: 'districtMaster' })
+Stop.belongsTo(Region, { foreignKey: 'region_id', as: 'regionMaster' })
+
+State.hasMany(Stop, { foreignKey: 'state_id', as: 'stops' })
+District.hasMany(Stop, { foreignKey: 'district_id', as: 'stops' })
+Region.hasMany(Stop, { foreignKey: 'region_id', as: 'stops' })
+
 Bus.hasMany(EventLog, { foreignKey: 'bus_id', as: 'events', onDelete: 'CASCADE' })
 EventLog.belongsTo(Bus, { foreignKey: 'bus_id', as: 'bus' })
 
@@ -110,4 +125,7 @@ export {
   BusSchedule,
   BrandSetting,
   BusApiKey,
+  State,
+  District,
+  Region,
 }

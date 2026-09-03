@@ -21,6 +21,7 @@ const NAV_SUPERADMIN = [
     label: 'Settings',
     icon: Settings,
     children: [
+      { to: '/settings/master-data', icon: LayoutDashboard, label: 'Master Data' },
       { to: '/settings/branding', icon: Palette, label: 'Branding' },
       { to: '/settings/integrations', icon: Key, label: 'Integrations' },
     ]

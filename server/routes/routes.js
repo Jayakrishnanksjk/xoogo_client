@@ -2,7 +2,7 @@ import express from 'express'
 import multer from 'multer'
 import { parse } from 'csv-parse/sync'
 import { Op } from 'sequelize'
-import { Route, Stop, RouteStop, sequelize } from '../models/index.js'
+import { Route, Stop, RouteStop, State, District, sequelize } from '../models/index.js'
 import { authenticate } from '../middleware/auth.js'
 
 const router = express.Router()
@@ -176,11 +176,12 @@ function parseRouteFile(content) {
         const rawSeq = row.stop_sequence ? parseInt(row.stop_sequence, 10) : null
         routeData.stops.push({
           name: row.stop_name.trim(),
-          name_ml: row.stop_name_ml?.trim() || null,
-          latitude: parseFloat(row.latitude),
           longitude: parseFloat(row.longitude),
           sequence: rawSeq,
           csvIndex: routeData.stops.length + 1,
+          stop_id: row.stop_id?.trim() || null,
+          state: row.state?.trim() || null,
+          district: row.district?.trim() || null,
         })
       }
     }
@@ -235,8 +236,13 @@ router.post('/import/preview', authenticate, upload.single('file'), async (req, 
     const routeMap = parseRouteFile(content)
     if (!routeMap) return res.status(400).json({ message: 'No valid routes found in the file.' })
 
+    const allStates = await State.findAll()
+    const allDistricts = await District.findAll()
+    const stateMap = new Map(allStates.map(s => [s.name.toLowerCase(), s.id]))
+    const districtMap = new Map(allDistricts.map(d => [d.name.toLowerCase(), d.id]))
+
     const routesArr = []
-    const conflicts = []
+    const mappings = []
     let totalStops = 0
 
     for (const [code, data] of routeMap) {
@@ -253,38 +259,82 @@ router.post('/import/preview', authenticate, upload.single('file'), async (req, 
 
       totalStops += stopsWithKeys.length
 
-      // Detect conflicts — case-insensitive exact name match
       for (const csvStop of stopsWithKeys) {
         const trimmedName = (csvStop.name || '').trim()
         if (!trimmedName) continue
-        const existingStops = await Stop.findAll({
-          where: sequelize.where(
-            sequelize.fn('LOWER', sequelize.fn('TRIM', sequelize.col('name'))),
-            trimmedName.toLowerCase()
-          ),
-        })
-        if (existingStops.length > 0) {
-          conflicts.push({
-            key: csvStop.key,
-            csvStop: {
-              name: csvStop.name,
-              name_ml: csvStop.name_ml,
-              latitude: csvStop.latitude,
-              longitude: csvStop.longitude,
-              csvIndex: csvStop.csvIndex,
-            },
-            existingStops: existingStops.map(s => ({
-              id: s.id,
-              name: s.name,
-              nameMl: s.nameMl,
-              name_ml: s.nameMl,
-              latitude: s.latitude,
-              longitude: s.longitude,
-              district: s.district,
-              state: s.state,
-            })),
-          })
+
+        const csvStateId = csvStop.state ? stateMap.get(csvStop.state.trim().toLowerCase()) : null
+        const csvDistrictId = csvStop.district ? districtMap.get(csvStop.district.trim().toLowerCase()) : null
+
+        let existingStops = []
+        
+        if (csvStop.stop_id) {
+          const match = await Stop.findByPk(csvStop.stop_id, { include: ['stateMaster', 'districtMaster'] })
+          if (match) existingStops = [match]
         }
+
+        if (existingStops.length === 0) {
+          const nameMatches = await Stop.findAll({
+            where: sequelize.where(
+              sequelize.fn('LOWER', sequelize.fn('TRIM', sequelize.col('Stop.name'))),
+              trimmedName.toLowerCase()
+            ),
+            include: ['stateMaster', 'districtMaster']
+          })
+
+          if (nameMatches.length > 0) {
+            if (csvStateId && csvDistrictId) {
+              const exact = nameMatches.filter(m => m.state_id === csvStateId && m.district_id === csvDistrictId)
+              if (exact.length > 0) existingStops = exact
+            }
+            if (existingStops.length === 0 && csvStateId) {
+              const exact = nameMatches.filter(m => m.state_id === csvStateId)
+              if (exact.length > 0) existingStops = exact
+            }
+            if (existingStops.length === 0 && csvDistrictId) {
+              const exact = nameMatches.filter(m => m.district_id === csvDistrictId)
+              if (exact.length > 0) existingStops = exact
+            }
+            if (existingStops.length === 0) {
+              existingStops = nameMatches
+            }
+          }
+        }
+
+        let status = 'unmapped'
+        let mappedStopId = null
+
+        if (existingStops.length === 1) {
+          status = 'mapped'
+          mappedStopId = existingStops[0].id
+        } else if (existingStops.length > 1) {
+          status = 'ambiguous'
+        }
+
+        mappings.push({
+          key: csvStop.key,
+          status,
+          mappedStopId,
+          csvStop: {
+            name: csvStop.name,
+            name_ml: csvStop.name_ml,
+            latitude: csvStop.latitude,
+            longitude: csvStop.longitude,
+            csvIndex: csvStop.csvIndex,
+            stop_id: csvStop.stop_id,
+            state: csvStop.state,
+            district: csvStop.district,
+          },
+          existingStops: existingStops.map(s => ({
+            id: s.id,
+            name: s.name,
+            nameMl: s.nameMl,
+            latitude: s.latitude,
+            longitude: s.longitude,
+            district: s.districtMaster?.name || s.district,
+            state: s.stateMaster?.name || s.state,
+          })),
+        })
       }
 
       // Check if route code already exists
@@ -304,9 +354,14 @@ router.post('/import/preview', authenticate, upload.single('file'), async (req, 
 
     res.json({
       routes: routesArr,
-      conflicts,
+      mappings,
       totalStops,
-      totalConflicts: conflicts.length,
+      stats: {
+        total: mappings.length,
+        mapped: mappings.filter(m => m.status === 'mapped').length,
+        unmapped: mappings.filter(m => m.status === 'unmapped').length,
+        ambiguous: mappings.filter(m => m.status === 'ambiguous').length,
+      }
     })
   } catch (error) {
     console.error('Import preview error:', error)
@@ -350,27 +405,34 @@ router.post('/import/confirm', authenticate, async (req, res) => {
         for (let idx = 0; idx < data.stops.length; idx++) {
           const s = data.stops[idx]
           const key = s.key || `${code}::${idx + 1}`
-          const resolvedStopId = resolutions[key] || null
+          const resolution = resolutions[key]
 
-          let stop
-          if (resolvedStopId) {
-            stop = await Stop.findByPk(resolvedStopId, { transaction: t })
-            if (stop) {
-              let updated = false
-              if (s.district && !stop.district) {
-                stop.district = s.district
-                updated = true
-              }
-              if (s.state && !stop.state) {
-                stop.state = s.state
-                updated = true
-              }
-              if (updated) await stop.save({ transaction: t })
-            } else {
-              stop = await findOrCreateStop(s.name || '', s.name_ml || null, s.latitude || 0, s.longitude || 0, s.district, s.state, t)
-            }
+          if (!resolution || resolution === 'skip') {
+            continue // Do not silently create or merge unmapped stops
+          }
+
+          let stop = null
+          
+          if (resolution === 'create') {
+            const stateRecord = s.state ? await State.findOne({ where: sequelize.where(sequelize.fn('LOWER', sequelize.col('name')), s.state.trim().toLowerCase()), transaction: t }) : null
+            const districtRecord = s.district ? await District.findOne({ where: sequelize.where(sequelize.fn('LOWER', sequelize.col('name')), s.district.trim().toLowerCase()), transaction: t }) : null
+            
+            stop = await Stop.create({
+              name: s.name.trim(),
+              nameMl: s.name_ml || null,
+              latitude: s.latitude || 0,
+              longitude: s.longitude || 0,
+              state: s.state,
+              district: s.district,
+              state_id: stateRecord?.id || null,
+              district_id: districtRecord?.id || null,
+            }, { transaction: t })
           } else {
-            stop = await findOrCreateStop(s.name || '', s.name_ml || null, s.latitude || 0, s.longitude || 0, s.district, s.state, t)
+            stop = await Stop.findByPk(resolution, { transaction: t })
+            if (!stop) {
+              errors.push({ code, message: `Resolved Stop ID ${resolution} not found for ${s.name}` })
+              continue
+            }
           }
 
           if (!stop) continue

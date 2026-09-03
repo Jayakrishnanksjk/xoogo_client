@@ -197,14 +197,20 @@ export default function RoutesPage() {
       try {
         const previewRes = await routesApi.previewImport(formData)
         const data = previewRes.data
-        if (data.conflicts && data.conflicts.length > 0) {
-          // Has conflicts — show conflict resolution modal
+        if (data.mappings && data.mappings.length > 0) {
+          // Show import preview mapping modal
+          setPreviewData(data)
+          setConflictsModalOpen(true)
+          setImportModalOpen(false)
+          return
+        } else if (data.conflicts && data.conflicts.length > 0) {
+          // Fallback for legacy conflicts structure if needed
           setPreviewData(data)
           setConflictsModalOpen(true)
           setImportModalOpen(false)
           return
         } else {
-          // No conflicts — confirm directly
+          // No mappings and no conflicts — confirm directly
           const confirmRes = await routesApi.confirmImport({ routes: data.routes, resolutions: {} })
           toast.success(`${confirmRes.data.imported} route(s) imported successfully`)
           if (confirmRes.data.errors?.length > 0) {
@@ -242,7 +248,9 @@ export default function RoutesPage() {
       const res = await routesApi.confirmImport(payload)
       toast.success(`${res.data.imported} route(s) imported successfully`)
       if (res.data.errors?.length > 0) {
-        toast.error(`${res.data.errors.length} route(s) had errors`)
+        console.error('Import errors:', res.data.errors)
+        const errorMsg = res.data.errors.map(e => `${e.code || 'Unknown'}: ${e.message}`).join(' | ')
+        toast.error(`${res.data.errors.length} route(s) had errors: ${errorMsg}`)
       }
       setConflictsModalOpen(false)
       setPreviewData(null)
