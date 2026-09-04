@@ -26,24 +26,32 @@
         "stops": [
           {
             "id": "8c9d0e1f-2a3b-4c5d-6e7f-8091a2b3c4d5",
+            "stop_id": "8c9d0e1f",
+            "stopId": "8c9d0e1f",
             "name": "Central Station",
             "latitude": 10.0123,
             "longitude": 76.1234
           },
           {
             "id": "1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
+            "stop_id": "1a2b3c4d",
+            "stopId": "1a2b3c4d",
             "name": "Market Square",
             "latitude": 10.0345,
             "longitude": 76.1456
           },
           {
             "id": "2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e",
+            "stop_id": "2b3c4d5e",
+            "stopId": "2b3c4d5e",
             "name": "University Gate",
             "latitude": 10.0567,
             "longitude": 76.1678
           },
           {
             "id": "3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f",
+            "stop_id": "3c4d5e6f",
+            "stopId": "3c4d5e6f",
             "name": "City Hospital",
             "latitude": 10.0789,
             "longitude": 76.189

@@ -176,6 +176,8 @@ function parseRouteFile(content) {
         const rawSeq = row.stop_sequence ? parseInt(row.stop_sequence, 10) : null
         routeData.stops.push({
           name: row.stop_name.trim(),
+          name_ml: row.stop_name_ml?.trim() || null,
+          latitude: parseFloat(row.latitude),
           longitude: parseFloat(row.longitude),
           sequence: rawSeq,
           csvIndex: routeData.stops.length + 1,
@@ -387,18 +389,21 @@ router.post('/import/confirm', authenticate, async (req, res) => {
 
       const t = await sequelize.transaction()
       try {
-        // Check if route exists - if so, reject it as requested by user
+        let isUpdate = false
         let route = await Route.findOne({ where: { code }, transaction: t })
         if (route) {
-          errors.push({ code, message: `Route code "${code}" already exists.` })
-          await t.rollback()
-          continue
+          isUpdate = true
+          await route.update({
+            name: data.name, estimatedDuration: data.estimatedDuration,
+            distance: data.distance, routeType: data.routeType, status: data.status || 'active',
+          }, { transaction: t })
+          await RouteStop.destroy({ where: { routeId: route.id }, transaction: t })
+        } else {
+          route = await Route.create({
+            name: data.name, code: data.code, estimatedDuration: data.estimatedDuration,
+            distance: data.distance, routeType: data.routeType, status: data.status || 'active',
+          }, { transaction: t })
         }
-
-        route = await Route.create({
-          name: data.name, code: data.code, estimatedDuration: data.estimatedDuration,
-          distance: data.distance, routeType: data.routeType, status: data.status || 'active',
-        }, { transaction: t })
 
         const entries = []
         const seenStopIds = new Set()
@@ -433,6 +438,10 @@ router.post('/import/confirm', authenticate, async (req, res) => {
               errors.push({ code, message: `Resolved Stop ID ${resolution} not found for ${s.name}` })
               continue
             }
+            
+            if (!stop.nameMl && s.name_ml) {
+              await stop.update({ nameMl: s.name_ml }, { transaction: t })
+            }
           }
 
           if (!stop) continue
@@ -446,7 +455,7 @@ router.post('/import/confirm', authenticate, async (req, res) => {
         }
 
         await t.commit()
-        created.push({ code, name: data.name, stops: entries.length, updated: false })
+        created.push({ code, name: data.name, stops: entries.length, updated: isUpdate })
       } catch (err) {
         await t.rollback()
         errors.push({ code, message: err.message })

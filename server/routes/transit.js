@@ -1,6 +1,6 @@
 import express from 'express'
 import apiKeyAuth from '../middleware/apiKeyAuth.js'
-import { Bus, Route, Stop, BusAssignment, HistoricalEta, EventLog, Schedule, BusSchedule, ScheduleRoute } from '../models/index.js'
+import { Bus, Route, Stop, BusAssignment, HistoricalEta, EventLog, Schedule, BusSchedule, ScheduleRoute, sequelize } from '../models/index.js'
 import { Op } from 'sequelize'
 
 const router = express.Router()
@@ -14,6 +14,24 @@ async function resolveBus(busIdOrUuid) {
     if (bus) return bus
   }
   return Bus.findOne({ where: { busId: { [Op.iLike]: busIdOrUuid } } })
+}
+
+// Find a stop by its UUID id OR its 8-char short id prefix
+async function resolveStop(stopIdOrUuid) {
+  if (!stopIdOrUuid) return null
+  if (UUID_RE.test(stopIdOrUuid)) {
+    return stopIdOrUuid
+  }
+  if (stopIdOrUuid.length === 8) {
+    const stop = await Stop.findOne({
+      where: sequelize.where(
+        sequelize.cast(sequelize.col('id'), 'varchar'),
+        { [Op.like]: `${stopIdOrUuid.toLowerCase()}%` }
+      )
+    })
+    return stop ? stop.id : null
+  }
+  return null
 }
 
 // GET /api/sync?bus_id=<uuid | busId>
@@ -49,6 +67,8 @@ router.get('/sync', apiKeyAuth, async (req, res) => {
 
     const stops = assignments.map(a => ({
       id: a.stop.id,
+      stop_id: a.stop.id.substring(0, 8),
+      stopId: a.stop.id.substring(0, 8),
       name: a.stop.name,
       name_ml: a.stop.name_ml ?? a.stop.nameMl,
       latitude: a.stop.latitude,
@@ -170,6 +190,8 @@ router.get('/sync/full-timetable', apiKeyAuth, async (req, res) => {
           if (rp.stops && rp.stops.length > 0) {
             stopsOut = rp.stops.map(st => ({
               id: st.id,
+              stop_id: st.id.substring(0, 8),
+              stopId: st.id.substring(0, 8),
               name: st.name,
               name_ml: st.name_ml ?? st.nameMl,
               sequenceOrder: st.RouteStop ? st.RouteStop.sequenceOrder : (st.sequenceOrder ?? 0),
@@ -178,7 +200,7 @@ router.get('/sync/full-timetable', apiKeyAuth, async (req, res) => {
             })).sort((a, b) => (a.sequenceOrder ?? 0) - (b.sequenceOrder ?? 0))
           } else if (rp.legacyStops && rp.legacyStops.length > 0) {
             stopsOut = rp.legacyStops.map(st => ({
-              id: st.id, name: st.name, name_ml: st.name_ml ?? st.nameMl, sequenceOrder: st.sequenceOrder ?? 0, latitude: st.latitude, longitude: st.longitude,
+              id: st.id, stop_id: st.id.substring(0, 8), stopId: st.id.substring(0, 8), name: st.name, name_ml: st.name_ml ?? st.nameMl, sequenceOrder: st.sequenceOrder ?? 0, latitude: st.latitude, longitude: st.longitude,
             })).sort((a, b) => (a.sequenceOrder ?? 0) - (b.sequenceOrder ?? 0))
           }
           return {
@@ -230,9 +252,9 @@ router.post('/events', apiKeyAuth, async (req, res) => {
     const eventLog = await EventLog.create({
       busId: bus.id,
       event,
-      stopId: stop_id || null,
-      missedStopId: missed_stop_id || null,
-      arrivedStopId: arrived_stop_id || null,
+      stopId: await resolveStop(stop_id),
+      missedStopId: await resolveStop(missed_stop_id),
+      arrivedStopId: await resolveStop(arrived_stop_id),
       crossTrackError: cross_track_error || null,
       timestamp: new Date(timestamp),
       rawTimestamp: raw_timestamp || null

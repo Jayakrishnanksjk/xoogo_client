@@ -1001,14 +1001,12 @@ export default function AddRoutePage() {
               placeholder="e.g. Ernakulam"
               value={stopForm.district}
               onChange={(e) => setStopForm((f) => ({ ...f, district: e.target.value }))}
-              disabled={!!selectedExistingStop}
             />
             <Input
               label="State *"
               placeholder="e.g. Kerala"
               value={stopForm.state}
               onChange={(e) => setStopForm((f) => ({ ...f, state: e.target.value }))}
-              disabled={!!selectedExistingStop}
             />
           </div>
           <div className="bg-blue-50 rounded-lg p-2.5 flex items-start gap-2">

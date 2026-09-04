@@ -113,6 +113,8 @@ router.post('/bus-routes', authenticateApiKey, async (req, res) => {
     if (rp.stops && rp.stops.length > 0) {
       stopsArr = rp.stops.map(s => ({
         id: s.id,
+        stop_id: s.id.substring(0, 8),
+        stopId: s.id.substring(0, 8),
         name: s.name,
         name_ml: s.nameMl,
         latitude: s.latitude,
@@ -121,7 +123,7 @@ router.post('/bus-routes', authenticateApiKey, async (req, res) => {
       })).sort((a, b) => (a.sequenceOrder ?? 0) - (b.sequenceOrder ?? 0))
     } else if (rp.legacyStops && rp.legacyStops.length > 0) {
       stopsArr = rp.legacyStops.map(s => ({
-        id: s.id, name: s.name, name_ml: s.nameMl, latitude: s.latitude, longitude: s.longitude, sequenceOrder: s.sequenceOrder ?? 0,
+        id: s.id, stop_id: s.id.substring(0, 8), stopId: s.id.substring(0, 8), name: s.name, name_ml: s.nameMl, latitude: s.latitude, longitude: s.longitude, sequenceOrder: s.sequenceOrder ?? 0,
       })).sort((a, b) => (a.sequenceOrder ?? 0) - (b.sequenceOrder ?? 0))
     }
     res.json({
@@ -177,10 +179,10 @@ router.post('/bus-schedule', authenticateApiKey, async (req, res) => {
           const rp2 = typeof rj.toJSON === 'function' ? rj.toJSON() : rj
           if (rp2.stops && rp2.stops.length > 0) {
             stopsArr2 = rp2.stops.map(st => ({
-              id: st.id, name: st.name, name_ml: st.nameMl, latitude: st.latitude, longitude: st.longitude, sequenceOrder: st.RouteStop ? st.RouteStop.sequenceOrder : (st.sequenceOrder ?? 0),
+              id: st.id, stop_id: st.id.substring(0, 8), stopId: st.id.substring(0, 8), name: st.name, name_ml: st.nameMl, latitude: st.latitude, longitude: st.longitude, sequenceOrder: st.RouteStop ? st.RouteStop.sequenceOrder : (st.sequenceOrder ?? 0),
             })).sort((a, b) => (a.sequenceOrder ?? 0) - (b.sequenceOrder ?? 0))
           } else if (rp2.legacyStops && rp2.legacyStops.length > 0) {
-            stopsArr2 = rp2.legacyStops.map(st => ({ id: st.id, name: st.name, name_ml: st.nameMl, latitude: st.latitude, longitude: st.longitude, sequenceOrder: st.sequenceOrder ?? 0 })).sort((a, b) => (a.sequenceOrder ?? 0) - (b.sequenceOrder ?? 0))
+            stopsArr2 = rp2.legacyStops.map(st => ({ id: st.id, stop_id: st.id.substring(0, 8), stopId: st.id.substring(0, 8), name: st.name, name_ml: st.nameMl, latitude: st.latitude, longitude: st.longitude, sequenceOrder: st.sequenceOrder ?? 0 })).sort((a, b) => (a.sequenceOrder ?? 0) - (b.sequenceOrder ?? 0))
           }
         }
         return {
