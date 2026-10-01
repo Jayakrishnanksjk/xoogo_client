@@ -115,7 +115,6 @@ router.get('/stops', authenticate, async (req, res) => {
       ],
       group: ['Stop.id', 'stateMaster.id', 'districtMaster.id'],
       order: [['name', 'ASC']],
-      limit: 500, // Limit to prevent massive payload, add pagination later if needed
       subQuery: false,
     })
     res.json(stops)

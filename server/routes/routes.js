@@ -137,7 +137,15 @@ async function createRouteStops(routeId, stopsData, transaction) {
     const s = stopsData[idx]
     const lat = s.lat ?? s.latitude
     const lng = s.lng ?? s.longitude
-    const stop = await findOrCreateStop(s.name || '', s.name_ml ?? s.nameMl ?? null, lat, lng, s.district, s.state, transaction)
+    let stop = null
+    // If the frontend sent a stop ID, look it up directly first
+    if (s.id) {
+      stop = await Stop.findByPk(s.id, { transaction })
+    }
+    // Fall back to name-based find-or-create for new stops
+    if (!stop) {
+      stop = await findOrCreateStop(s.name || '', s.name_ml ?? s.nameMl ?? null, lat, lng, s.district, s.state, transaction)
+    }
     if (!stop) continue
     entries.push({ routeId, stopId: stop.id, sequenceOrder: idx + 1 })
   }
@@ -536,7 +544,6 @@ router.patch('/:id', authenticate, async (req, res) => {
       await route.update({ name, code, estimatedDuration, distance, routeType, status }, { transaction: t })
       if (stops && Array.isArray(stops)) {
         await RouteStop.destroy({ where: { routeId: route.id }, transaction: t })
-        await Stop.destroy({ where: { routeId: route.id }, transaction: t })
         if (stops.length > 0) await createRouteStops(route.id, stops, t)
       }
       await t.commit()
@@ -657,7 +664,6 @@ router.put('/:id/stops/reorder', authenticate, async (req, res) => {
         }
       } else if (Array.isArray(stops) && stops.length > 0) {
         await RouteStop.destroy({ where: { routeId: route.id }, transaction: t })
-        await Stop.destroy({ where: { routeId: route.id }, transaction: t })
         await createRouteStops(route.id, stops, t)
       }
       await t.commit()
