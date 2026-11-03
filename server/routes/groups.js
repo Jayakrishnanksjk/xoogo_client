@@ -1,13 +1,22 @@
 import express from 'express'
 import { Group, Bus, User, Route } from '../models/index.js'
-import { authenticate } from '../middleware/auth.js'
+import { authenticate, requireRole } from '../middleware/auth.js'
 
 const router = express.Router()
 
-// GET /api/groups - Get all groups (authenticated users only)
+// GET /api/groups - Get all groups (scoped by tenant for non-superadmin)
 router.get('/', authenticate, async (req, res) => {
   try {
+    const whereClause = {}
+    if (req.user.role !== 'superadmin') {
+      if (!req.user.group_id) {
+        return res.json([])
+      }
+      whereClause.id = req.user.group_id
+    }
+
     const groups = await Group.findAll({
+      where: whereClause,
       include: [
         {
           model: Bus,
@@ -26,8 +35,8 @@ router.get('/', authenticate, async (req, res) => {
   }
 })
 
-// POST /api/groups - Create a new group (authenticated users only)
-router.post('/', authenticate, async (req, res) => {
+// POST /api/groups - Create a new group (superadmin only)
+router.post('/', authenticate, requireRole('superadmin'), async (req, res) => {
   try {
     const { name, code, description, status, ownerId } = req.body
 
@@ -62,8 +71,8 @@ router.post('/', authenticate, async (req, res) => {
   }
 })
 
-// PATCH /api/groups/:id - Update a group (authenticated users only)
-router.patch('/:id', authenticate, async (req, res) => {
+// PATCH /api/groups/:id - Update a group (superadmin only)
+router.patch('/:id', authenticate, requireRole('superadmin'), async (req, res) => {
   try {
     const group = await Group.findByPk(req.params.id)
     if (!group) {
@@ -113,8 +122,8 @@ router.patch('/:id', authenticate, async (req, res) => {
   }
 })
 
-// DELETE /api/groups/:id - Delete a group (authenticated users only)
-router.delete('/:id', authenticate, async (req, res) => {
+// DELETE /api/groups/:id - Delete a group (superadmin only)
+router.delete('/:id', authenticate, requireRole('superadmin'), async (req, res) => {
   try {
     const group = await Group.findByPk(req.params.id)
     if (!group) {
@@ -128,9 +137,13 @@ router.delete('/:id', authenticate, async (req, res) => {
   }
 })
 
-// GET /api/groups/:id - Get a group by ID (authenticated users only)
+// GET /api/groups/:id - Get a group by ID (scoped by tenant)
 router.get('/:id', authenticate, async (req, res) => {
   try {
+    if (req.user.role !== 'superadmin' && req.user.group_id !== req.params.id) {
+      return res.status(403).json({ message: 'Access denied. You do not have permission to view this group.' })
+    }
+
     const group = await Group.findByPk(req.params.id, {
       include: [
         { model: Bus, as: 'buses', include: [{ model: Route, as: 'route', attributes: ['id', 'name'] }] },

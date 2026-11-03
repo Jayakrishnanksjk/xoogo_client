@@ -40,10 +40,15 @@ router.post('/login', async (req, res) => {
     user.last_login_at = new Date()
     await user.save()
 
+    if (!process.env.JWT_SECRET) {
+      console.error('FATAL: JWT_SECRET environment variable is missing.')
+      return res.status(500).json({ message: 'Internal server configuration error.' })
+    }
+
     // Sign JWT
     const token = jwt.sign(
       { id: user.id, role: user.role },
-      process.env.JWT_SECRET || 'super_secret_xoogo_token_key_123_abc',
+      process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     )
 

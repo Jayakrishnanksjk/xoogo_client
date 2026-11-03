@@ -18,20 +18,30 @@ function formatDate(date) {
 router.use(authenticate)
 router.use(requireRole('superadmin', 'admin'))
 
-// GET /api/users - List users with optional search filter
+// GET /api/users - List users with optional search filter (tenant-scoped for admin)
 router.get('/', async (req, res) => {
   try {
     const { search, role } = req.query
     let whereClause = {}
 
-    if (search) {
-      whereClause = {
-        [Op.or]: [
-          { full_name: { [Op.iLike]: `%${search}%` } },
-          { email: { [Op.iLike]: `%${search}%` } },
-          { phone: { [Op.iLike]: `%${search}%` } }
-        ]
+    if (req.user.role !== 'superadmin') {
+      if (!req.user.group_id) {
+        return res.json([])
       }
+      whereClause.group_id = req.user.group_id
+    }
+
+    if (search) {
+      whereClause[Op.and] = [
+        ...(whereClause[Op.and] || []),
+        {
+          [Op.or]: [
+            { full_name: { [Op.iLike]: `%${search}%` } },
+            { email: { [Op.iLike]: `%${search}%` } },
+            { phone: { [Op.iLike]: `%${search}%` } }
+          ]
+        }
+      ]
     }
 
     if (role) {
@@ -49,7 +59,6 @@ router.get('/', async (req, res) => {
       order: [['created_at', 'DESC']]
     })
 
-    // Map database models to match the frontend expectations
     const formattedUsers = users.map(user => {
       const uJson = user.toJSON()
       return {
@@ -81,6 +90,10 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ message: 'User not found.' })
     }
 
+    if (req.user.role !== 'superadmin' && user.group_id !== req.user.group_id) {
+      return res.status(403).json({ message: 'Access denied. You do not have permission to view this user.' })
+    }
+
     const uJson = user.toJSON()
     res.json({
       ...uJson,
@@ -93,13 +106,24 @@ router.get('/:id', async (req, res) => {
   }
 })
 
-// POST /api/users - Create a new user
+// POST /api/users - Create a new user (prevents privilege escalation)
 router.post('/', async (req, res) => {
   try {
     const { full_name, email, phone, password, role, status, group_id } = req.body
 
     if (!full_name || !email || !password) {
       return res.status(400).json({ message: 'Full name, email, and password are required.' })
+    }
+
+    // Role elevation prevention
+    if (role === 'superadmin' && req.user.role !== 'superadmin') {
+      return res.status(403).json({ message: 'Access denied. Only superadmins can create superadmin accounts.' })
+    }
+
+    // Tenant isolation for non-superadmin
+    const targetGroupId = req.user.role === 'superadmin' ? (group_id || null) : req.user.group_id
+    if (req.user.role !== 'superadmin' && group_id && group_id !== req.user.group_id) {
+      return res.status(403).json({ message: 'Access denied. You cannot create users for other groups.' })
     }
 
     // Check if email already exists
@@ -109,8 +133,8 @@ router.post('/', async (req, res) => {
     }
 
     // Validate group if provided
-    if (group_id) {
-      const group = await Group.findByPk(group_id)
+    if (targetGroupId) {
+      const group = await Group.findByPk(targetGroupId)
       if (!group) {
         return res.status(400).json({ message: 'Assigned group not found.' })
       }
@@ -123,7 +147,7 @@ router.post('/', async (req, res) => {
       password,
       role: role || 'partner',
       status: status || 'active',
-      group_id: group_id || null
+      group_id: targetGroupId
     })
 
     const userWithGroup = await User.findByPk(newUser.id, {
@@ -149,12 +173,25 @@ router.post('/', async (req, res) => {
   }
 })
 
-// PATCH /api/users/:id - Update user details
+// PATCH /api/users/:id - Update user details (prevents privilege escalation)
 router.patch('/:id', async (req, res) => {
   try {
     const user = await User.findByPk(req.params.id)
     if (!user) {
       return res.status(404).json({ message: 'User not found.' })
+    }
+
+    // Authorization checks for non-superadmin
+    if (req.user.role !== 'superadmin') {
+      if (user.group_id !== req.user.group_id || user.role === 'superadmin') {
+        return res.status(403).json({ message: 'Access denied. You cannot modify superadmins or users in other groups.' })
+      }
+      if (req.body.role === 'superadmin') {
+        return res.status(403).json({ message: 'Access denied. Only superadmins can assign the superadmin role.' })
+      }
+      if (req.body.group_id && req.body.group_id !== req.user.group_id) {
+        return res.status(403).json({ message: 'Access denied. You cannot transfer users to other groups.' })
+      }
     }
 
     const { full_name, email, phone, password, role, status, group_id } = req.body
@@ -180,10 +217,10 @@ router.patch('/:id', async (req, res) => {
     if (full_name) user.full_name = full_name
     if (phone !== undefined) user.phone = phone
     if (password) user.password = password
-    if (role) user.role = role
+    if (role && (req.user.role === 'superadmin' || role !== 'superadmin')) user.role = role
     if (status) user.status = status
     
-    if (group_id !== undefined) {
+    if (group_id !== undefined && req.user.role === 'superadmin') {
       if (group_id) {
         const group = await Group.findByPk(group_id)
         if (!group) {
@@ -226,6 +263,15 @@ router.delete('/:id', async (req, res) => {
     const user = await User.findByPk(req.params.id)
     if (!user) {
       return res.status(404).json({ message: 'User not found.' })
+    }
+
+    if (req.user.role !== 'superadmin') {
+      if (user.group_id !== req.user.group_id || user.role === 'superadmin') {
+        return res.status(403).json({ message: 'Access denied. You cannot delete this user.' })
+      }
+      if (user.id === req.user.id) {
+        return res.status(400).json({ message: 'You cannot delete your own account.' })
+      }
     }
 
     // Prevent deleting the last active superadmin

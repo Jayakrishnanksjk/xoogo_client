@@ -16,6 +16,9 @@ const port = process.env.PORT || 5000
 // Helper function to ensure database exists before starting Sequelize
 async function ensureDatabaseExists() {
   const dbName = process.env.DB_NAME || 'xoogo_dev'
+  if (!/^[a-zA-Z0-9_]+$/.test(dbName)) {
+    throw new Error(`Invalid database identifier: "${dbName}". Must contain only alphanumeric characters and underscores.`)
+  }
   const config = {
     host: process.env.DB_HOST || '127.0.0.1',
     port: parseInt(process.env.DB_PORT || '5432'),
@@ -56,6 +59,12 @@ async function ensureDatabaseExists() {
 
 async function startServer() {
   try {
+    if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 16) {
+      console.error('FATAL: JWT_SECRET environment variable is missing or too short (minimum 16 characters).')
+      console.error('Please configure a secure JWT_SECRET in your .env file or server environment.')
+      process.exit(1)
+    }
+
     if (process.env.NODE_ENV === 'production' && !process.env.DATABASE_URL && !process.env.DB_HOST) {
       console.error('FATAL: DATABASE_URL environment variable is not set.')
       console.error('Set it in your Render dashboard under Environment Variables.')

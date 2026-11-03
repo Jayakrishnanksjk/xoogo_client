@@ -13,7 +13,15 @@ router.get('/', async (req, res) => {
       include: [{ model: Bus, as: 'bus', attributes: ['id', 'regNumber', 'busId'] }],
       order: [['created_at', 'DESC']]
     })
-    res.json(keys)
+    const sanitized = keys.map(k => {
+      const json = k.toJSON()
+      const displayKey = k.key_prefix || (k.key && k.key.length > 14 ? `${k.key.slice(0, 10)}...${k.key.slice(-4)}` : k.key)
+      return {
+        ...json,
+        key: displayKey
+      }
+    })
+    res.json(sanitized)
   } catch (error) {
     console.error('List API keys error:', error)
     res.status(500).json({ message: 'Internal server error.' })
@@ -31,11 +39,22 @@ router.post('/generate', async (req, res) => {
       return res.status(404).json({ message: 'Bus not found.' })
     }
     const rawKey = 'bus_' + crypto.randomBytes(24).toString('hex')
-    const apiKey = await BusApiKey.create({ busId: bus.id, key: rawKey })
+    const keyHash = crypto.createHash('sha256').update(rawKey).digest('hex')
+    const keyPrefix = rawKey.slice(0, 10) + '...' + rawKey.slice(-4)
+
+    const apiKey = await BusApiKey.create({
+      busId: bus.id,
+      key: keyPrefix,
+      key_hash: keyHash,
+      key_prefix: keyPrefix,
+    })
     const full = await BusApiKey.findByPk(apiKey.id, {
       include: [{ model: Bus, as: 'bus', attributes: ['id', 'regNumber', 'busId'] }]
     })
-    res.status(201).json(full)
+    res.status(201).json({
+      ...full.toJSON(),
+      key: rawKey
+    })
   } catch (error) {
     console.error('Generate API key error:', error)
     res.status(500).json({ message: 'Internal server error.' })

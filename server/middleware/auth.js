@@ -8,8 +8,13 @@ export const authenticate = async (req, res, next) => {
       return res.status(401).json({ message: 'Authentication required. No token provided.' })
     }
 
+    if (!process.env.JWT_SECRET) {
+      console.error('FATAL: JWT_SECRET environment variable is missing.')
+      return res.status(500).json({ message: 'Internal server configuration error.' })
+    }
+
     const token = authHeader.split(' ')[1]
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'super_secret_xoogo_token_key_123_abc')
+    const decoded = jwt.verify(token, process.env.JWT_SECRET)
 
     const user = await User.findByPk(decoded.id, {
       include: {

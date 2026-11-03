@@ -4,7 +4,7 @@ import { Bus, Stop, BusAssignment, HistoricalEta, EventLog } from './models/inde
 dotenv.config()
 
 const BASE_URL = 'http://localhost:5000/api'
-const API_KEY = process.env.BUS_API_KEY || 'default_bus_key'
+const API_KEY = process.env.BUS_API_KEY || 'test_transit_key_for_local_testing'
 
 async function runTests() {
   console.log('🚀 Running Transit API tests...')

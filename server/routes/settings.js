@@ -16,42 +16,24 @@ if (!fs.existsSync(uploadsDir)) {
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadsDir),
   filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname)
-    cb(null, `logo${ext}`)
+    const ext = path.extname(file.originalname).toLowerCase();
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, `logo-${uniqueSuffix}${ext}`);
   },
-})
+});
 
 const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    const allowed = /\.(png|jpg|jpeg|gif|svg|webp)$/i
+    // Restrict to safe raster images; disallow SVG to prevent stored XSS via script execution
+    const allowed = /\.(png|jpg|jpeg|webp)$/i;
     if (allowed.test(path.extname(file.originalname))) {
-      cb(null, true)
+      cb(null, true);
     } else {
-      cb(new Error('Only image files (png, jpg, jpeg, gif, svg, webp) are allowed'))
+      cb(new Error('Only safe image files (png, jpg, jpeg, webp) are allowed. SVG is disallowed for security.'));
     }
   },
-})
-
-const router = Router()
-
-async function getOrCreateSettings() {
-  let settings = await BrandSetting.findByPk(1)
-  if (!settings) {
-    settings = await BrandSetting.create({ id: 1 })
-  }
-  return settings
-}
-
-router.get('/branding', async (req, res) => {
-  try {
-    const settings = await getOrCreateSettings()
-    res.json(settings)
-  } catch (error) {
-    console.error('Error fetching branding settings:', error)
-    res.status(500).json({ message: 'Failed to fetch branding settings' })
-  }
 })
 
 router.put('/branding',

@@ -1,60 +1,66 @@
 # Product Implementation Plan (`PLAN.md`)
 
 ## Goal & Scope Summary
-[Concise 2-sentence summary of the active iteration or product milestone.]
+Systematically resolve all security vulnerabilities identified in the Deepsec audit and align with `specs/MUST_NOT_TRADE_OFF.md`. Focus is on authentication hardening, cryptographic token hashing, multi-tenant isolation, file upload protection, and atomic transactions.
 
 ---
 
 ## Task Execution State
-- Current Active Phase: `Phase 0: Project Setup & Baseline Scaffolding`
-- Current Active Task: `Task 0.1: Project Scaffolding & Framework Selection`
-- Next Approval Gate: `Awaiting human confirmation on framework selection`
+- Current Active Phase: `Completed`
+- Current Active Task: `None (All security tasks completed & verified)`
+- Next Approval Gate: `Awaiting human review of completed security fixes`
 
 ---
 
-## Phase 0: Project Setup & Baseline Scaffolding
-> Focus: Environment, tooling, clean directory structure, and linting.
+## Phase 1: Critical Auth & Credential Hardening
+> Focus: Eliminate authentication bypass vectors and plaintext credential storage.
 
-- [ ] **Task 0.1: Project Scaffolding & Framework Selection**
-  - **Objective**: Initialize the base project (e.g. Next.js / Vite React TypeScript) in the root.
-  - **Verification**: Clean initial build (`npm run build`) passed with zero compilation errors.
-  - **Gate**: Stop and present check-in.
+- [x] **Task 1.1: Mandatory JWT Secret & Fail-Fast Boot Check**
+  - **Objective**: Remove hardcoded fallback JWT secret in `server/routes/auth.js` and `server/middleware/auth.js`. Add server startup check in `server/index.js` to fail fast if `JWT_SECRET` is missing.
+  - **Verification**: Clean AST and presence checks verifying zero fallback tokens and server boot guard.
+  - **Gate**: Passed.
 
----
-
-## Phase 1: Core Design System & Tokens
-> Focus: Token hierarchy and base components. No complex layouts until primitives exist.
-
-- [ ] **Task 1.1: Root Theme & Design Tokens Setup**
-  - **Objective**: Establish CSS variables and theme tokens matching `DESIGN.md`.
-  - **Verification**: Verify CSS compiles with all token variables accessible.
-  - **Gate**: Stop and present check-in.
-
-- [ ] **Task 1.2: Atomic Components - Button & Skeleton**
-  - **Objective**: Implement `Button` (with variants, loading state) and `Skeleton` in `src/components/ui/`.
-  - **Verification**: Type-check (`tsc`) and verify zero layout shifts with skeleton states.
-  - **Gate**: Stop and present check-in.
-
-- [ ] **Task 1.3: Atomic Components - Card & Layout Shell**
-  - **Objective**: Implement `Card` component and top-level container shell using the 8pt grid.
-  - **Verification**: Type-check and verify responsive padding (mobile `p-4`, desktop `p-8`).
-  - **Gate**: Stop and present check-in.
+- [x] **Task 1.2: Cryptographic API Key Hashing & Timing-Safe Verification**
+  - **Objective**: Eliminate `'default_bus_key'` fallback, migrate `BusApiKey` to SHA-256 hashed storage, return raw keys only once upon generation, and use `crypto.timingSafeEqual`.
+  - **Verification**: Verified SHA-256 hash lookup in `server/middleware/apiKeyAuth.js` and masked key listings in `server/routes/api-keys.js`.
+  - **Gate**: Passed.
 
 ---
 
-## Phase 2: Feature Implementation (Component-Driven)
-> Focus: Compose user views strictly using Phase 1 components. Zero raw CSS duplication.
+## Phase 2: Authorization & Multi-Tenant Isolation
+> Focus: Prevent cross-tenant data leaks and privilege escalation.
 
-- [ ] **Task 2.1: [Feature / View Name]**
-  - **Objective**: Build primary view strictly using `Card`, `Button`, and `Skeleton`.
-  - **Reused Components**: List all reused components from `src/components/ui/`.
-  - **Verification**: `npm run build` and `tsc` must pass cleanly with zero errors.
-  - **Gate**: Stop and present check-in.
+- [x] **Task 2.1: Group & Bus Multi-Tenant Scoping**
+  - **Objective**: Protect group mutations with `requireRole('superadmin')` and enforce `group_id` filtering on buses and groups for non-superadmin users.
+  - **Verification**: Verified role gate and `req.user.group_id` scoping in `server/routes/groups.js` and `server/routes/buses.js`.
+  - **Gate**: Passed.
+
+- [x] **Task 2.2: User Privilege Escalation Guards**
+  - **Objective**: Block `admin` users from creating or escalating accounts to `superadmin` or editing accounts outside their group in `server/routes/users.js`.
+  - **Verification**: Verified 403 authorization checks on role elevation and tenant boundaries.
+  - **Gate**: Passed.
 
 ---
 
-## Check-in Protocol (Strict Requirement)
-When reporting on a task:
-1. State the exact task completed: *"Completed Task X.X"*.
-2. Provide the 3-sentence summary (Outcome, Reused Components, Proof of Verification).
-3. Request explicit approval: *"Awaiting your confirmation to proceed to Task [Next]."*
+## Phase 3: Filesystem, Injection & Transaction Integrity
+> Focus: Path traversal, SVG/upload sanitization, SQL injection, and database transaction atomicity.
+
+- [x] **Task 3.1: Path Traversal Enclosure in Asset Server**
+  - **Objective**: Strictly constrain `/assets/*` path resolution within `distPath` in `server/app.js`.
+  - **Verification**: Verified path boundary enforcement with `path.resolve` and `fs.statSync.isFile`.
+  - **Gate**: Passed.
+
+- [x] **Task 3.2: Secure Upload Handling (SVG / Logo Sanitization)**
+  - **Objective**: Restrict logo uploads to safe formats or sanitize SVG inputs in `server/routes/settings.js`.
+  - **Verification**: Disallowed SVG in upload filter; added `nosniff` and CSP headers to static `/uploads`.
+  - **Gate**: Passed.
+
+- [x] **Task 3.3: DDL SQL Injection & Seeder Hardening**
+  - **Objective**: Enforce strict regex validation on database names in `CREATE DATABASE` queries and remove hardcoded seed passwords.
+  - **Verification**: Enforced `/^[a-zA-Z0-9_]+$/` validation on database identifiers and blocked mock seeder from production.
+  - **Gate**: Passed.
+
+- [x] **Task 3.4: Atomic Transactions for Route & Stop Mutations**
+  - **Objective**: Enforce `sequelize.transaction()` on multi-table stop updates and re-sequencing in `server/routes/routes.js`.
+  - **Verification**: Wrapped stop update, re-sequencing, and deletion handlers in atomic transactions.
+  - **Gate**: Passed.

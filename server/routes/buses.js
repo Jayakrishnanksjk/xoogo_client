@@ -17,13 +17,21 @@ const router = express.Router()
 
 router.use(authenticate)
 
-// GET /api/buses - Get all buses
+// GET /api/buses - Get all buses (tenant-isolated for non-superadmins)
 router.get('/', async (req, res) => {
   try {
     const { group_id, route_id, status } = req.query
     const whereClause = {}
 
-    if (group_id) whereClause.groupId = group_id
+    if (req.user.role !== 'superadmin') {
+      if (!req.user.group_id) {
+        return res.json([])
+      }
+      whereClause.groupId = req.user.group_id
+    } else if (group_id) {
+      whereClause.groupId = group_id
+    }
+
     if (route_id) whereClause.routeId = route_id
     if (status) whereClause.status = status
 
@@ -59,7 +67,16 @@ router.post('/', async (req, res) => {
       busId,
     } = req.body
 
-    if (!regNumber || !groupId || !simNumber || !busType || !contactName || !contactNumber) {
+    const targetGroupId = req.user.role === 'superadmin' ? groupId : req.user.group_id
+    if (!targetGroupId) {
+      return res.status(403).json({ message: 'User is not assigned to any group.' })
+    }
+
+    if (req.user.role !== 'superadmin' && groupId && groupId !== req.user.group_id) {
+      return res.status(403).json({ message: 'Cannot assign bus to another group.' })
+    }
+
+    if (!regNumber || !targetGroupId || !simNumber || !busType || !contactName || !contactNumber) {
       return res.status(400).json({ message: 'Required fields are missing.' })
     }
 
@@ -68,7 +85,7 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ message: 'A bus with this registration number already exists.' })
     }
 
-    const group = await Group.findByPk(groupId)
+    const group = await Group.findByPk(targetGroupId)
     if (!group) {
       return res.status(400).json({ message: 'Assigned group not found.' })
     }
@@ -82,7 +99,7 @@ router.post('/', async (req, res) => {
 
     const bus = await Bus.create({
       regNumber,
-      groupId,
+      groupId: targetGroupId,
       simNumber,
       busType,
       contactName,
@@ -98,7 +115,6 @@ router.post('/', async (req, res) => {
       include: [
         { model: Group, as: 'group', attributes: ['id', 'name'] },
         { model: Route, as: 'route', attributes: ['id', 'name'] },
-        { model: Schedule, as: 'schedules', attributes: ['id', 'name'], through: { attributes: [] } }
       ]
     })
 
@@ -122,6 +138,11 @@ router.get('/:id', async (req, res) => {
     if (!bus) {
       return res.status(404).json({ message: 'Bus not found.' })
     }
+
+    if (req.user.role !== 'superadmin' && bus.groupId !== req.user.group_id) {
+      return res.status(403).json({ message: 'Access denied. You do not have permission to view this bus.' })
+    }
+
     res.json(bus)
   } catch (error) {
     console.error('Get bus error:', error)
@@ -135,6 +156,10 @@ router.patch('/:id', async (req, res) => {
     const bus = await Bus.findByPk(req.params.id)
     if (!bus) {
       return res.status(404).json({ message: 'Bus not found.' })
+    }
+
+    if (req.user.role !== 'superadmin' && bus.groupId !== req.user.group_id) {
+      return res.status(403).json({ message: 'Access denied. You cannot modify a bus belonging to another group.' })
     }
 
     const {
@@ -160,6 +185,9 @@ router.patch('/:id', async (req, res) => {
     }
 
     if (groupId) {
+      if (req.user.role !== 'superadmin' && groupId !== req.user.group_id) {
+        return res.status(403).json({ message: 'Cannot transfer bus to another group.' })
+      }
       const group = await Group.findByPk(groupId)
       if (!group) {
         return res.status(400).json({ message: 'Assigned group not found.' })
@@ -210,6 +238,11 @@ router.delete('/:id', async (req, res) => {
     if (!bus) {
       return res.status(404).json({ message: 'Bus not found.' })
     }
+
+    if (req.user.role !== 'superadmin' && bus.groupId !== req.user.group_id) {
+      return res.status(403).json({ message: 'Access denied. You cannot delete a bus belonging to another group.' })
+    }
+
     await bus.destroy()
     res.json({ success: true, message: 'Bus deleted successfully.' })
   } catch (error) {

@@ -6,4 +6,6 @@ server/.env
 .DS_Store
 coverage
 server/uploads/
+.deepsec/
 uploads/
+.deepsec/
