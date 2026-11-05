@@ -12,6 +12,16 @@ const BusApiKey = sequelize.define('BusApiKey', {
     allowNull: false,
     field: 'bus_id',
   },
+  key_hash: {
+    type: DataTypes.STRING(64),
+    allowNull: true,
+    field: 'key_hash',
+  },
+  key_prefix: {
+    type: DataTypes.STRING(32),
+    allowNull: true,
+    field: 'key_prefix',
+  },
   key: {
     type: DataTypes.STRING,
     allowNull: false,

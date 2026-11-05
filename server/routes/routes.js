@@ -559,13 +559,20 @@ router.patch('/:id', authenticate, async (req, res) => {
 })
 
 router.patch('/:routeId/stops/:stopId', authenticate, async (req, res) => {
+  const t = await sequelize.transaction()
   try {
     const { name, name_ml, nameMl, latitude, longitude, lat, lng, district, state } = req.body
-    const link = await RouteStop.findOne({ where: { routeId: req.params.routeId, stopId: req.params.stopId } })
-    const legacy = await Stop.findOne({ where: { id: req.params.stopId, routeId: req.params.routeId } })
-    if (!link && !legacy) return res.status(404).json({ message: 'Stop not found.' })
-    const stop = await Stop.findByPk(req.params.stopId)
-    if (!stop) return res.status(404).json({ message: 'Stop not found.' })
+    const link = await RouteStop.findOne({ where: { routeId: req.params.routeId, stopId: req.params.stopId }, transaction: t })
+    const legacy = await Stop.findOne({ where: { id: req.params.stopId, routeId: req.params.routeId }, transaction: t })
+    if (!link && !legacy) {
+      await t.rollback()
+      return res.status(404).json({ message: 'Stop not found.' })
+    }
+    const stop = await Stop.findByPk(req.params.stopId, { transaction: t })
+    if (!stop) {
+      await t.rollback()
+      return res.status(404).json({ message: 'Stop not found.' })
+    }
     const updatedName = name !== undefined ? name : stop.name
     const updatedNameMl = name_ml !== undefined ? name_ml : (nameMl !== undefined ? nameMl : stop.nameMl)
     const updatedLat = lat ?? latitude ?? stop.latitude
@@ -573,19 +580,25 @@ router.patch('/:routeId/stops/:stopId', authenticate, async (req, res) => {
     const updatedDistrict = district !== undefined ? district : stop.district
     const updatedState = state !== undefined ? state : stop.state
     if (name !== undefined && name.trim().toLowerCase() !== stop.name.trim().toLowerCase()) {
-      const dup = await Stop.findOne({ where: sequelize.where(sequelize.fn('LOWER', sequelize.col('name')), name.trim().toLowerCase()) })
+      const dup = await Stop.findOne({
+        where: sequelize.where(sequelize.fn('LOWER', sequelize.col('name')), name.trim().toLowerCase()),
+        transaction: t
+      })
       if (dup && dup.id !== stop.id) {
-        await RouteStop.update({ stopId: dup.id }, { where: { routeId: req.params.routeId, stopId: stop.id } })
-        const others = await RouteStop.count({ where: { stopId: stop.id } })
-        const assignments = await sequelize.models.BusAssignment.count({ where: { stopId: stop.id } })
-        if (others === 0 && assignments === 0) await stop.destroy()
-        await dup.update({ name: updatedName, nameMl: updatedNameMl, latitude: updatedLat, longitude: updatedLng, district: updatedDistrict, state: updatedState })
+        await RouteStop.update({ stopId: dup.id }, { where: { routeId: req.params.routeId, stopId: stop.id }, transaction: t })
+        const others = await RouteStop.count({ where: { stopId: stop.id }, transaction: t })
+        const assignments = await sequelize.models.BusAssignment.count({ where: { stopId: stop.id }, transaction: t })
+        if (others === 0 && assignments === 0) await stop.destroy({ transaction: t })
+        await dup.update({ name: updatedName, nameMl: updatedNameMl, latitude: updatedLat, longitude: updatedLng, district: updatedDistrict, state: updatedState }, { transaction: t })
+        await t.commit()
         return res.json(dup)
       }
     }
-    await stop.update({ name: updatedName, nameMl: updatedNameMl, latitude: updatedLat, longitude: updatedLng, district: updatedDistrict, state: updatedState })
+    await stop.update({ name: updatedName, nameMl: updatedNameMl, latitude: updatedLat, longitude: updatedLng, district: updatedDistrict, state: updatedState }, { transaction: t })
+    await t.commit()
     res.json(stop)
   } catch (error) {
+    await t.rollback()
     console.error('Update stop error:', error)
     res.status(500).json({ message: 'Internal server error.' })
   }
@@ -628,22 +641,27 @@ router.post('/:routeId/stops', authenticate, async (req, res) => {
 })
 
 router.delete('/:routeId/stops/:stopId', authenticate, async (req, res) => {
+  const t = await sequelize.transaction()
   try {
-    const link = await RouteStop.findOne({ where: { routeId: req.params.routeId, stopId: req.params.stopId } })
-    const legacy = await Stop.findOne({ where: { id: req.params.stopId, routeId: req.params.routeId } })
+    const link = await RouteStop.findOne({ where: { routeId: req.params.routeId, stopId: req.params.stopId }, transaction: t })
+    const legacy = await Stop.findOne({ where: { id: req.params.stopId, routeId: req.params.routeId }, transaction: t })
     if (link) {
-      await link.destroy()
+      const deletedOrder = link.sequenceOrder
+      await link.destroy({ transaction: t })
       await RouteStop.update(
         { sequenceOrder: sequelize.literal('sequence_order - 1') },
-        { where: { routeId: req.params.routeId, sequenceOrder: { [Op.gt]: link.sequenceOrder } } }
+        { where: { routeId: req.params.routeId, sequenceOrder: { [Op.gt]: deletedOrder } }, transaction: t }
       )
     } else if (legacy) {
-      await legacy.destroy()
+      await legacy.destroy({ transaction: t })
     } else {
+      await t.rollback()
       return res.status(404).json({ message: 'Stop not found.' })
     }
+    await t.commit()
     res.json({ message: 'Stop deleted successfully.' })
   } catch (error) {
+    await t.rollback()
     console.error('Delete stop error:', error)
     res.status(500).json({ message: 'Internal server error.' })
   }
@@ -679,13 +697,19 @@ router.put('/:id/stops/reorder', authenticate, async (req, res) => {
 })
 
 router.delete('/:id', authenticate, async (req, res) => {
+  const t = await sequelize.transaction()
   try {
-    const route = await Route.findByPk(req.params.id)
-    if (!route) return res.status(404).json({ message: 'Route not found.' })
-    await RouteStop.destroy({ where: { routeId: route.id } })
-    await route.destroy()
+    const route = await Route.findByPk(req.params.id, { transaction: t })
+    if (!route) {
+      await t.rollback()
+      return res.status(404).json({ message: 'Route not found.' })
+    }
+    await RouteStop.destroy({ where: { routeId: route.id }, transaction: t })
+    await route.destroy({ transaction: t })
+    await t.commit()
     res.json({ message: 'Route deleted successfully.' })
   } catch (error) {
+    await t.rollback()
     console.error('Delete route error:', error)
     res.status(500).json({ message: 'Internal server error.' })
   }

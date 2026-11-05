@@ -47,7 +47,12 @@ app.use(express.static(distPath))
 
 // Serve uploaded files (logos, etc.)
 const uploadsPath = path.resolve(__dirname, 'uploads')
-app.use('/uploads', express.static(uploadsPath))
+app.use('/uploads', express.static(uploadsPath, {
+  setHeaders: (res) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff')
+    res.setHeader('Content-Security-Policy', "default-src 'none'")
+  }
+}))
 
 // API Routes
 app.use('/api/auth', authRoutes)
@@ -72,14 +77,20 @@ app.get('/api/health', (req, res) => {
   })
 })
 
-// Explicit asset fallback (catches any files express.static may miss on Render)
+// Explicit asset fallback (strictly enclosed to prevent path traversal)
 app.get('/assets/*', (req, res, next) => {
-  const filePath = path.join(distPath, req.path)
-  console.log(`[assets] ${req.path} -> ${filePath} exists: ${fs.existsSync(filePath)}`)
-  if (fs.existsSync(filePath)) {
-    return res.sendFile(filePath)
+  const safeRelative = path.normalize(req.path).replace(/^(\.\.[\/\\])+/, '');
+  const filePath = path.resolve(distPath, '.' + safeRelative);
+  const resolvedDist = path.resolve(distPath);
+
+  if (!filePath.startsWith(resolvedDist + path.sep) && filePath !== resolvedDist) {
+    return res.status(403).json({ message: 'Access denied.' });
   }
-  next()
+
+  if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+    return res.sendFile(filePath);
+  }
+  next();
 })
 
 // Serve index.html for all non-API routes (client-side routing)

@@ -32,7 +32,8 @@ router.get('/states', authenticate, async (req, res) => {
     })).sort((a, b) => a.name.localeCompare(b.name))
     res.json(states)
   } catch (error) {
-    res.status(500).json({ message: error.message })
+    console.error('Combine stops outer error:', error)
+    res.status(500).json({ message: 'Internal server error.' })
   }
 })
 
@@ -42,7 +43,8 @@ router.post('/states', authenticate, async (req, res) => {
     const state = await State.create({ name, status })
     res.json(state)
   } catch (error) {
-    res.status(500).json({ message: error.message })
+    console.error('Combine stops outer error:', error)
+    res.status(500).json({ message: 'Internal server error.' })
   }
 })
 
@@ -65,7 +67,8 @@ router.get('/districts', authenticate, async (req, res) => {
     districts.sort((a, b) => a.name.localeCompare(b.name))
     res.json(districts)
   } catch (error) {
-    res.status(500).json({ message: error.message })
+    console.error('Combine stops outer error:', error)
+    res.status(500).json({ message: 'Internal server error.' })
   }
 })
 
@@ -75,7 +78,8 @@ router.post('/districts', authenticate, async (req, res) => {
     const district = await District.create({ name, state_id, status })
     res.json(district)
   } catch (error) {
-    res.status(500).json({ message: error.message })
+    console.error('Combine stops outer error:', error)
+    res.status(500).json({ message: 'Internal server error.' })
   }
 })
 
@@ -85,7 +89,8 @@ router.get('/regions', authenticate, async (req, res) => {
     const regions = await Region.findAll({ order: [['name', 'ASC']] })
     res.json(regions)
   } catch (error) {
-    res.status(500).json({ message: error.message })
+    console.error('Combine stops outer error:', error)
+    res.status(500).json({ message: 'Internal server error.' })
   }
 })
 
@@ -95,7 +100,8 @@ router.post('/regions', authenticate, async (req, res) => {
     const region = await Region.create({ name, status })
     res.json(region)
   } catch (error) {
-    res.status(500).json({ message: error.message })
+    console.error('Combine stops outer error:', error)
+    res.status(500).json({ message: 'Internal server error.' })
   }
 })
 
@@ -119,7 +125,8 @@ router.get('/stops', authenticate, async (req, res) => {
     })
     res.json(stops)
   } catch (error) {
-    res.status(500).json({ message: error.message })
+    console.error('Combine stops outer error:', error)
+    res.status(500).json({ message: 'Internal server error.' })
   }
 })
 
@@ -159,7 +166,8 @@ router.post('/stops', authenticate, async (req, res) => {
 
     res.json(newStop)
   } catch (error) {
-    res.status(500).json({ message: error.message })
+    console.error('Combine stops outer error:', error)
+    res.status(500).json({ message: 'Internal server error.' })
   }
 })
 
@@ -200,7 +208,8 @@ router.put('/stops/:id', authenticate, async (req, res) => {
 
     res.json(updatedStop)
   } catch (error) {
-    res.status(500).json({ message: error.message })
+    console.error('Combine stops outer error:', error)
+    res.status(500).json({ message: 'Internal server error.' })
   }
 })
 
@@ -247,10 +256,12 @@ router.post('/stops/combine', authenticate, async (req, res) => {
       res.json({ message: 'Stops combined successfully.' })
     } catch (error) {
       await t.rollback()
-      res.status(500).json({ message: error.message })
+      console.error('Combine stops error:', error)
+      res.status(500).json({ message: 'Internal server error.' })
     }
   } catch (error) {
-    res.status(500).json({ message: error.message })
+    console.error('Combine stops outer error:', error)
+    res.status(500).json({ message: 'Internal server error.' })
   }
 })
 

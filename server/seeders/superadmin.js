@@ -8,12 +8,20 @@ import { User, Group } from '../models/index.js'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 dotenv.config({ path: path.resolve(__dirname, '../.env') })
 
+if (process.env.NODE_ENV === 'production') {
+  console.error('FATAL: Mock seeder script must not be executed in production environment.')
+  process.exit(1)
+}
+
 async function ensureDatabaseExists() {
   if (process.env.DATABASE_URL) {
     console.log('Using DATABASE_URL — skipping local DB creation check.')
     return
   }
   const dbName = process.env.DB_NAME || 'xoogo_dev'
+  if (!/^[a-zA-Z0-9_]+$/.test(dbName)) {
+    throw new Error(`Invalid database identifier: "${dbName}". Must contain only alphanumeric characters and underscores.`)
+  }
   const config = {
     host: process.env.DB_HOST || '127.0.0.1',
     port: parseInt(process.env.DB_PORT || '5432'),
@@ -55,7 +63,7 @@ const MOCK_USERS = [
     full_name: 'Akhil Pavithran',
     email: 'akhil@xoogo.com',
     phone: '+91 99955 51122',
-    password: 'Admin@123',
+    password: process.env.SEED_SUPERADMIN_PASSWORD || 'Admin@123',
     role: 'superadmin',
     status: 'active'
   },

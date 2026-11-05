@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { Bus, Group, Route, Stop, Schedule, BusSchedule, ScheduleRoute } from '../models/index.js'
-import BusApiKey from '../models/BusApiKey.js'
+import apiKeyAuth from '../middleware/apiKeyAuth.js'
 import { Op } from 'sequelize'
 
 const router = Router()
@@ -15,28 +15,9 @@ async function resolveBus(busIdOrUuid) {
   return Bus.findOne({ where: { busId: { [Op.iLike]: busIdOrUuid } } })
 }
 
-async function authenticateApiKey(req, res, next) {
-  try {
-    const authHeader = req.headers.authorization
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ message: 'API key required. Use Authorization: Bearer <key>' })
-    }
-    const token = authHeader.split(' ')[1]
-    const apiKey = await BusApiKey.findOne({ where: { key: token, status: 'active' } })
-    if (!apiKey) {
-      return res.status(401).json({ message: 'Invalid or revoked API key.' })
-    }
-    apiKey.lastUsedAt = new Date()
-    await apiKey.save()
-    req.apiKey = apiKey
-    next()
-  } catch (error) {
-    console.error('API key auth error:', error)
-    res.status(500).json({ message: 'Internal server error.' })
-  }
-}
 
-router.post('/bus', authenticateApiKey, async (req, res) => {
+
+router.post('/bus', apiKeyAuth, async (req, res) => {
   try {
     const { busId } = req.body
     if (!busId) {
@@ -68,7 +49,7 @@ router.post('/bus', authenticateApiKey, async (req, res) => {
   }
 })
 
-router.post('/bus-routes', authenticateApiKey, async (req, res) => {
+router.post('/bus-routes', apiKeyAuth, async (req, res) => {
   try {
     const { busId } = req.body
     if (!busId) {
@@ -140,7 +121,7 @@ router.post('/bus-routes', authenticateApiKey, async (req, res) => {
   }
 })
 
-router.post('/bus-schedule', authenticateApiKey, async (req, res) => {
+router.post('/bus-schedule', apiKeyAuth, async (req, res) => {
   try {
     const { busId } = req.body
     if (!busId) {
