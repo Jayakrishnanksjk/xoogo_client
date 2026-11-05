@@ -1,14 +1,18 @@
-import dotenv from 'dotenv'
-dotenv.config()
-
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import dotenv from 'dotenv'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+// Load environment variables from server/.env, root .env, or PM2 cwd
+dotenv.config({ path: path.resolve(__dirname, '.env') })
+dotenv.config({ path: path.resolve(__dirname, '../.env') })
+dotenv.config()
+
 import pg from 'pg'
 import app from './app.js'
 import sequelize from './config/database.js'
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const pkg = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../package.json'), 'utf8'))
 
 const port = process.env.PORT || 5000
