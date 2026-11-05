@@ -5,7 +5,7 @@ import { authenticate } from '../middleware/auth.js'
 
 function generateBusId(regNumber) {
   let hash = 5381
-  const str = `${regNumber}-${Date.now()}`
+  const str = String(regNumber).trim()
   for (let i = 0; i < str.length; i++) {
     hash = ((hash << 5) + hash) + str.charCodeAt(i)
     hash |= 0

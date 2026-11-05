@@ -74,10 +74,14 @@ async function startServer() {
     await sequelize.authenticate()
     console.log('Database connection has been established successfully.')
 
-    // Sync models (creates tables in development if not present)
-    console.log('Syncing database models...')
-    await sequelize.sync({ alter: true })
-    console.log('All models were synchronized successfully.')
+    // Sync models — only use alter in development; in production, run migrations instead
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('Syncing database models (dev mode — alter: true)...')
+      await sequelize.sync({ alter: true })
+      console.log('All models were synchronized successfully.')
+    } else {
+      console.log('Production mode — skipping schema sync (use migrations for schema changes).')
+    }
 
     try {
       const { deduplicateStops } = await import('./scripts/deduplicateStops.js')

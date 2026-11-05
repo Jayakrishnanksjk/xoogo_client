@@ -59,6 +59,7 @@ const Bus = sequelize.define('Bus', {
   busId: {
     type: DataTypes.STRING,
     allowNull: true,
+    unique: true,
     field: 'bus_id',
   },
 }, {
